@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   AuthSessionData,
   Company,
+  CreateEmailConfigInput,
   CreateCrmPayload,
   CreateGroupPayload,
   CreateLeadPayload,
@@ -12,7 +13,17 @@ import type {
   CreateStepPayload,
   CreateSubscriptionPayload,
   CreateUserPayload,
+  LeadStepChangePage,
+  LeadSource,
+  LeadSourcesReport,
+  DashboardSummary,
+  GroupSend,
+  GroupSendPage,
+  GroupSendRecipientsPage,
   Crm,
+  CrmDashboardReport,
+  CrmsComparisonReport,
+  EmailConfig,
   Group,
   Invoice,
   Lead,
@@ -26,6 +37,7 @@ import type {
   Subscription,
   UpdateCompanyPayload,
   UpdateCrmPayload,
+  UpdateEmailConfigInput,
   UpdateGroupPayload,
   UpdateLeadPayload,
   UpdatePlanPayload,
@@ -136,10 +148,26 @@ export async function updateCompany(payload: UpdateCompanyPayload): Promise<Comp
   return res.data.data;
 }
 
+export interface PaginatedMeta {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+  from: number | null;
+  to: number | null;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginatedMeta;
+}
+
 // --- Users ---
-export async function listUsers(): Promise<User[]> {
-  const res = await apiClient.get<ApiResponse<User[]>>('/users');
-  return res.data.data;
+export async function listUsers(page = 1, perPage = 25): Promise<PaginatedResponse<User>> {
+  const res = await apiClient.get<PaginatedResponse<User>>('/users', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getUser(id: number): Promise<User> {
@@ -162,9 +190,11 @@ export async function deleteUser(id: number): Promise<void> {
 }
 
 // --- CRMs ---
-export async function listCrms(): Promise<Crm[]> {
-  const res = await apiClient.get<ApiResponse<Crm[]>>('/crms');
-  return res.data.data;
+export async function listCrms(page = 1, perPage = 25): Promise<PaginatedResponse<Crm>> {
+  const res = await apiClient.get<PaginatedResponse<Crm>>('/crms', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getCrm(id: number): Promise<Crm> {
@@ -182,14 +212,29 @@ export async function updateCrm(id: number, payload: UpdateCrmPayload): Promise<
   return res.data.data;
 }
 
+export async function regenerateCrmToken(id: number): Promise<Crm> {
+  const res = await apiClient.post<ApiResponse<Crm>>(`/crms/${id}/regenerate-token`);
+  return res.data.data;
+}
+
+export async function reorderSteps(crmId: number, orderedStepIds: number[]): Promise<void> {
+  await apiClient.put(`/crms/${crmId}/steps/reorder`, { step_ids: orderedStepIds });
+}
+
 export async function deleteCrm(id: number): Promise<void> {
   await apiClient.delete(`/crms/${id}`);
 }
 
 // --- Steps ---
-export async function listSteps(crmId: number): Promise<Step[]> {
-  const res = await apiClient.get<ApiResponse<Step[]>>(`/crms/${crmId}/steps`);
-  return res.data.data;
+export async function listSteps(
+  crmId: number,
+  page = 1,
+  perPage = 25,
+): Promise<PaginatedResponse<Step>> {
+  const res = await apiClient.get<PaginatedResponse<Step>>(`/crms/${crmId}/steps`, {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function createStep(crmId: number, payload: CreateStepPayload): Promise<Step> {
@@ -206,12 +251,35 @@ export async function deleteStep(stepId: number): Promise<void> {
   await apiClient.delete(`/steps/${stepId}`);
 }
 
-// --- Leads ---
-export async function listLeads(stepId?: number): Promise<Lead[]> {
-  const res = await apiClient.get<ApiResponse<Lead[]>>('/leads', {
-    params: stepId ? { step_id: stepId } : undefined,
+export interface StepWithCrm {
+  id: number;
+  name: string;
+  position: number;
+  crm_id: number;
+  crm_name: string;
+}
+
+export async function listStepsAll(crmId?: number): Promise<StepWithCrm[]> {
+  const res = await apiClient.get<{ data: StepWithCrm[] }>('/steps', {
+    params: crmId !== undefined ? { crm_id: crmId } : {},
   });
   return res.data.data;
+}
+
+// --- Leads ---
+export async function listLeads(
+  stepId: number | undefined,
+  page = 1,
+  perPage = 25,
+  search?: string,
+  crmId?: number,
+): Promise<PaginatedResponse<Lead>> {
+  const params: Record<string, string | number> = { page, per_page: perPage };
+  if (stepId !== undefined) params.step_id = stepId;
+  if (search) params.search = search;
+  if (crmId !== undefined) params.crm_id = crmId;
+  const res = await apiClient.get<PaginatedResponse<Lead>>('/leads', { params });
+  return res.data;
 }
 
 export async function getLead(id: number): Promise<Lead> {
@@ -233,17 +301,29 @@ export async function deleteLead(id: number): Promise<void> {
   await apiClient.delete(`/leads/${id}`);
 }
 
-export async function updateLeadStep(id: number, stepId: number): Promise<Lead> {
+export async function updateLeadStep(
+  id: number,
+  stepId: number,
+  options: { previousId?: number | null; nextId?: number | null } = {},
+): Promise<Lead> {
   const res = await apiClient.patch<ApiResponse<Lead>>(`/leads/${id}/step`, {
     step_id: stepId,
+    previous_id: options.previousId ?? null,
+    next_id: options.nextId ?? null,
   });
   return res.data.data;
 }
 
 // --- Sending Templates ---
-export async function listSendingTemplates(): Promise<SendingTemplate[]> {
-  const res = await apiClient.get<ApiResponse<SendingTemplate[]>>('/sending-templates');
-  return res.data.data;
+export async function listSendingTemplates(
+  page = 1,
+  perPage = 25,
+  search?: string,
+): Promise<PaginatedResponse<SendingTemplate>> {
+  const res = await apiClient.get<PaginatedResponse<SendingTemplate>>('/sending-templates', {
+    params: search ? { page, per_page: perPage, search } : { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getSendingTemplate(id: number): Promise<SendingTemplate> {
@@ -271,9 +351,14 @@ export async function deleteSendingTemplate(id: number): Promise<void> {
 }
 
 // --- Groups ---
-export async function listGroups(): Promise<Group[]> {
-  const res = await apiClient.get<ApiResponse<Group[]>>('/groups');
-  return res.data.data;
+export async function listGroups(
+  page = 1,
+  perPage = 25,
+): Promise<PaginatedResponse<Group>> {
+  const res = await apiClient.get<PaginatedResponse<Group>>('/groups', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getGroup(id: number): Promise<Group> {
@@ -295,10 +380,116 @@ export async function deleteGroup(id: number): Promise<void> {
   await apiClient.delete(`/groups/${id}`);
 }
 
-// --- Plans ---
-export async function listPlans(): Promise<Plan[]> {
-  const res = await apiClient.get<ApiResponse<Plan[]>>('/plans');
+export async function getGroupLeads(id: number): Promise<Lead[]> {
+  const res = await apiClient.get<ApiResponse<Lead[]>>(`/groups/${id}/leads`);
   return res.data.data;
+}
+
+export async function getLeadStepChanges(
+  crmId: number,
+  page = 1,
+  perPage = 25,
+): Promise<LeadStepChangePage> {
+  const res = await apiClient.get<ApiResponse<LeadStepChangePage>>(
+    `/crms/${crmId}/lead-step-changes`,
+    { params: { page, per_page: perPage } },
+  );
+  return res.data.data;
+}
+
+export async function getLeadSourcesReport(): Promise<LeadSourcesReport> {
+  const res = await apiClient.get<ApiResponse<LeadSourcesReport>>('/reports/lead-sources');
+  return res.data.data;
+}
+
+export async function getCrmDashboard(crmId: number): Promise<CrmDashboardReport> {
+  const res = await apiClient.get<ApiResponse<CrmDashboardReport>>(`/crms/${crmId}/dashboard`);
+  return res.data.data;
+}
+
+export async function getCrmsComparison(): Promise<CrmsComparisonReport> {
+  const res = await apiClient.get<ApiResponse<CrmsComparisonReport>>('/reports/crms-comparison');
+  return res.data.data;
+}
+
+export async function getLeadSource(leadId: number): Promise<LeadSource> {
+  const res = await apiClient.get<ApiResponse<LeadSource>>(`/leads/${leadId}/source`);
+  return res.data.data;
+}
+
+export async function syncGroupLeads(id: number, leadIds: number[]): Promise<void> {
+  await apiClient.put(`/groups/${id}/leads`, { lead_ids: leadIds });
+}
+
+// --- Group Sends (campaigns) ---
+export async function sendGroupEmails(id: number): Promise<GroupSend> {
+  const res = await apiClient.post<ApiResponse<GroupSend>>(`/groups/${id}/send`);
+  return res.data.data;
+}
+
+export async function listGroupSends(
+  id: number,
+  page = 1,
+  perPage = 10,
+): Promise<GroupSendPage> {
+  const res = await apiClient.get<ApiResponse<GroupSendPage>>(`/groups/${id}/sends`, {
+    params: { page, per_page: perPage },
+  });
+  return res.data.data;
+}
+
+export async function listGroupSendRecipients(
+  id: number,
+  sendId: number,
+  page = 1,
+  perPage = 25,
+): Promise<GroupSendRecipientsPage> {
+  const res = await apiClient.get<ApiResponse<GroupSendRecipientsPage>>(
+    `/groups/${id}/sends/${sendId}/recipients`,
+    { params: { page, per_page: perPage } },
+  );
+  return res.data.data;
+}
+
+// --- Email Configs ---
+export async function listEmailConfigs(
+  page = 1,
+  perPage = 25,
+): Promise<PaginatedResponse<EmailConfig>> {
+  const res = await apiClient.get<PaginatedResponse<EmailConfig>>('/email-configs', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
+}
+
+export async function getEmailConfig(id: number): Promise<EmailConfig> {
+  const res = await apiClient.get<ApiResponse<EmailConfig>>(`/email-configs/${id}`);
+  return res.data.data;
+}
+
+export async function createEmailConfig(payload: CreateEmailConfigInput): Promise<EmailConfig> {
+  const res = await apiClient.post<ApiResponse<EmailConfig>>('/email-configs', payload);
+  return res.data.data;
+}
+
+export async function updateEmailConfig(
+  id: number,
+  payload: UpdateEmailConfigInput,
+): Promise<EmailConfig> {
+  const res = await apiClient.put<ApiResponse<EmailConfig>>(`/email-configs/${id}`, payload);
+  return res.data.data;
+}
+
+export async function deleteEmailConfig(id: number): Promise<void> {
+  await apiClient.delete(`/email-configs/${id}`);
+}
+
+// --- Plans ---
+export async function listPlans(page = 1, perPage = 25): Promise<PaginatedResponse<Plan>> {
+  const res = await apiClient.get<PaginatedResponse<Plan>>('/plans', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getPlan(id: number): Promise<Plan> {
@@ -320,10 +511,18 @@ export async function deletePlan(id: number): Promise<void> {
   await apiClient.delete(`/plans/${id}`);
 }
 
-// --- Subscriptions ---
-export async function listSubscriptions(): Promise<Subscription[]> {
-  const res = await apiClient.get<ApiResponse<Subscription[]>>('/subscriptions');
+// --- Dashboard ---
+export async function getDashboardSummary(): Promise<DashboardSummary> {
+  const res = await apiClient.get<ApiResponse<DashboardSummary>>('/dashboard/summary');
   return res.data.data;
+}
+
+// --- Subscriptions ---
+export async function listSubscriptions(page = 1, perPage = 25): Promise<PaginatedResponse<Subscription>> {
+  const res = await apiClient.get<PaginatedResponse<Subscription>>('/subscriptions', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getSubscription(id: number): Promise<Subscription> {
@@ -344,9 +543,11 @@ export async function cancelSubscription(id: number): Promise<Subscription> {
 }
 
 // --- Invoices ---
-export async function listInvoices(): Promise<Invoice[]> {
-  const res = await apiClient.get<ApiResponse<Invoice[]>>('/invoices');
-  return res.data.data;
+export async function listInvoices(page = 1, perPage = 25): Promise<PaginatedResponse<Invoice>> {
+  const res = await apiClient.get<PaginatedResponse<Invoice>>('/invoices', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function getInvoice(id: number): Promise<Invoice> {
@@ -360,9 +561,11 @@ export async function payInvoice(id: number): Promise<Invoice> {
 }
 
 // --- Payment Methods ---
-export async function listPaymentMethods(): Promise<PaymentMethod[]> {
-  const res = await apiClient.get<ApiResponse<PaymentMethod[]>>('/payment-methods');
-  return res.data.data;
+export async function listPaymentMethods(page = 1, perPage = 25): Promise<PaginatedResponse<PaymentMethod>> {
+  const res = await apiClient.get<PaginatedResponse<PaymentMethod>>('/payment-methods', {
+    params: { page, per_page: perPage },
+  });
+  return res.data;
 }
 
 export async function createPaymentMethod(

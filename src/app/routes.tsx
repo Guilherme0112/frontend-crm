@@ -6,9 +6,15 @@ import { RegisterPage } from '@/src/features/auth/RegisterPage';
 import { DashboardPage } from '@/src/features/dashboard/DashboardPage';
 import { CrmsPage } from '@/src/features/crm/CrmsPage';
 import { CrmBoardPage } from '@/src/features/crm/CrmBoardPage';
+import { IntegrationPage } from '@/src/features/crm-integration/IntegrationPage';
 import { LeadDetailPage } from '@/src/features/leads/LeadDetailPage';
 import { SendingTemplatesPage } from '@/src/features/templates/SendingTemplatesPage';
 import { GroupsPage } from '@/src/features/groups/GroupsPage';
+import { GroupPage } from '@/src/features/groups/GroupPage';
+import { CrmAuditPage } from '@/src/features/audit/CrmAuditPage';
+import { CrmDashboardPage } from '@/src/features/dashboard/CrmDashboardPage';
+import { CrmsOverviewPage } from '@/src/features/dashboard/CrmsOverviewPage';
+import { EmailConfigsPage } from '@/src/features/email-configs/EmailConfigsPage';
 import { BillingPage } from '@/src/features/billing/BillingPage';
 import { InvoicesPage } from '@/src/features/billing/InvoicesPage';
 import { CompanyPage } from '@/src/features/company/CompanyPage';
@@ -25,10 +31,16 @@ export function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/crms" element={<CrmsPage />} />
+          <Route path="/crms/dashboard" element={<CrmsOverviewPage />} />
           <Route path="/crms/:id/board" element={<CrmBoardPage />} />
+          <Route path="/crms/:id/integration" element={<IntegrationPage />} />
+          <Route path="/crms/:id/audit" element={<CrmAuditPage />} />
+          <Route path="/crms/:id/dashboard" element={<CrmDashboardPage />} />
           <Route path="/leads/:id" element={<LeadDetailPage />} />
           <Route path="/sending-templates" element={<SendingTemplatesPage />} />
           <Route path="/groups" element={<GroupsPage />} />
+          <Route path="/groups/:id" element={<GroupPage />} />
+          <Route path="/email-configs" element={<EmailConfigsPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/company" element={<CompanyPage />} />

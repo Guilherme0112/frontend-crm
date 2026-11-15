@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Megaphone, Trash2 } from 'lucide-react';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { Skeleton } from '@/src/components/common/Skeleton';
@@ -11,7 +11,14 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
-import { useDeleteLeadMutation, useLeadQuery, useUpdateLeadMutation } from './hooks';
+import {
+  useDeleteLeadMutation,
+  useLeadQuery,
+  useLeadSourceQuery,
+  useUpdateLeadMutation,
+} from './hooks';
+import { useStepsQuery } from '@/src/features/crm/hooks';
+import { Autocomplete } from '@/src/components/common/Autocomplete';
 
 const leadDetailSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do lead'),
@@ -31,10 +38,17 @@ const leadDetailSchema = z.object({
       message: 'Informe uma URL iniciando com http:// ou https://',
     }),
   step_id: z
-    .number({ message: 'Informe o ID da etapa' })
+    .number({ message: 'Selecione uma etapa' })
     .int()
-    .min(1, 'Informe o ID da etapa'),
+    .min(1, 'Selecione uma etapa'),
   description: z.string().optional(),
+  utm_source: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
+  utm_medium: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
+  utm_campaign: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
+  utm_term: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
+  utm_content: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
+  referrer: z.string().trim().max(512, 'Máximo de 512 caracteres').optional(),
+  landing_page: z.string().trim().max(512, 'Máximo de 512 caracteres').optional(),
 });
 
 type LeadDetailFormValues = z.infer<typeof leadDetailSchema>;
@@ -45,9 +59,14 @@ export function LeadDetailPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const leadQuery = useLeadQuery(leadId);
+  const leadSourceQuery = useLeadSourceQuery(leadId);
   const updateMutation = useUpdateLeadMutation();
   const deleteMutation = useDeleteLeadMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const stepsQuery = useStepsQuery(
+    leadQuery.data?.crm_id ?? 0,
+    Boolean(leadQuery.data?.crm_id),
+  );
 
   const {
     register,
@@ -62,6 +81,7 @@ export function LeadDetailPage() {
 
   useEffect(() => {
     if (leadQuery.data) {
+      const source = leadSourceQuery.data;
       reset({
         name: leadQuery.data.name,
         email: leadQuery.data.email,
@@ -69,9 +89,16 @@ export function LeadDetailPage() {
         website: leadQuery.data.website ?? '',
         step_id: leadQuery.data.step_id,
         description: leadQuery.data.description ?? '',
+        utm_source: source?.utm_source ?? '',
+        utm_medium: source?.utm_medium ?? '',
+        utm_campaign: source?.utm_campaign ?? '',
+        utm_term: source?.utm_term ?? '',
+        utm_content: source?.utm_content ?? '',
+        referrer: source?.referrer ?? '',
+        landing_page: source?.landing_page ?? '',
       });
     }
-  }, [leadQuery.data, reset]);
+  }, [leadQuery.data, leadSourceQuery.data, reset]);
 
   const onSubmit = async (values: LeadDetailFormValues) => {
     try {
@@ -84,6 +111,13 @@ export function LeadDetailPage() {
           website: values.website?.trim() || null,
           step_id: values.step_id,
           description: values.description?.trim() || null,
+          utm_source: values.utm_source?.trim() || null,
+          utm_medium: values.utm_medium?.trim() || null,
+          utm_campaign: values.utm_campaign?.trim() || null,
+          utm_term: values.utm_term?.trim() || null,
+          utm_content: values.utm_content?.trim() || null,
+          referrer: values.referrer?.trim() || null,
+          landing_page: values.landing_page?.trim() || null,
         },
       });
       toast.success('Lead atualizado com sucesso');
@@ -108,7 +142,7 @@ export function LeadDetailPage() {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <Skeleton className="h-8 w-48" />
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
@@ -124,10 +158,10 @@ export function LeadDetailPage() {
       <div className="mx-auto max-w-2xl space-y-4">
         <Link
           to="/crms"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Voltar para pipelines</span>
+          <span>Voltar para CRMs</span>
         </Link>
         <ErrorState
           title="Lead não encontrado"
@@ -146,30 +180,35 @@ export function LeadDetailPage() {
         <div>
           <Link
             to="/crms"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Voltar para pipelines</span>
+            <span>Voltar para CRMs</span>
           </Link>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             {lead.name}
           </h1>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            Lead #{lead.id} · Criado em {formatDateTime(lead.created_at)}
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            {[
+              lead.step_name ? `Etapa: ${lead.step_name}` : null,
+              `Criado em ${formatDateTime(lead.created_at)}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => setConfirmOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-slate-900 dark:text-red-400 dark:hover:bg-red-950/40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-[#17171a] dark:text-red-400 dark:hover:bg-red-950/40"
         >
           <Trash2 className="h-4 w-4" />
           <span>Excluir lead</span>
         </button>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <FormField label="Nome" htmlFor="lead-name" required error={errors.name?.message}>
             <input
@@ -208,13 +247,21 @@ export function LeadDetailPage() {
               />
             </FormField>
 
-            <FormField label="ID da etapa" htmlFor="lead-step" required error={errors.step_id?.message}>
-              <input
-                id="lead-step"
-                type="number"
-                min={1}
-                className={inputClassName(Boolean(errors.step_id))}
-                {...register('step_id', { valueAsNumber: true })}
+            <FormField label="Etapa" htmlFor="lead-step" required error={errors.step_id?.message}>
+              <Controller
+                name="step_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    id="lead-step"
+                    value={field.value > 0 ? String(field.value) : ''}
+                    onChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
+                    placeholder="Selecione uma etapa..."
+                    emptyMessage="Nenhuma etapa encontrada"
+                    hasError={Boolean(errors.step_id)}
+                    options={stepsQuery.items.map((step) => ({ value: String(step.id), label: step.name }))}
+                  />
+                )}
               />
             </FormField>
           </div>
@@ -238,7 +285,79 @@ export function LeadDetailPage() {
             />
           </FormField>
 
-          <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+          <fieldset className="space-y-3 rounded-xl border border-zinc-950/[0.07] p-4 dark:border-white/[0.07]">
+            <legend className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+              <Megaphone className="h-3.5 w-3.5" strokeWidth={1.8} />
+              Origem (UTM)
+            </legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField label="Source (ex: google)" htmlFor="lead-utm-source" error={errors.utm_source?.message}>
+                <input
+                  id="lead-utm-source"
+                  type="text"
+                  placeholder="google"
+                  className={`${inputClassName(Boolean(errors.utm_source))} font-mono`}
+                  {...register('utm_source')}
+                />
+              </FormField>
+              <FormField label="Medium (ex: cpc)" htmlFor="lead-utm-medium" error={errors.utm_medium?.message}>
+                <input
+                  id="lead-utm-medium"
+                  type="text"
+                  placeholder="cpc"
+                  className={`${inputClassName(Boolean(errors.utm_medium))} font-mono`}
+                  {...register('utm_medium')}
+                />
+              </FormField>
+              <FormField label="Campaign" htmlFor="lead-utm-campaign" error={errors.utm_campaign?.message}>
+                <input
+                  id="lead-utm-campaign"
+                  type="text"
+                  placeholder="lancamento-2026"
+                  className={`${inputClassName(Boolean(errors.utm_campaign))} font-mono`}
+                  {...register('utm_campaign')}
+                />
+              </FormField>
+              <FormField label="Term" htmlFor="lead-utm-term" error={errors.utm_term?.message}>
+                <input
+                  id="lead-utm-term"
+                  type="text"
+                  placeholder="palavra-chave"
+                  className={`${inputClassName(Boolean(errors.utm_term))} font-mono`}
+                  {...register('utm_term')}
+                />
+              </FormField>
+              <FormField label="Content" htmlFor="lead-utm-content" error={errors.utm_content?.message}>
+                <input
+                  id="lead-utm-content"
+                  type="text"
+                  placeholder="cta-azul"
+                  className={`${inputClassName(Boolean(errors.utm_content))} font-mono`}
+                  {...register('utm_content')}
+                />
+              </FormField>
+              <FormField label="Referrer" htmlFor="lead-referrer" error={errors.referrer?.message}>
+                <input
+                  id="lead-referrer"
+                  type="text"
+                  placeholder="https://google.com"
+                  className={`${inputClassName(Boolean(errors.referrer))} font-mono`}
+                  {...register('referrer')}
+                />
+              </FormField>
+            </div>
+            <FormField label="Landing page" htmlFor="lead-landing-page" error={errors.landing_page?.message}>
+              <input
+                id="lead-landing-page"
+                type="url"
+                placeholder="https://site.com.br/lp"
+                className={`${inputClassName(Boolean(errors.landing_page))} font-mono`}
+                {...register('landing_page')}
+              />
+            </FormField>
+          </fieldset>
+
+          <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
             <button
               type="submit"
               disabled={updateMutation.isPending || !isDirty}

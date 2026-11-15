@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import type {
@@ -6,10 +6,13 @@ import type {
   UpdateSendingTemplatePayload,
 } from '@/src/lib/types';
 
-export function useSendingTemplatesQuery() {
+const TEMPLATES_PER_PAGE = 10;
+
+export function useSendingTemplatesQuery(page = 1, perPage = TEMPLATES_PER_PAGE, search = '') {
   return useQuery({
-    queryKey: queryKeys.templates.all,
-    queryFn: api.listSendingTemplates,
+    queryKey: queryKeys.templates.list(page, perPage, search),
+    queryFn: () => api.listSendingTemplates(page, perPage, search || undefined),
+    placeholderData: keepPreviousData,
   });
 }
 

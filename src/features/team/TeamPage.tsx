@@ -7,12 +7,13 @@ import {
   useCreateUserMutation,
   useDeleteUserMutation,
   useUpdateUserMutation,
-  useUsersQuery,
+  useUsersInfiniteQuery,
 } from './hooks';
 import { useAuth } from '@/src/auth/AuthContext';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { LoadMoreButton } from '@/src/components/common/LoadMoreButton';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -66,7 +67,7 @@ type UserFormValues = {
 export function TeamPage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const usersQuery = useUsersQuery();
+  const usersQuery = useUsersInfiniteQuery();
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
   const deleteMutation = useDeleteUserMutation();
@@ -167,16 +168,16 @@ export function TeamPage() {
     }
   };
 
-  const users = usersQuery.data ?? [];
+  const users = usersQuery.items ?? [];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Equipe
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Gerencie os usuários da sua empresa, status de acesso e permissões.
           </p>
         </div>
@@ -192,7 +193,7 @@ export function TeamPage() {
       </div>
 
       {usersQuery.isPending ? (
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
           <TableRowsSkeleton rows={4} cols={5} />
         </div>
       ) : usersQuery.isError ? (
@@ -205,7 +206,7 @@ export function TeamPage() {
         <EmptyState
           icon={<Users className="h-5 w-5" />}
           title="Nenhum usuário cadastrado"
-          description="Adicione membros para colaborar na gestão dos leads e pipelines."
+          description="Adicione membros para colaborar na gestão dos leads e CRMs."
           action={
             <button
               type="button"
@@ -218,10 +219,10 @@ export function TeamPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+              <tr className="border-b border-zinc-950/[0.07] text-xs font-medium text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">E-mail</th>
                 <th className="px-5 py-3">Telefone</th>
@@ -229,24 +230,24 @@ export function TeamPage() {
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+            <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
               {users.map((u) => {
                 const isSelf = currentUser?.id === u.id;
                 return (
                   <tr
                     key={u.id}
-                    className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    className="transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
                   >
-                    <td className="px-5 py-3.5 font-medium text-slate-900 dark:text-slate-100">
+                    <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">
                       <span>{u.name}</span>
                       {isSelf && (
-                        <span className="ml-2 text-xs font-normal text-slate-500 dark:text-slate-400">
+                        <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-400">
                           (Você)
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-slate-600 dark:text-slate-400">{u.email}</td>
-                    <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-slate-600 dark:text-slate-400">
+                    <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">{u.email}</td>
+                    <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
                       {u.phone || '—'}
                     </td>
                     <td className="px-5 py-3.5">
@@ -255,7 +256,7 @@ export function TeamPage() {
                         onClick={() => void handleToggleActive(u)}
                         disabled={togglingId === u.id}
                         title="Clique para alternar ativo/inativo"
-                        className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-2.5 py-1 transition-colors hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        className="inline-flex items-center gap-2 rounded-md border border-zinc-950/[0.07] px-2.5 py-1 transition-colors hover:bg-zinc-950/[0.05] disabled:opacity-50 dark:border-white/[0.12] dark:hover:bg-white/[0.07]"
                       >
                         <StatusIndicator
                           tone={u.is_active ? 'success' : 'neutral'}
@@ -269,7 +270,7 @@ export function TeamPage() {
                           type="button"
                           onClick={() => openEditModal(u)}
                           aria-label={`Editar ${u.name}`}
-                          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -280,7 +281,7 @@ export function TeamPage() {
                             setDeletingUser(u);
                           }}
                           aria-label={`Excluir ${u.name}`}
-                          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -292,6 +293,17 @@ export function TeamPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {usersQuery.hasNextPage && (
+        <LoadMoreButton
+          total={usersQuery.total}
+          loaded={users.length}
+          isFetchingNextPage={usersQuery.isFetchingNextPage}
+          hasNextPage={Boolean(usersQuery.hasNextPage)}
+          onLoadMore={() => void usersQuery.fetchNextPage()}
+          className="mt-5"
+        />
       )}
 
       <Modal
@@ -361,20 +373,20 @@ export function TeamPage() {
             </FormField>
           </div>
 
-          <label className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-200">
+          <label className="flex items-center gap-2.5 text-sm text-zinc-700 dark:text-zinc-200">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:border-slate-700 dark:bg-slate-950"
+              className="h-4 w-4 rounded border-zinc-950/[0.12] text-blue-600 focus:ring-blue-600 dark:border-white/[0.12] dark:bg-[#101012]"
               {...register('is_active')}
             />
             <span>Usuário ativo</span>
           </label>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
             >
               Cancelar
             </button>

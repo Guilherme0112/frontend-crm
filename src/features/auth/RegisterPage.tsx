@@ -3,9 +3,9 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertCircle, ArrowRight, Moon, Sun } from 'lucide-react';
+import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
-import { useTheme } from '@/src/theme/ThemeContext';
+import { AuthLayout } from '@/src/components/layout/AuthLayout';
 import { useToast } from '@/src/components/common/Toast';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
@@ -55,7 +55,6 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterPage() {
   const { isAuthenticated, register: registerAccount } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
@@ -109,28 +108,14 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
-      <header className="flex items-center justify-between px-6 py-4">
-        <span className="font-display text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          Vértice CRM
-        </span>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-          aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-        >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-4 py-8">
-        <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <AuthLayout>
+        <div className="w-full max-w-2xl rounded-2xl border border-zinc-950/[0.08] bg-white p-6 shadow-[var(--shadow-pop)] sm:p-8 dark:border-white/[0.08] dark:bg-[#17171a]">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <p className="eyebrow text-zinc-400 dark:text-zinc-500">Cadastro</p>
+            <h1 className="mt-2 font-display text-[26px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
               Criar conta empresarial
             </h1>
-            <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
               Configure sua empresa e o usuário administrador inicial em poucos passos.
             </p>
           </div>
@@ -147,7 +132,7 @@ export function RegisterPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             <div className="space-y-4">
-              <h2 className="border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
+              <h2 className="eyebrow border-b border-zinc-950/[0.07] pb-2.5 text-zinc-400 dark:border-white/[0.07] dark:text-zinc-500">
                 Dados da empresa
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -208,7 +193,7 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-4">
-              <h2 className="border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
+              <h2 className="eyebrow border-b border-zinc-950/[0.07] pb-2.5 text-zinc-400 dark:border-white/[0.07] dark:text-zinc-500">
                 Administrador da conta
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -305,24 +290,23 @@ export function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
               <span>{isSubmitting ? 'Criando conta...' : 'Criar conta e acessar'}</span>
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
 
-          <p className="mt-5 border-t border-slate-200 pt-5 text-center text-sm text-slate-600 dark:border-slate-800 dark:text-slate-400">
+          <p className="mt-6 border-t border-zinc-950/[0.07] pt-5 text-center text-sm text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
             Já possui uma conta?{' '}
             <Link
               to="/login"
-              className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
+              className="font-semibold text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-zinc-900 dark:text-zinc-100 dark:decoration-zinc-600 dark:hover:decoration-zinc-100"
             >
               Fazer login
             </Link>
           </p>
         </div>
-      </main>
-    </div>
+    </AuthLayout>
   );
 }

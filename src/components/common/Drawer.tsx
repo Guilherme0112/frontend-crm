@@ -29,20 +29,20 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
       aria-labelledby="drawer-title"
     >
       <div
-        className="fixed inset-0 bg-slate-950/50 backdrop-blur-[1px]"
+        className="fixed inset-0 bg-zinc-950/60 backdrop-blur-[2px]"
         onClick={onClose}
       />
-      <aside className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+      <aside className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-zinc-950/[0.08] bg-white shadow-[var(--shadow-pop)] dark:border-white/[0.08] dark:bg-[#17171a]">
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-950/[0.07] px-6 py-4 dark:border-white/[0.07]">
           <div className="min-w-0">
             <h2
               id="drawer-title"
-              className="truncate text-lg font-semibold text-slate-900 dark:text-slate-100"
+              className="font-display truncate text-base font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
             >
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
                 {subtitle}
               </p>
             )}
@@ -50,7 +50,7 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
             aria-label="Fechar painel"
           >
             <X className="h-5 w-5" />

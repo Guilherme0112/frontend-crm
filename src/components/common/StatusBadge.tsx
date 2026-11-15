@@ -13,7 +13,7 @@ const TONE_CLASSES: Record<SemanticTone, string> = {
   success: 'text-emerald-700 dark:text-emerald-400',
   warning: 'text-amber-700 dark:text-amber-400',
   danger: 'text-red-700 dark:text-red-400',
-  neutral: 'text-slate-600 dark:text-slate-400',
+  neutral: 'text-zinc-600 dark:text-zinc-400',
 };
 
 export function StatusIndicator({ tone, label, className }: StatusIndicatorProps) {
@@ -49,7 +49,7 @@ export function getInvoiceStatusMeta(status: 'open' | 'paid' | 'void'): {
 }
 
 export function getSubscriptionStatusMeta(
-  status: 'active' | 'canceled' | 'past_due' | 'trialing',
+  status: string,
 ): { tone: SemanticTone; label: string } {
   switch (status) {
     case 'active':
@@ -60,5 +60,7 @@ export function getSubscriptionStatusMeta(
       return { tone: 'danger', label: 'Pagamento pendente' };
     case 'canceled':
       return { tone: 'neutral', label: 'Cancelada' };
+    default:
+      return { tone: 'neutral', label: status || 'Desconhecida' };
   }
 }

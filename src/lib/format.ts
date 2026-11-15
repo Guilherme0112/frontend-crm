@@ -13,9 +13,26 @@ export function formatCurrency(value: number, currency = 'BRL'): string {
   }
 }
 
+export function formatDuration(totalSeconds: number | null | undefined): string {
+  if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds)) {
+    return '—';
+  }
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}min`;
+  }
+  return `${minutes}min`;
+}
+
 export function formatDate(value?: string | null): string {
   if (!value) return '—';
-  const parsed = new Date(value);
+  const parsed = parseApiDate(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
@@ -24,9 +41,14 @@ export function formatDate(value?: string | null): string {
   }).format(parsed);
 }
 
+// Normaliza strings "YYYY-MM-DD HH:MM:SS" vindas do banco para ISO "YYYY-MM-DDTHH:MM:SS".
+function parseApiDate(value: string): Date {
+  return new Date(value.includes('T') ? value : value.replace(' ', 'T'));
+}
+
 export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
-  const parsed = new Date(value);
+  const parsed = parseApiDate(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',

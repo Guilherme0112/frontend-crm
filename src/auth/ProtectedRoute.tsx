@@ -12,10 +12,10 @@ export function ProtectedRoute() {
 
   if (isHydrating) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafaf9] dark:bg-[#101012]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-zinc-950/[0.12] border-t-blue-600 dark:border-white/[0.12] dark:border-t-blue-400" />
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Carregando sessão...
           </p>
         </div>
@@ -25,7 +25,7 @@ export function ProtectedRoute() {
 
   if (hydrationError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafaf9] p-6 dark:bg-[#101012]">
         <div className="w-full max-w-md">
           <ErrorState
             title="Não foi possível validar sua sessão"

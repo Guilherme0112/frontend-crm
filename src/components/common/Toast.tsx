@@ -70,13 +70,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={item.id}
             role="status"
             className={cn(
-              'pointer-events-auto flex items-start gap-3 rounded-lg border bg-white p-3.5 shadow-lg transition-all duration-150 dark:bg-slate-900',
+              'pointer-events-auto flex items-start gap-3 rounded-xl border bg-white p-3.5 shadow-[var(--shadow-pop)] transition-all duration-150 dark:bg-[#17171a]',
               item.variant === 'success' &&
                 'border-emerald-200 dark:border-emerald-900/70',
               item.variant === 'error' &&
                 'border-red-200 dark:border-red-900/70',
               item.variant === 'info' &&
-                'border-slate-200 dark:border-slate-800',
+                'border-zinc-950/[0.07] dark:border-white/[0.07]',
             )}
           >
             <div className="mt-0.5 shrink-0">
@@ -91,11 +91,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                 {item.title}
               </p>
               {item.description && (
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                <p className="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
                   {item.description}
                 </p>
               )}
@@ -103,7 +103,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => dismiss(item.id)}
-              className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+              className="shrink-0 rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-600 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
               aria-label="Fechar notificação"
             >
               <X className="h-3.5 w-3.5" />

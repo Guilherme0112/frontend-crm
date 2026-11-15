@@ -3,15 +3,16 @@ import { Link, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Columns3, Plus, Search } from 'lucide-react';
+import { ArrowLeft, BarChart3, Columns3, History, Plug, Plus, Search } from 'lucide-react';
 import {
   useCreateStepMutation,
   useCrmQuery,
   useDeleteStepMutation,
-  useStepsQuery,
+  useReorderStepsMutation,
+  useStepsInfiniteQuery,
   useUpdateStepMutation,
 } from './hooks';
-import { useLeadsQuery, useMoveLeadStepMutation } from '@/src/features/leads/hooks';
+import { useMoveLeadStepMutation } from '@/src/features/leads/hooks';
 import { KanbanBoard } from '@/src/components/kanban/KanbanBoard';
 import { LeadDrawer } from '@/src/features/leads/LeadDrawer';
 import { Modal } from '@/src/components/common/Modal';
@@ -27,10 +28,6 @@ import type { Step } from '@/src/lib/types';
 const stepSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome da etapa'),
   description: z.string().optional(),
-  position: z
-    .number({ message: 'Informe um número válido' })
-    .int()
-    .min(0, 'Posição deve ser maior ou igual a 0'),
 });
 
 type StepFormValues = z.infer<typeof stepSchema>;
@@ -41,10 +38,10 @@ export function CrmBoardPage() {
   const { toast } = useToast();
 
   const crmQuery = useCrmQuery(crmId);
-  const stepsQuery = useStepsQuery(crmId);
-  const leadsQuery = useLeadsQuery();
+  const stepsQuery = useStepsInfiniteQuery(crmId, 5);
 
   const createStepMutation = useCreateStepMutation(crmId);
+  const reorderStepsMutation = useReorderStepsMutation(crmId);
   const updateStepMutation = useUpdateStepMutation(crmId);
   const deleteStepMutation = useDeleteStepMutation(crmId);
   const moveLeadMutation = useMoveLeadStepMutation();
@@ -63,29 +60,18 @@ export function CrmBoardPage() {
     formState: { errors },
   } = useForm<StepFormValues>({
     resolver: zodResolver(stepSchema),
-    defaultValues: { name: '', description: '', position: 0 },
+    defaultValues: { name: '', description: '' },
   });
 
-  const steps = stepsQuery.data ?? [];
-  const stepIds = useMemo(() => new Set(steps.map((s) => s.id)), [steps]);
-
-  const filteredLeads = useMemo(() => {
-    const allLeads = leadsQuery.data ?? [];
-    const term = searchQuery.trim().toLowerCase();
-    return allLeads.filter((lead) => {
-      if (!stepIds.has(lead.step_id)) return false;
-      if (!term) return true;
-      return (
-        lead.name.toLowerCase().includes(term) ||
-        lead.email.toLowerCase().includes(term)
-      );
-    });
-  }, [leadsQuery.data, searchQuery, stepIds]);
+  const steps = useMemo(
+    () => [...(stepsQuery.items ?? [])].sort((a, b) => a.position - b.position || a.id - b.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stepsQuery.items],
+  );
 
   const openCreateStep = () => {
     setEditingStep(null);
-    const nextPos = steps.length > 0 ? Math.max(...steps.map((s) => s.position)) + 1 : 0;
-    reset({ name: '', description: '', position: nextPos });
+    reset({ name: '', description: '' });
     setStepModalOpen(true);
   };
 
@@ -94,7 +80,6 @@ export function CrmBoardPage() {
     reset({
       name: step.name,
       description: step.description ?? '',
-      position: step.position,
     });
     setStepModalOpen(true);
   };
@@ -103,7 +88,6 @@ export function CrmBoardPage() {
     const payload = {
       name: values.name.trim(),
       description: values.description?.trim() || null,
-      position: values.position,
     };
     try {
       if (editingStep) {
@@ -131,8 +115,17 @@ export function CrmBoardPage() {
     }
   };
 
-  const handleMoveLead = (leadId: number, targetStepId: number) => {
-    moveLeadMutation.mutate({ leadId, stepId: targetStepId });
+  const handleMoveLead = (
+    leadId: number,
+    targetStepId: number,
+    options: { previousId: number | null; nextId: number | null },
+  ) => {
+    moveLeadMutation.mutate({
+      leadId,
+      stepId: targetStepId,
+      previousId: options.previousId,
+      nextId: options.nextId,
+    });
   };
 
   if (crmQuery.isPending || stepsQuery.isPending) {
@@ -153,13 +146,13 @@ export function CrmBoardPage() {
       <div className="space-y-4">
         <Link
           to="/crms"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Voltar para pipelines</span>
+          <span>Voltar para CRMs</span>
         </Link>
         <ErrorState
-          title="Pipeline não encontrado"
+          title="CRM não encontrado"
           error={crmQuery.error}
           onRetry={() => void crmQuery.refetch()}
         />
@@ -167,15 +160,12 @@ export function CrmBoardPage() {
     );
   }
 
-  if (stepsQuery.isError || leadsQuery.isError) {
+  if (stepsQuery.isError) {
     return (
       <ErrorState
         title="Erro ao carregar quadro Kanban"
-        error={stepsQuery.error || leadsQuery.error}
-        onRetry={() => {
-          void stepsQuery.refetch();
-          void leadsQuery.refetch();
-        }}
+        error={stepsQuery.error}
+        onRetry={() => void stepsQuery.refetch()}
       />
     );
   }
@@ -186,13 +176,13 @@ export function CrmBoardPage() {
     <div className="space-y-6">
       {/* Header & Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <Link
             to="/crms"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Todos os pipelines</span>
+            <span>Todos os CRMs</span>
           </Link>
           <div className="mt-1.5 flex items-center gap-2.5">
             <span
@@ -200,12 +190,12 @@ export function CrmBoardPage() {
               style={{ backgroundColor: crm.color || '#2563eb' }}
               aria-hidden="true"
             />
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               {crm.name}
             </h1>
           </div>
           {crm.description && (
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1 max-w-md break-words text-sm text-zinc-600 line-clamp-2 dark:text-zinc-400">
               {crm.description}
             </p>
           )}
@@ -214,7 +204,7 @@ export function CrmBoardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 sm:w-64 sm:flex-none">
             <Search
-              className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
               aria-hidden="true"
             />
             <input
@@ -223,9 +213,33 @@ export function CrmBoardPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filtrar por nome ou e-mail..."
               aria-label="Filtrar leads por nome ou e-mail"
-              className="w-full rounded-lg border border-slate-300 bg-white py-2 pr-3 pl-9 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="w-full rounded-lg border border-zinc-950/[0.12] bg-white py-2 pr-3 pl-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-100 dark:placeholder:text-zinc-500"
             />
           </div>
+
+          <Link
+            to={`/crms/${crmId}/dashboard`}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
+          >
+            <BarChart3 className="h-4 w-4" strokeWidth={1.8} />
+            <span>Dashboard</span>
+          </Link>
+
+          <Link
+            to={`/crms/${crmId}/audit`}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
+          >
+            <History className="h-4 w-4" strokeWidth={1.8} />
+            <span>Auditoria</span>
+          </Link>
+
+          <Link
+            to={`/crms/${crmId}/integration`}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
+          >
+            <Plug className="h-4 w-4" strokeWidth={1.8} />
+            <span>Integração pública</span>
+          </Link>
 
           <button
             type="button"
@@ -256,14 +270,21 @@ export function CrmBoardPage() {
           }
         />
       ) : (
-        <KanbanBoard
-          steps={steps}
-          leads={filteredLeads}
-          onMoveLead={handleMoveLead}
-          onSelectLead={(leadId) => setSelectedLeadId(leadId)}
-          onEditStep={openEditStep}
-          onDeleteStep={(step) => setDeletingStep(step)}
-        />
+        <div className="space-y-3">
+          <KanbanBoard
+            steps={steps}
+            searchQuery={searchQuery}
+            hasMore={Boolean(stepsQuery.hasNextPage)}
+            isFetchingNextPage={stepsQuery.isFetchingNextPage}
+            onLoadMore={() => void stepsQuery.fetchNextPage()}
+            onMoveLead={handleMoveLead}
+            onSelectLead={(leadId) => setSelectedLeadId(leadId)}
+            onEditStep={openEditStep}
+            onDeleteStep={(step) => setDeletingStep(step)}
+            onReorderSteps={(orderedIds) => reorderStepsMutation.mutate(orderedIds)}
+            reorderDisabled={Boolean(stepsQuery.hasNextPage)}
+          />
+        </div>
       )}
 
       {/* Step Create/Edit Modal */}
@@ -294,26 +315,15 @@ export function CrmBoardPage() {
             />
           </FormField>
 
-          <FormField
-            label="Posição"
-            htmlFor="step-position"
-            hint="Número inteiro (0, 1, 2...)"
-            error={errors.position?.message}
-          >
-            <input
-              id="step-position"
-              type="number"
-              min={0}
-              className={`${inputClassName(Boolean(errors.position))} w-32 font-mono tabular-nums`}
-              {...register('position', { valueAsNumber: true })}
-            />
-          </FormField>
+          <p className="rounded-lg border border-zinc-950/[0.07] bg-zinc-50 px-3.5 py-2 text-xs text-zinc-500 dark:border-white/[0.07] dark:bg-white/[0.03] dark:text-zinc-400">
+            A ordem das etapas é definida arrastando-as no quadro Kanban — sem campo de posição.
+          </p>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
             <button
               type="button"
               onClick={() => setStepModalOpen(false)}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
             >
               Cancelar
             </button>

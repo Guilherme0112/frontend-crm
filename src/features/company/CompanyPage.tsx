@@ -9,7 +9,7 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { ZIP_REGEX, maskZipCode } from '@/src/lib/format';
+import { ZIP_REGEX, maskZipCode, maskCpfCnpj } from '@/src/lib/format';
 
 const companySchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome da empresa'),
@@ -21,6 +21,19 @@ const companySchema = z.object({
     .refine((val) => !val || /^https?:\/\/.+/.test(val), {
       message: 'Informe uma URL iniciando com http:// ou https://',
     }),
+  document_number: z
+    .string()
+    .trim()
+    .max(18, 'CNPJ deve estar no formato 00.000.000/0000-00')
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const digits = val.replace(/\D/g, '');
+        return digits.length === 11 || digits.length === 14;
+      },
+      { message: 'Informe 11 dígitos (CPF) ou 14 dígitos (CNPJ)' },
+    ),
   address: z.object({
     zip_code: z
       .string()
@@ -67,6 +80,7 @@ export function CompanyPage() {
       name: '',
       description: '',
       website: '',
+      document_number: '',
       address: {
         zip_code: '',
         street: '',
@@ -88,6 +102,7 @@ export function CompanyPage() {
         name: c.name ?? '',
         description: c.description ?? '',
         website: c.website ?? '',
+        document_number: maskCpfCnpj(c.document_number ?? ''),
         address: {
           zip_code: c.address?.zip_code ?? '',
           street: c.address?.street ?? '',
@@ -112,6 +127,7 @@ export function CompanyPage() {
         name: values.name.trim(),
         description: values.description?.trim() || null,
         website: values.website?.trim() || null,
+        document_number: values.document_number ? values.document_number.replace(/\D/g, '') : null,
         address: hasAnyAddressField
           ? {
               zip_code: addr.zip_code?.trim() || null,
@@ -138,7 +154,7 @@ export function CompanyPage() {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <Skeleton className="h-9 w-56" />
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-24 w-full" />
@@ -162,38 +178,63 @@ export function CompanyPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
           Empresa
         </h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
           Mantenha os dados cadastrais e o endereço da sua organização atualizados.
         </p>
       </div>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+        className="space-y-6 rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]"
         noValidate
       >
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-800">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-950/[0.07] pb-2 dark:border-white/[0.07]">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Informações gerais
             </h2>
-            {companyQuery.data.document_number && (
-              <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                Documento: {companyQuery.data.document_number}
-              </span>
-            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="Nome da empresa" htmlFor="comp-name" required error={errors.name?.message}>
+            <FormField
+              label="Nome da empresa"
+              htmlFor="comp-name"
+              required
+              error={errors.name?.message}
+              className="sm:col-span-2"
+            >
               <input
                 id="comp-name"
                 type="text"
                 className={inputClassName(Boolean(errors.name))}
                 {...register('name')}
+              />
+            </FormField>
+
+            <FormField
+              label="CNPJ / CPF"
+              htmlFor="comp-document"
+              error={errors.document_number?.message}
+              hint={errors.document_number ? undefined : 'Opcional · máscara automática'}
+            >
+              <Controller
+                name="document_number"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    id="comp-document"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="00.000.000/0000-00"
+                    className={`${inputClassName(Boolean(errors.document_number))} font-mono tabular-nums`}
+                    value={field.value || ''}
+                    onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
+                    onBlur={field.onBlur}
+                  />
+                )}
               />
             </FormField>
 
@@ -224,7 +265,7 @@ export function CompanyPage() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
+          <h2 className="border-b border-zinc-950/[0.07] pb-2 text-sm font-semibold text-zinc-900 dark:border-white/[0.07] dark:text-zinc-100">
             Endereço
           </h2>
 
@@ -376,7 +417,7 @@ export function CompanyPage() {
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+        <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
           <button
             type="submit"
             disabled={updateMutation.isPending || !isDirty}

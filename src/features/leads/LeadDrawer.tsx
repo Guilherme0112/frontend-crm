@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ExternalLink, Trash2 } from 'lucide-react';
 import { Drawer } from '@/src/components/common/Drawer';
+import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { Skeleton } from '@/src/components/common/Skeleton';
@@ -125,7 +126,9 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
         open={Boolean(leadId)}
         onClose={onClose}
         title={leadQuery.data?.name || 'Detalhes do Lead'}
-        subtitle={leadQuery.data ? `Lead #${leadQuery.data.id}` : undefined}
+        subtitle={leadQuery.data
+          ? `Etapa: ${leadQuery.data.step_name ?? steps.find((step) => step.id === leadQuery.data?.step_id)?.name ?? '—'}`
+          : undefined}
       >
         {leadQuery.isPending ? (
           <div className="space-y-4">
@@ -142,7 +145,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
           />
         ) : leadQuery.data ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-4 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
+            <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.07] pb-4 text-xs text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
               <span>Criado em {formatDateTime(leadQuery.data.created_at)}</span>
               <Link
                 to={`/leads/${leadQuery.data.id}`}
@@ -192,17 +195,21 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                 </FormField>
 
                 <FormField label="Etapa" htmlFor="drawer-lead-step" required error={errors.step_id?.message}>
-                  <select
-                    id="drawer-lead-step"
-                    className={inputClassName(Boolean(errors.step_id))}
-                    {...register('step_id', { valueAsNumber: true })}
-                  >
-                    {steps.map((step) => (
-                      <option key={step.id} value={step.id}>
-                        {step.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Controller
+                    name="step_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Autocomplete
+                        id="drawer-lead-step"
+                        value={field.value > 0 ? String(field.value) : ''}
+                        onChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
+                        placeholder="Selecione uma etapa..."
+                        emptyMessage="Nenhuma etapa encontrada"
+                        hasError={Boolean(errors.step_id)}
+                        options={steps.map((step) => ({ value: String(step.id), label: step.name }))}
+                      />
+                    )}
+                  />
                 </FormField>
               </div>
 
@@ -225,7 +232,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                 />
               </FormField>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
                 <button
                   type="button"
                   onClick={() => setConfirmOpen(true)}
@@ -239,7 +246,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
                   >
                     Fechar
                   </button>

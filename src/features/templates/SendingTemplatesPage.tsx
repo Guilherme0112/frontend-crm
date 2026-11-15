@@ -1,22 +1,37 @@
-import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Eye, MailCheck, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  Eye,
+  Mail,
+  MailCheck,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Variable,
+  X,
+} from 'lucide-react';
 import {
   useCreateSendingTemplateMutation,
   useDeleteSendingTemplateMutation,
   useSendingTemplatesQuery,
   useUpdateSendingTemplateMutation,
 } from './hooks';
+import { EmailPreview } from './EmailPreview';
+import { TemplateToolbar } from './TemplateToolbar';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { Pagination } from '@/src/components/common/Pagination';
 import { CardsGridSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
+import { formatDate } from '@/src/lib/format';
 import type { SendingTemplate } from '@/src/lib/types';
 
 const templateSchema = z.object({
@@ -40,9 +55,7 @@ const DEFAULT_SAMPLE_VARS: Record<string, string> = {
 function extractPlaceholders(body: string): string[] {
   const matches = body.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g);
   const seen = new Set<string>();
-  for (const m of matches) {
-    seen.add(m[1]);
-  }
+  for (const m of matches) seen.add(m[1]);
   return Array.from(seen);
 }
 
@@ -55,7 +68,10 @@ function renderTemplatePreview(body: string, sampleMap: Record<string, string>):
 
 export function SendingTemplatesPage() {
   const { toast } = useToast();
-  const templatesQuery = useSendingTemplatesQuery();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const templatesQuery = useSendingTemplatesQuery(page, 10, debouncedSearch);
   const createMutation = useCreateSendingTemplateMutation();
   const updateMutation = useUpdateSendingTemplateMutation();
   const deleteMutation = useDeleteSendingTemplateMutation();
@@ -66,11 +82,21 @@ export function SendingTemplatesPage() {
   const [previewTemplate, setPreviewTemplate] = useState<SendingTemplate | null>(null);
   const [sampleValues, setSampleValues] = useState<Record<string, string>>(DEFAULT_SAMPLE_VARS);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<TemplateFormValues>({
@@ -93,7 +119,7 @@ export function SendingTemplatesPage() {
     reset({
       name: '',
       description: '',
-      body: 'Olá {{name}}, tudo bem? Recebemos seu contato da empresa {{company}}.',
+      body: 'Olá {{name}}, tudo bem? Recebemos seu contato da {{company}}.',
     });
     setModalOpen(true);
   };
@@ -140,39 +166,60 @@ export function SendingTemplatesPage() {
     }
   };
 
-  const templates = templatesQuery.data ?? [];
+  const templates = templatesQuery.data?.data ?? [];
+  const meta = templatesQuery.data?.meta ?? null;
+  const total = meta?.total ?? 0;
+  const lastPage = meta?.last_page ?? 1;
+
+  useEffect(() => {
+    if (meta && page > meta.last_page) {
+      setPage(Math.max(1, meta.last_page));
+    }
+  }, [meta, page]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Templates de Envio
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Disparos</p>
+          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            Templates de envio
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Crie modelos de mensagens com variáveis dinâmicas como {'{{name}}'} e visualize o resultado em tempo real.
+          <p className="mt-1 max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Componha mensagens reutilizáveis com variáveis dinâmicas. Pré-visualize, teste e reutilize em todos os grupos de envio.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Novo template</span>
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            to="/email-configs"
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
+          >
+            <Mail className="h-4 w-4" strokeWidth={1.8} />
+            <span>Configuração de email</span>
+          </Link>
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800 whitespace-nowrap dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.2} />
+            <span>Novo template</span>
+          </button>
+        </div>
       </div>
 
+      {/* Lista */}
       {templatesQuery.isPending ? (
-        <CardsGridSkeleton count={3} />
+        <CardsGridSkeleton count={4} />
       ) : templatesQuery.isError ? (
         <ErrorState
           title="Erro ao carregar templates"
           error={templatesQuery.error}
           onRetry={() => void templatesQuery.refetch()}
         />
-      ) : templates.length === 0 ? (
+      ) : templates.length === 0 && !debouncedSearch ? (
         <EmptyState
           icon={<MailCheck className="h-5 w-5" />}
           title="Nenhum template cadastrado"
@@ -181,42 +228,102 @@ export function SendingTemplatesPage() {
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4" strokeWidth={2.2} />
               <span>Criar primeiro template</span>
             </button>
           }
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {templates.map((tpl) => {
-            const vars = extractPlaceholders(tpl.body);
-            return (
-              <article
-                key={tpl.id}
-                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h2 className="truncate text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {tpl.name}
-                      </h2>
+        <section className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, descrição ou conteúdo..."
+                aria-label="Buscar template"
+                className="w-full max-w-sm rounded-lg border border-zinc-950/[0.1] bg-zinc-50 py-2 pl-9 pr-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-100 dark:focus:bg-[#17171a]"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  aria-label="Limpar busca"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <p className="font-mono text-[11px] tabular-nums uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              {total} {total === 1 ? 'template' : 'templates'}
+            </p>
+          </div>
+
+          {/* Rows */}
+          {templates.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
+              Nenhum template para &quot;{search}&quot;.
+            </p>
+          ) : (
+            <ul className="divide-y divide-zinc-950/[0.05] dark:divide-white/[0.05]">
+              {templates.map((tpl) => {
+                const vars = extractPlaceholders(tpl.body);
+                return (
+                  <li key={tpl.id} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.03]">
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/10 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-400/10"
+                      aria-hidden="true"
+                    >
+                      <MailCheck className="h-5 w-5" strokeWidth={1.8} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                        <h2 className="font-display text-[13px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+                          {tpl.name}
+                        </h2>
+                        {tpl.created_at && (
+                          <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                            {formatDate(tpl.created_at)}
+                          </span>
+                        )}
+                      </div>
                       {tpl.description && (
-                        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                        <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">
                           {tpl.description}
                         </p>
                       )}
+                      <p className="mt-1.5 line-clamp-2 font-mono text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+                        {tpl.body}
+                      </p>
+                      {vars.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {vars.map((v) => (
+                            <span
+                              key={v}
+                              className="inline-flex items-center rounded-md bg-violet-50 px-1.5 py-0.5 font-mono text-[10px] font-medium text-violet-700 dark:bg-violet-950/50 dark:text-violet-300"
+                            >
+                              {`{{${v}}}`}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-
-                    <div className="flex shrink-0 items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                       <button
                         type="button"
                         onClick={() => setPreviewTemplate(tpl)}
                         title="Pré-visualizar"
                         aria-label={`Pré-visualizar ${tpl.name}`}
-                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -225,7 +332,7 @@ export function SendingTemplatesPage() {
                         onClick={() => openEditModal(tpl)}
                         title="Editar"
                         aria-label={`Editar ${tpl.name}`}
-                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -234,36 +341,29 @@ export function SendingTemplatesPage() {
                         onClick={() => setDeletingTemplate(tpl)}
                         title="Excluir"
                         aria-label={`Excluir ${tpl.name}`}
-                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                        className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                  </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
 
-                  <pre className="mt-3 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
-                    {tpl.body}
-                  </pre>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                  <span>
-                    {vars.length > 0
-                      ? `Variáveis: ${vars.map((v) => `{{${v}}}`).join(' · ')}`
-                      : 'Sem variáveis dinâmicas'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewTemplate(tpl)}
-                    className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    Simular envio
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+      {total > 0 && (
+        <Pagination
+          page={meta?.current_page ?? page}
+          lastPage={lastPage}
+          total={total}
+          from={meta?.from ?? null}
+          to={meta?.to ?? null}
+          onPageChange={setPage}
+          ariaLabel="Paginação de templates"
+        />
       )}
 
       {/* Create/Edit Modal with Live Preview */}
@@ -275,8 +375,8 @@ export function SendingTemplatesPage() {
         size="xl"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-4">
+          <div className="grid gap-6 lg:grid-cols-5">
+            <div className="space-y-4 lg:col-span-3">
               <FormField label="Nome" htmlFor="tpl-name" required error={errors.name?.message}>
                 <input
                   id="tpl-name"
@@ -298,74 +398,111 @@ export function SendingTemplatesPage() {
               </FormField>
 
               <FormField
-                label="Conteúdo da mensagem"
+                label="Conteúdo do email"
                 htmlFor="tpl-body"
                 required
-                hint="Ex.: Olá {{name}}, recebemos seu contato para {{company}}."
+                hint="HTML suportado (ex.: <strong>, <ul>, <a href>, tabelas) — também aceita um documento HTML completo. Use {{name}}, {{company}}, etc."
                 error={errors.body?.message}
               >
+                <TemplateToolbar
+                  textareaId="tpl-body"
+                  value={watchedBody}
+                  onChange={(next, caret) => {
+                    setValue('body', next, { shouldDirty: true });
+                    window.requestAnimationFrame(() => {
+                      const el = document.getElementById('tpl-body') as HTMLTextAreaElement | null;
+                      if (el) {
+                        el.focus();
+                        el.setSelectionRange(caret, caret);
+                      }
+                    });
+                  }}
+                />
                 <textarea
                   id="tpl-body"
-                  rows={6}
-                  className={`${inputClassName(Boolean(errors.body))} font-mono text-xs leading-relaxed`}
+                  rows={12}
+                  className={`${inputClassName(Boolean(errors.body))} rounded-t-none border-t-0 font-mono text-[13px] leading-relaxed`}
                   {...register('body')}
                 />
               </FormField>
             </div>
 
-            <div className="flex flex-col justify-between rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-              <div className="space-y-3">
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                  Pré-visualização ao vivo
-                </p>
-                <div className="min-h-[120px] whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3.5 text-sm leading-relaxed text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                  {livePreviewText || 'Digite o corpo da mensagem para visualizar...'}
+            <div className="flex flex-col gap-4 lg:col-span-2">
+              <div className="rounded-2xl border border-zinc-950/[0.08] bg-white shadow-sm dark:border-white/[0.08] dark:bg-[#1b1b1f]">
+                <div className="flex items-center gap-2 border-b border-zinc-950/[0.07] px-4 py-2.5 dark:border-white/[0.07]">
+                  <div className="flex gap-1">
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  </div>
+                  <p className="mx-auto text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                    Pré-visualização
+                  </p>
                 </div>
-
-                {detectedPlaceholders.length > 0 && (
-                  <div className="space-y-2 pt-2">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                      Valores de exemplo para teste:
-                    </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {detectedPlaceholders.map((key) => (
-                        <div key={key}>
-                          <label className="block font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                            {`{{${key}}}`}
-                          </label>
-                          <input
-                            type="text"
-                            value={sampleValues[key] ?? DEFAULT_SAMPLE_VARS[key.toLowerCase()] ?? ''}
-                            onChange={(e) =>
-                              setSampleValues((prev) => ({
-                                ...prev,
-                                [key]: e.target.value,
-                              }))
-                            }
-                            placeholder={`Valor para ${key}`}
-                            className="mt-0.5 w-full rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                          />
-                        </div>
-                      ))}
+                <div className="px-4 py-3">
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                    <span className="inline-block h-5 w-5 rounded-full bg-blue-600" />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-zinc-700 dark:text-zinc-200">Vértice CRM</p>
+                      <p className="truncate">para: mariana@empresa.com.br</p>
                     </div>
                   </div>
-                )}
+                  <div className="mt-3">
+                  {watchedBody.trim() ? (
+                    <EmailPreview html={livePreviewText} height={320} />
+                  ) : (
+                    <div className="flex min-h-[220px] items-center justify-center rounded-lg border border-dashed border-zinc-950/[0.12] px-6 text-center text-[13px] text-zinc-400 dark:border-white/[0.12] dark:text-zinc-500">
+                      Digite o corpo da mensagem para visualizar...
+                    </div>
+                  )}
+                </div>
+                </div>
               </div>
+
+              {detectedPlaceholders.length > 0 && (
+                <div className="space-y-2">
+                  <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                    <Variable className="h-3 w-3" />
+                    Valores de exemplo
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {detectedPlaceholders.map((key) => (
+                      <div key={key}>
+                        <label className="block font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+                          {`{{${key}}}`}
+                        </label>
+                        <input
+                          type="text"
+                          value={sampleValues[key] ?? DEFAULT_SAMPLE_VARS[key.toLowerCase()] ?? ''}
+                          onChange={(e) =>
+                            setSampleValues((prev) => ({
+                              ...prev,
+                              [key]: e.target.value,
+                            }))
+                          }
+                          placeholder={`Valor para ${key}`}
+                          className="mt-1 w-full rounded-md border border-zinc-950/[0.12] bg-white px-2.5 py-1.5 text-xs text-zinc-900 focus:border-zinc-300 focus:outline-none dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-100"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
             >
               {createMutation.isPending || updateMutation.isPending
                 ? 'Salvando...'
@@ -377,24 +514,50 @@ export function SendingTemplatesPage() {
         </form>
       </Modal>
 
-      {/* Standalone Preview Modal */}
+      {/* Preview Modal */}
       <Modal
         open={Boolean(previewTemplate)}
         onClose={() => setPreviewTemplate(null)}
         title={previewTemplate ? `Pré-visualização · ${previewTemplate.name}` : 'Pré-visualização'}
         description="Simulação com substituição automática das variáveis."
+        size="2xl"
       >
         {previewTemplate && (
           <div className="space-y-4">
-            <div className="whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100">
-              {renderTemplatePreview(previewTemplate.body, sampleValues)}
+            <div className="rounded-2xl border border-zinc-950/[0.08] bg-white shadow-sm dark:border-white/[0.08] dark:bg-[#1b1b1f]">
+              <div className="flex items-center gap-2 border-b border-zinc-950/[0.07] px-4 py-2.5 dark:border-white/[0.07]">
+                <div className="flex gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </div>
+                <p className="mx-auto text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  Visualização
+                </p>
+              </div>
+              <div className="px-4 py-3">
+                <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                  <span className="inline-block h-5 w-5 rounded-full bg-blue-600" />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-zinc-700 dark:text-zinc-200">Vértice CRM</p>
+                    <p className="truncate">para: mariana@empresa.com.br</p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <EmailPreview
+                    html={renderTemplatePreview(previewTemplate.body, sampleValues)}
+                    height={560}
+                    title={`Pré-visualização de ${previewTemplate.name}`}
+                  />
+                </div>
+              </div>
             </div>
 
             {extractPlaceholders(previewTemplate.body).length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
                 {extractPlaceholders(previewTemplate.body).map((key) => (
                   <div key={key}>
-                    <label className="block font-mono text-xs text-slate-500 dark:text-slate-400">
+                    <label className="block font-mono text-xs text-zinc-500 dark:text-zinc-400">
                       {`{{${key}}}`}
                     </label>
                     <input

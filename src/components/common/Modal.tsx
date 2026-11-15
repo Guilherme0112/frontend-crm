@@ -8,7 +8,7 @@ interface ModalProps {
   title: string;
   description?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 const SIZE_MAP = {
@@ -16,6 +16,7 @@ const SIZE_MAP = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-3xl',
+  '2xl': 'max-w-5xl',
 };
 
 export function Modal({
@@ -45,25 +46,25 @@ export function Modal({
       aria-labelledby="modal-title"
     >
       <div
-        className="fixed inset-0 bg-slate-950/50 backdrop-blur-[1px] transition-opacity"
+        className="fixed inset-0 bg-zinc-950/60 backdrop-blur-[2px] transition-opacity"
         onClick={onClose}
       />
       <div
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900',
+          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-zinc-950/[0.08] bg-white shadow-[var(--shadow-pop)] dark:border-white/[0.08] dark:bg-[#17171a]',
           SIZE_MAP[size],
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4 dark:border-slate-800">
+        <div className="flex items-start justify-between gap-4 border-b border-zinc-950/[0.07] px-6 py-4 dark:border-white/[0.07]">
           <div className="min-w-0">
             <h2
               id="modal-title"
-              className="text-base font-semibold text-slate-900 dark:text-slate-100"
+              className="font-display text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
             >
               {title}
             </h2>
             {description && (
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
                 {description}
               </p>
             )}
@@ -71,7 +72,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
             aria-label="Fechar janela"
           >
             <X className="h-4 w-4" />

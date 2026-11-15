@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
+import { Mail, Pencil, Plus, Trash2, Users, UsersRound } from 'lucide-react';
 import {
   useCreateGroupMutation,
   useDeleteGroupMutation,
@@ -11,9 +11,12 @@ import {
   useUpdateGroupMutation,
 } from './hooks';
 import { useSendingTemplatesQuery } from '@/src/features/templates/hooks';
+import { useEmailConfigsInfiniteQuery } from '@/src/features/email-configs/hooks';
 import { Modal } from '@/src/components/common/Modal';
+import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -29,14 +32,17 @@ const groupSchema = z.object({
     .number({ message: 'Selecione um template de envio' })
     .int()
     .min(1, 'Selecione um template de envio'),
+  email_config_id: z.number().int().min(0).optional(),
 });
 
 type GroupFormValues = z.infer<typeof groupSchema>;
 
 export function GroupsPage() {
   const { toast } = useToast();
-  const groupsQuery = useGroupsQuery();
-  const templatesQuery = useSendingTemplatesQuery();
+  const [page, setPage] = useState(1);
+  const groupsQuery = useGroupsQuery(page);
+  const templatesQuery = useSendingTemplatesQuery(1, 100);
+  const emailConfigsQuery = useEmailConfigsInfiniteQuery();
   const createMutation = useCreateGroupMutation();
   const updateMutation = useUpdateGroupMutation();
   const deleteMutation = useDeleteGroupMutation();
@@ -45,22 +51,29 @@ export function GroupsPage() {
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
 
-  const templates = templatesQuery.data ?? [];
+  const templates = templatesQuery.data?.data ?? [];
+  const emailConfigs = emailConfigsQuery.items ?? [];
   const templateById = useMemo(() => {
     const map = new Map<number, string>();
     for (const tpl of templates) map.set(tpl.id, tpl.name);
     return map;
   }, [templates]);
+  const emailConfigById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const cfg of emailConfigs) map.set(cfg.id, cfg.name);
+    return map;
+  }, [emailConfigs]);
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     setError,
     formState: { errors },
   } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
-    defaultValues: { name: '', description: '', template_id: 0 },
+    defaultValues: { name: '', description: '', template_id: 0, email_config_id: 0 },
   });
 
   const openCreateModal = () => {
@@ -69,6 +82,7 @@ export function GroupsPage() {
       name: '',
       description: '',
       template_id: templates[0]?.id ?? 0,
+      email_config_id: 0,
     });
     setModalOpen(true);
   };
@@ -79,6 +93,7 @@ export function GroupsPage() {
       name: group.name,
       description: group.description ?? '',
       template_id: group.template_id,
+      email_config_id: group.email_config_id ?? 0,
     });
     setModalOpen(true);
   };
@@ -88,6 +103,7 @@ export function GroupsPage() {
       name: values.name.trim(),
       description: values.description?.trim() || null,
       template_id: values.template_id,
+      email_config_id: values.email_config_id && values.email_config_id > 0 ? values.email_config_id : null,
     };
     try {
       if (editingGroup) {
@@ -115,16 +131,25 @@ export function GroupsPage() {
     }
   };
 
-  const groups = groupsQuery.data ?? [];
+  const groups = groupsQuery.data?.data ?? [];
+  const meta = groupsQuery.data?.meta ?? null;
+  const total = meta?.total ?? 0;
+  const lastPage = meta?.last_page ?? 1;
+
+  useEffect(() => {
+    if (meta && page > meta.last_page) {
+      setPage(Math.max(1, meta.last_page));
+    }
+  }, [meta, page]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Grupos
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Organize listas de envio e vincule cada grupo a um template de mensagem.
           </p>
         </div>
@@ -140,8 +165,8 @@ export function GroupsPage() {
       </div>
 
       {groupsQuery.isPending ? (
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-          <TableRowsSkeleton rows={4} cols={4} />
+        <div className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
+          <TableRowsSkeleton rows={4} cols={5} />
         </div>
       ) : groupsQuery.isError ? (
         <ErrorState
@@ -166,42 +191,67 @@ export function GroupsPage() {
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="overflow-x-auto rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs font-medium text-slate-500 dark:border-slate-800 dark:text-slate-400">
+              <tr className="border-b border-zinc-950/[0.07] text-xs font-medium text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Descrição</th>
                 <th className="px-5 py-3">Template vinculado</th>
+                <th className="px-5 py-3">SMTP</th>
                 <th className="px-5 py-3">Criado em</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+            <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
               {groups.map((group) => (
                 <tr
                   key={group.id}
-                  className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  className="transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
                 >
-                  <td className="px-5 py-3.5 font-medium text-slate-900 dark:text-slate-100">
-                    {group.name}
+                  <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">
+                    <Link
+                      to={`/groups/${group.id}`}
+                      className="rounded transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+                      title="Abrir grupo"
+                    >
+                      {group.name}
+                    </Link>
                   </td>
-                  <td className="max-w-xs truncate px-5 py-3.5 text-slate-600 dark:text-slate-400">
+                  <td className="max-w-xs truncate px-5 py-3.5 text-zinc-600 dark:text-zinc-400">
                     {group.description || '—'}
                   </td>
-                  <td className="px-5 py-3.5 text-slate-700 dark:text-slate-300">
+                  <td className="px-5 py-3.5 text-zinc-700 dark:text-zinc-300">
                     {templateById.get(group.template_id) ?? `Template #${group.template_id}`}
                   </td>
-                  <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                  <td className="px-5 py-3.5">
+                    {group.email_config_id ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-950/[0.08] bg-zinc-50 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-300">
+                        <Mail className="h-3 w-3 shrink-0 text-zinc-400" strokeWidth={1.8} />
+                        SMTP: {emailConfigById.get(group.email_config_id) ?? `Config #${group.email_config_id}`}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400 dark:text-zinc-500">—</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                     {formatDate(group.created_at)}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="inline-flex items-center gap-1">
+                      <Link
+                        to={`/groups/${group.id}`}
+                        aria-label={`Gerenciar leads de ${group.name}`}
+                        title="Gerenciar leads do grupo"
+                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
+                      >
+                        <Users className="h-4 w-4" strokeWidth={1.8} />
+                      </Link>
                       <button
                         type="button"
                         onClick={() => openEditModal(group)}
                         aria-label={`Editar ${group.name}`}
-                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -209,7 +259,7 @@ export function GroupsPage() {
                         type="button"
                         onClick={() => setDeletingGroup(group)}
                         aria-label={`Excluir ${group.name}`}
-                        className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -222,6 +272,18 @@ export function GroupsPage() {
         </div>
       )}
 
+      {total > 0 && (
+        <Pagination
+          page={meta?.current_page ?? page}
+          lastPage={lastPage}
+          total={total}
+          from={meta?.from ?? null}
+          to={meta?.to ?? null}
+          onPageChange={setPage}
+          ariaLabel="Paginação de grupos"
+        />
+      )}
+
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -230,14 +292,14 @@ export function GroupsPage() {
       >
         {templates.length === 0 ? (
           <div className="space-y-4">
-            <p className="text-sm text-slate-600 dark:text-slate-300">
+            <p className="text-sm text-zinc-600 dark:text-zinc-300">
               Você ainda não possui templates de envio cadastrados. Crie um template primeiro para poder vinculá-lo a um grupo.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200"
+                className="rounded-lg border border-zinc-950/[0.12] px-4 py-2 text-sm font-medium text-zinc-700 dark:border-white/[0.12] dark:text-zinc-200"
               >
                 Fechar
               </button>
@@ -267,18 +329,49 @@ export function GroupsPage() {
               required
               error={errors.template_id?.message}
             >
-              <select
-                id="group-template"
-                className={inputClassName(Boolean(errors.template_id))}
-                {...register('template_id', { valueAsNumber: true })}
-              >
-                <option value={0}>Selecione um template...</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.name}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                name="template_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    id="group-template"
+                    value={field.value > 0 ? String(field.value) : ''}
+                    onChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
+                    placeholder="Selecione um template de envio..."
+                    emptyMessage="Nenhum template encontrado"
+                    hasError={Boolean(errors.template_id)}
+                    options={templates.map((tpl) => ({ value: String(tpl.id), label: tpl.name }))}
+                  />
+                )}
+              />
+            </FormField>
+
+            <FormField
+              label="Configuração de email (SMTP)"
+              htmlFor="group-email-config"
+              hint="Opcional · usada para enviar os templates deste grupo"
+              error={errors.email_config_id?.message}
+            >
+              <Controller
+                name="email_config_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    id="group-email-config"
+                    value={field.value && field.value > 0 ? String(field.value) : ''}
+                    onChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
+                    placeholder="Sem configuração (opcional)"
+                    emptyLabel="Nenhuma configuração"
+                    emptyMessage="Nenhuma configuração encontrada"
+                    hasError={Boolean(errors.email_config_id)}
+                    options={emailConfigs.map((cfg) => ({
+                      value: String(cfg.id),
+                      label: cfg.name,
+                      description: cfg.host,
+                    }))}
+                  />
+                )}
+              />
             </FormField>
 
             <FormField label="Descrição" htmlFor="group-desc" error={errors.description?.message}>
@@ -291,11 +384,11 @@ export function GroupsPage() {
               />
             </FormField>
 
-            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+            <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
               >
                 Cancelar
               </button>

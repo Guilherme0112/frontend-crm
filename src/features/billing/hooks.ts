@@ -7,11 +7,14 @@ import type {
   CreateSubscriptionPayload,
 } from '@/src/lib/types';
 
-export function usePlansQuery() {
-  return useQuery({
-    queryKey: queryKeys.plans.all,
-    queryFn: api.listPlans,
-  });
+import { useInfiniteList } from '@/src/lib/useInfiniteList';
+
+export function usePlansInfiniteQuery(perPage = 25) {
+  return useInfiniteList(
+    queryKeys.plans.all,
+    (page, size) => api.listPlans(page, size),
+    perPage,
+  );
 }
 
 export function useCreatePlanMutation() {
@@ -24,11 +27,12 @@ export function useCreatePlanMutation() {
   });
 }
 
-export function useSubscriptionsQuery() {
-  return useQuery({
-    queryKey: queryKeys.subscriptions.all,
-    queryFn: api.listSubscriptions,
-  });
+export function useSubscriptionsInfiniteQuery(perPage = 25) {
+  return useInfiniteList(
+    queryKeys.subscriptions.all,
+    (page, size) => api.listSubscriptions(page, size),
+    perPage,
+  );
 }
 
 export function useCreateSubscriptionMutation() {
@@ -52,11 +56,12 @@ export function useCancelSubscriptionMutation() {
   });
 }
 
-export function useInvoicesQuery() {
-  return useQuery({
-    queryKey: queryKeys.invoices.all,
-    queryFn: api.listInvoices,
-  });
+export function useInvoicesInfiniteQuery(perPage = 25) {
+  return useInfiniteList(
+    queryKeys.invoices.all,
+    (page, size) => api.listInvoices(page, size),
+    perPage,
+  );
 }
 
 export function usePayInvoiceMutation() {
@@ -69,11 +74,12 @@ export function usePayInvoiceMutation() {
   });
 }
 
-export function usePaymentMethodsQuery() {
-  return useQuery({
-    queryKey: queryKeys.paymentMethods.all,
-    queryFn: api.listPaymentMethods,
-  });
+export function usePaymentMethodsInfiniteQuery(perPage = 25) {
+  return useInfiniteList(
+    queryKeys.paymentMethods.all,
+    (page, size) => api.listPaymentMethods(page, size),
+    perPage,
+  );
 }
 
 export function useCreatePaymentMethodMutation() {

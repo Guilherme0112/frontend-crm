@@ -1,90 +1,144 @@
-import { useState, type DragEvent } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { Lead, Step } from '@/src/lib/types';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { Loader2, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import type { Step } from '@/src/lib/types';
 import { cn } from '@/src/lib/cn';
-import { PHONE_REGEX, maskPhone } from '@/src/lib/format';
-import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
+import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useCreateLeadMutation } from '@/src/features/leads/hooks';
+import { useLeadsInfiniteQuery } from '@/src/features/leads/hooks';
 import { useToast } from '@/src/components/common/Toast';
 import { KanbanCard } from './KanbanCard';
+import { KanbanInlineLeadForm, type InlineLeadValues } from './KanbanInlineLeadForm';
 
-const inlineLeadSchema = z.object({
-  name: z.string().trim().min(2, 'Informe o nome'),
-  email: z.string().trim().min(1, 'Informe o e-mail').email('E-mail inválido'),
-  phone: z
-    .string()
-    .trim()
-    .optional()
-    .refine((val) => !val || PHONE_REGEX.test(val), {
-      message: 'Formato (00) 00000-0000',
-    }),
-});
-
-type InlineLeadValues = z.infer<typeof inlineLeadSchema>;
+const PER_PAGE = 10;
 
 interface KanbanColumnProps {
   step: Step;
-  leads: Lead[];
+  searchQuery: string;
   draggingLeadId: number | null;
+  draggingStepId: number | null;
   onDragStart: (e: DragEvent<HTMLDivElement>, leadId: number) => void;
   onDragEnd: () => void;
-  onDropLead: (leadId: number, targetStepId: number) => void;
+  onDropLead: (
+    leadId: number,
+    targetStepId: number,
+    options: { previousId: number | null; nextId: number | null },
+  ) => void;
   onSelectLead: (leadId: number) => void;
   onEditStep: (step: Step) => void;
   onDeleteStep: (step: Step) => void;
+  onStepGripDragStart: (stepId: number) => void;
+  onStepDrop: (draggedId: number, targetStepId: number) => void;
+  /** true enquanto ainda há páginas de etapas a carregar — reorder exige lista completa */
+  reorderDisabled?: boolean;
 }
 
 export function KanbanColumn({
   step,
-  leads,
+  searchQuery,
   draggingLeadId,
+  draggingStepId,
   onDragStart,
   onDragEnd,
   onDropLead,
   onSelectLead,
   onEditStep,
   onDeleteStep,
+  onStepGripDragStart,
+  onStepDrop,
+  reorderDisabled = false,
 }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
+  /** Índice do gap onde o composer de novo lead está aberto (0..leads.length) */
+  const [addingAt, setAddingAt] = useState<number | null>(null);
+  /** Posição de inserção calculada durante o drag (0..leads.length), null fora de arraste */
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const createLeadMutation = useCreateLeadMutation();
+  const leadsQuery = useLeadsInfiniteQuery(step.id, searchQuery || undefined, PER_PAGE);
   const { toast } = useToast();
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    setError,
-    formState: { errors },
-  } = useForm<InlineLeadValues>({
-    resolver: zodResolver(inlineLeadSchema),
-    defaultValues: { name: '', email: '', phone: '' },
-  });
+  const leads = leadsQuery.items;
+  const hasMore = Boolean(leadsQuery.hasNextPage);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const root = listRef.current;
+    if (!sentinel || !root || !hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !leadsQuery.isFetchingNextPage) {
+          void leadsQuery.fetchNextPage();
+        }
+      },
+      { root, rootMargin: '120px 0px', threshold: 0.01 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, leadsQuery.isFetchingNextPage, leadsQuery.hasNextPage]);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (!isDragOver) setIsDragOver(true);
+    // Permite drop tanto de leads quanto de colunas sendo reordenadas
+    if (
+      e.dataTransfer.types.includes('text/plain') ||
+      e.dataTransfer.types.includes('application/x-step')
+    ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!isDragOver) setIsDragOver(true);
+    }
   };
 
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
+      setDropIndex(null);
     }
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
-    const raw = e.dataTransfer.getData('text/plain');
-    const leadId = Number(raw);
-    if (Number.isFinite(leadId) && leadId > 0) {
-      onDropLead(leadId, step.id);
+    const raw = e.dataTransfer.getData('application/x-step');
+    if (raw) {
+      setDropIndex(null);
+      const draggedId = Number(raw);
+      if (Number.isFinite(draggedId) && draggedId > 0) {
+        onStepDrop(draggedId, step.id);
+      }
+      return;
     }
+    const leadRaw = e.dataTransfer.getData('text/plain');
+    const leadId = Number(leadRaw);
+    setDropIndex(null);
+    if (Number.isFinite(leadId) && leadId > 0) {
+      onDropLead(leadId, step.id, neighborIdsFor(leadId, dropIndex));
+    }
+  };
+
+  // Calcula os vizinhos (prev/next) da posição de inserção, excluindo o lead arrastado.
+  const neighborIdsFor = (
+    draggedLeadId: number,
+    index: number | null,
+  ): { previousId: number | null; nextId: number | null } => {
+    if (index === null || searchQuery) {
+      return { previousId: null, nextId: null };
+    }
+
+    const draggedIndex = leads.findIndex((lead) => lead.id === draggedLeadId);
+    const others = draggedIndex === -1 ? leads : leads.filter((lead) => lead.id !== draggedLeadId);
+
+    let mapped = index;
+    if (draggedIndex !== -1 && draggedIndex < index) {
+      mapped = index - 1;
+    }
+
+    const previousId = mapped > 0 ? others[mapped - 1]?.id ?? null : null;
+    const nextId = mapped < others.length ? others[mapped]?.id ?? null : null;
+
+    // Mesmo lugar de onde o lead saiu — não faz nada a menos que a etapa tenha mudado (o caller decide).
+    return { previousId, nextId };
   };
 
   const onCreateInlineLead = async (values: InlineLeadValues) => {
@@ -96,12 +150,70 @@ export function KanbanColumn({
         step_id: step.id,
       });
       toast.success('Lead adicionado à etapa');
-      reset();
-      setIsAdding(false);
+      setAddingAt(null);
+      void leadsQuery.refetch();
     } catch (error) {
-      applyServerErrors(error, setError);
       toast.error('Erro ao criar lead', getApiErrorMessage(error));
     }
+  };
+
+  const insertGap = (index: number) => {
+    const canShow = draggingLeadId === null && addingAt === null;
+    return (
+      <div
+        key={`gap-${index}`}
+        aria-hidden={!canShow}
+        className="group/gap relative z-10 -my-[5.5px] flex h-[11px] shrink-0 items-center justify-center"
+      >
+        {canShow && (
+          <>
+            {/* Linha divisória */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-blue-500/80 opacity-0 transition-opacity duration-150 group-hover/gap:opacity-100"
+            />
+            {/* Botão + */}
+            <button
+              type="button"
+              onClick={() => setAddingAt(index)}
+              aria-label="Criar lead aqui"
+              title="Criar lead aqui"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-blue-500 bg-white text-blue-600 opacity-0 shadow-sm ring-1 ring-inset ring-blue-500/15 transition-all duration-150 hover:scale-110 hover:bg-blue-600 hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 group-hover/gap:opacity-100 dark:border-blue-400 dark:bg-[#101012] dark:text-blue-400 dark:ring-blue-400/20 dark:hover:bg-blue-600 dark:hover:text-white"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderInlineForm = () => (
+    <KanbanInlineLeadForm
+      isPending={createLeadMutation.isPending}
+      onSubmit={(values) => void onCreateInlineLead(values)}
+      onCancel={() => setAddingAt(null)}
+    />
+  );
+
+  const dropLineSlot = (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none z-10 -my-[6px] flex h-[12px] items-center"
+    >
+      <div className="h-[3px] w-full rounded-full bg-blue-500/90 shadow-[0_0_0_1px_rgba(37,99,235,0.35)]" />
+    </div>
+  );
+
+  const handleCardDragOver = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    if (draggingLeadId === null || searchQuery) return;
+    if (e.dataTransfer.types.includes('application/x-step')) return;
+
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = e.currentTarget.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    setDropIndex(before ? index : index + 1);
   };
 
   return (
@@ -111,36 +223,65 @@ export function KanbanColumn({
       onDrop={handleDrop}
       aria-label={`Etapa ${step.name}`}
       className={cn(
-        'flex w-80 shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-100/75 transition-colors dark:border-slate-800 dark:bg-slate-900/60',
-        isDragOver &&
-          'border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-950/30',
+        'flex w-80 max-h-[calc(100vh-5.5rem)] shrink-0 flex-col rounded-2xl border border-zinc-950/[0.07] bg-zinc-950/[0.035] transition-colors dark:border-white/[0.07] dark:bg-white/[0.035]',
+        isDragOver && 'border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-950/30',
+        draggingStepId === step.id && 'opacity-60 ring-2 ring-blue-500/40',
       )}
     >
       {/* Column Header */}
-      <div className="flex items-start justify-between gap-2 border-b border-slate-200 px-3.5 py-3 dark:border-slate-800">
+      <div className="flex items-start justify-between gap-2 border-b border-zinc-950/[0.07] px-3.5 py-3 dark:border-white/[0.07]">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <h3 className="truncate font-display text-[13px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               {step.name}
             </h3>
-            <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
-              {leads.length}
+            <span
+              className="rounded-md border border-zinc-950/[0.07] bg-white px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-zinc-500 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400"
+              aria-label={`${leadsQuery.total ?? leads.length} leads carregados`}
+            >
+              {leadsQuery.total ?? leads.length}
             </span>
           </div>
           {step.description && (
-            <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
               {step.description}
             </p>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            draggable={!reorderDisabled}
+            onDragStart={(e) => {
+              if (reorderDisabled) {
+                e.preventDefault();
+                return;
+              }
+              e.dataTransfer.setData('application/x-step', String(step.id));
+              e.dataTransfer.effectAllowed = 'move';
+              onStepGripDragStart(step.id);
+            }}
+            onDragEnd={() => onStepGripDragStart(-1)}
+            disabled={reorderDisabled}
+            title={reorderDisabled ? 'Carregue todas as etapas para poder reordenar' : 'Arrastar para reordenar a etapa'}
+            aria-label={reorderDisabled ? 'Reordenar desabilitado — carregue todas as etapas' : `Arrastar para reordenar ${step.name}`}
+            aria-grabbed={draggingStepId === step.id}
+            className={cn(
+              'rounded-md p-1.5 transition-colors',
+              reorderDisabled
+                ? 'cursor-not-allowed text-zinc-200 dark:text-zinc-700'
+                : 'cursor-grab text-zinc-400 hover:bg-white hover:text-zinc-700 active:cursor-grabbing dark:hover:bg-white/[0.06] dark:hover:text-zinc-100',
+            )}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
           <button
             type="button"
             onClick={() => onEditStep(step)}
             title="Editar etapa"
             aria-label={`Editar etapa ${step.name}`}
-            className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-white hover:text-zinc-700 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
@@ -149,131 +290,68 @@ export function KanbanColumn({
             onClick={() => onDeleteStep(step)}
             title="Excluir etapa"
             aria-label={`Excluir etapa ${step.name}`}
-            className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-red-600 dark:hover:bg-slate-800 dark:hover:text-red-400"
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Cards list */}
-      <div className="flex flex-1 flex-col gap-2.5 p-3">
-        {leads.map((lead) => (
-          <KanbanCard
-            key={lead.id}
-            lead={lead}
-            isDragging={draggingLeadId === lead.id}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            onSelect={onSelectLead}
-          />
+      {/* Cards list — rolável com paginação infinita */}
+      <div ref={listRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+        {leads.map((lead, index) => (
+          <div key={lead.id} onDragOver={handleCardDragOver(index)}>
+            {insertGap(index)}
+            {addingAt === index && renderInlineForm()}
+            {dropIndex === index && dropLineSlot}
+            <KanbanCard
+              lead={lead}
+              isDragging={draggingLeadId === lead.id}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onSelect={onSelectLead}
+            />
+          </div>
         ))}
 
-        {leads.length === 0 && !isAdding && (
-          <div className="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        {insertGap(leads.length)}
+        {addingAt === leads.length && renderInlineForm()}
+        {dropIndex === leads.length && dropLineSlot}
+
+        {/* Sentinel / skeleton de paginação */}
+        {hasMore && (
+          <div ref={sentinelRef} className="flex items-center justify-center gap-2 py-2 text-[11px] text-zinc-400 dark:text-zinc-500">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            <span>
+              Carregando mais… {leads.length} de {leadsQuery.total ?? '…'}
+            </span>
+          </div>
+        )}
+
+        {leadsQuery.isPending && (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" aria-hidden="true" />
+          </div>
+        )}
+
+        {!hasMore && leads.length > PER_PAGE && (
+          <p className="py-1 text-center text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-300 dark:text-zinc-600">
+            Fim · {leadsQuery.total ?? leads.length} leads
+          </p>
+        )}
+
+        {leads.length === 0 && !leadsQuery.isPending && addingAt === null && (
+          <div className="rounded-lg border border-dashed border-zinc-950/[0.12] px-3 py-6 text-center text-xs text-zinc-500 dark:border-white/[0.12] dark:text-zinc-400">
             Arraste um lead para cá ou adicione abaixo
           </div>
         )}
 
-        {/* Inline add lead */}
-        {isAdding ? (
-          <form
-            onSubmit={handleSubmit(onCreateInlineLead)}
-            className="space-y-2.5 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-            noValidate
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                Novo lead
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAdding(false);
-                  reset();
-                }}
-                className="rounded p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                aria-label="Cancelar"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            <div>
-              <input
-                type="text"
-                placeholder="Nome do lead *"
-                className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                {...register('name')}
-              />
-              {errors.name && (
-                <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">
-                  {errors.name.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <input
-                type="email"
-                placeholder="E-mail *"
-                className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                {...register('email')}
-              />
-              {errors.email && (
-                <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">
-                  {errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Controller
-                control={control}
-                name="phone"
-                render={({ field }) => (
-                  <input
-                    type="tel"
-                    placeholder="Telefone (opcional)"
-                    className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-blue-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(maskPhone(e.target.value))}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-              {errors.phone && (
-                <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">
-                  {errors.phone.message}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsAdding(false);
-                  reset();
-                }}
-                className="rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={createLeadMutation.isPending}
-                className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {createLeadMutation.isPending ? 'Salvando...' : 'Adicionar'}
-              </button>
-            </div>
-          </form>
-        ) : (
+        {/* Rodapé: botão de adicionar (o composer aparece no gap do fim da lista) */}
+        {addingAt !== leads.length && (
           <button
             type="button"
-            onClick={() => setIsAdding(true)}
-            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-transparent py-2 text-xs font-medium text-slate-600 transition-colors hover:border-slate-200 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:border-slate-800 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+            onClick={() => setAddingAt(leads.length)}
+            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-transparent py-2 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-950/[0.07] hover:bg-white hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-white/[0.15] dark:hover:bg-white/[0.05] dark:hover:text-zinc-100"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Adicionar lead</span>
