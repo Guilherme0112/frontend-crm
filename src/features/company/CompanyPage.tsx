@@ -1,0 +1,391 @@
+import { useEffect } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuth } from '@/src/auth/AuthContext';
+import { useCompanyQuery, useUpdateCompanyMutation } from './hooks';
+import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { Skeleton } from '@/src/components/common/Skeleton';
+import { ErrorState } from '@/src/components/common/ErrorState';
+import { useToast } from '@/src/components/common/Toast';
+import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
+import { ZIP_REGEX, maskZipCode } from '@/src/lib/format';
+
+const companySchema = z.object({
+  name: z.string().trim().min(2, 'Informe o nome da empresa'),
+  description: z.string().optional(),
+  website: z
+    .string()
+    .trim()
+    .optional()
+    .refine((val) => !val || /^https?:\/\/.+/.test(val), {
+      message: 'Informe uma URL iniciando com http:// ou https://',
+    }),
+  address: z.object({
+    zip_code: z
+      .string()
+      .trim()
+      .optional()
+      .refine((val) => !val || ZIP_REGEX.test(val), {
+        message: 'CEP deve estar no formato 00000-000',
+      }),
+    street: z.string().optional(),
+    number: z.string().optional(),
+    complement: z.string().optional(),
+    neighborhood: z.string().optional(),
+    city: z.string().optional(),
+    state: z
+      .string()
+      .trim()
+      .optional()
+      .refine((val) => !val || val.length === 2, {
+        message: 'UF deve ter 2 letras (ex.: SP)',
+      }),
+    country: z.string().optional(),
+    ibge_code: z.string().optional(),
+  }),
+});
+
+type CompanyFormValues = z.infer<typeof companySchema>;
+
+export function CompanyPage() {
+  const { toast } = useToast();
+  const { refreshSession } = useAuth();
+  const companyQuery = useCompanyQuery();
+  const updateMutation = useUpdateCompanyMutation();
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isDirty },
+  } = useForm<CompanyFormValues>({
+    resolver: zodResolver(companySchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      website: '',
+      address: {
+        zip_code: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        country: 'Brasil',
+        ibge_code: '',
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (companyQuery.data) {
+      const c = companyQuery.data;
+      reset({
+        name: c.name ?? '',
+        description: c.description ?? '',
+        website: c.website ?? '',
+        address: {
+          zip_code: c.address?.zip_code ?? '',
+          street: c.address?.street ?? '',
+          number: c.address?.number ?? '',
+          complement: c.address?.complement ?? '',
+          neighborhood: c.address?.neighborhood ?? '',
+          city: c.address?.city ?? '',
+          state: c.address?.state ?? '',
+          country: c.address?.country ?? 'Brasil',
+          ibge_code: c.address?.ibge_code ?? '',
+        },
+      });
+    }
+  }, [companyQuery.data, reset]);
+
+  const onSubmit = async (values: CompanyFormValues) => {
+    const addr = values.address;
+    const hasAnyAddressField = Object.values(addr).some((v) => Boolean(v && v.trim()));
+
+    try {
+      await updateMutation.mutateAsync({
+        name: values.name.trim(),
+        description: values.description?.trim() || null,
+        website: values.website?.trim() || null,
+        address: hasAnyAddressField
+          ? {
+              zip_code: addr.zip_code?.trim() || null,
+              street: addr.street?.trim() || null,
+              number: addr.number?.trim() || null,
+              complement: addr.complement?.trim() || null,
+              neighborhood: addr.neighborhood?.trim() || null,
+              city: addr.city?.trim() || null,
+              state: addr.state?.trim().toUpperCase() || null,
+              country: addr.country?.trim() || null,
+              ibge_code: addr.ibge_code?.trim() || null,
+            }
+          : null,
+      });
+      await refreshSession();
+      toast.success('Dados da empresa atualizados');
+    } catch (error) {
+      applyServerErrors(error, setError);
+      toast.error('Erro ao atualizar empresa', getApiErrorMessage(error));
+    }
+  };
+
+  if (companyQuery.isPending) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <Skeleton className="h-9 w-56" />
+        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (companyQuery.isError || !companyQuery.data) {
+    return (
+      <ErrorState
+        title="Erro ao carregar dados da empresa"
+        error={companyQuery.error}
+        onRetry={() => void companyQuery.refetch()}
+      />
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          Empresa
+        </h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          Mantenha os dados cadastrais e o endereço da sua organização atualizados.
+        </p>
+      </div>
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+        noValidate
+      >
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-800">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Informações gerais
+            </h2>
+            {companyQuery.data.document_number && (
+              <span className="font-mono text-xs tabular-nums text-slate-500 dark:text-slate-400">
+                Documento: {companyQuery.data.document_number}
+              </span>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField label="Nome da empresa" htmlFor="comp-name" required error={errors.name?.message}>
+              <input
+                id="comp-name"
+                type="text"
+                className={inputClassName(Boolean(errors.name))}
+                {...register('name')}
+              />
+            </FormField>
+
+            <FormField label="Site" htmlFor="comp-website" error={errors.website?.message}>
+              <input
+                id="comp-website"
+                type="url"
+                placeholder="https://empresa.com.br"
+                className={inputClassName(Boolean(errors.website))}
+                {...register('website')}
+              />
+            </FormField>
+
+            <FormField
+              label="Descrição"
+              htmlFor="comp-desc"
+              error={errors.description?.message}
+              className="sm:col-span-2"
+            >
+              <textarea
+                id="comp-desc"
+                rows={3}
+                className={inputClassName(Boolean(errors.description))}
+                {...register('description')}
+              />
+            </FormField>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="border-b border-slate-200 pb-2 text-sm font-semibold text-slate-900 dark:border-slate-800 dark:text-slate-100">
+            Endereço
+          </h2>
+
+          <div className="grid gap-4 sm:grid-cols-6">
+            <FormField
+              label="CEP"
+              htmlFor="addr-zip"
+              error={errors.address?.zip_code?.message}
+              className="sm:col-span-2"
+            >
+              <Controller
+                control={control}
+                name="address.zip_code"
+                render={({ field }) => (
+                  <input
+                    id="addr-zip"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="00000-000"
+                    className={`${inputClassName(Boolean(errors.address?.zip_code))} font-mono tabular-nums`}
+                    value={field.value || ''}
+                    onChange={(e) => field.onChange(maskZipCode(e.target.value))}
+                    onBlur={field.onBlur}
+                  />
+                )}
+              />
+            </FormField>
+
+            <FormField
+              label="Logradouro"
+              htmlFor="addr-street"
+              error={errors.address?.street?.message}
+              className="sm:col-span-3"
+            >
+              <input
+                id="addr-street"
+                type="text"
+                placeholder="Av. Paulista"
+                className={inputClassName(Boolean(errors.address?.street))}
+                {...register('address.street')}
+              />
+            </FormField>
+
+            <FormField
+              label="Número"
+              htmlFor="addr-number"
+              error={errors.address?.number?.message}
+              className="sm:col-span-1"
+            >
+              <input
+                id="addr-number"
+                type="text"
+                placeholder="1000"
+                className={inputClassName(Boolean(errors.address?.number))}
+                {...register('address.number')}
+              />
+            </FormField>
+
+            <FormField
+              label="Complemento"
+              htmlFor="addr-comp"
+              error={errors.address?.complement?.message}
+              className="sm:col-span-3"
+            >
+              <input
+                id="addr-comp"
+                type="text"
+                placeholder="Sala 12"
+                className={inputClassName(Boolean(errors.address?.complement))}
+                {...register('address.complement')}
+              />
+            </FormField>
+
+            <FormField
+              label="Bairro"
+              htmlFor="addr-neigh"
+              error={errors.address?.neighborhood?.message}
+              className="sm:col-span-3"
+            >
+              <input
+                id="addr-neigh"
+                type="text"
+                placeholder="Bela Vista"
+                className={inputClassName(Boolean(errors.address?.neighborhood))}
+                {...register('address.neighborhood')}
+              />
+            </FormField>
+
+            <FormField
+              label="Cidade"
+              htmlFor="addr-city"
+              error={errors.address?.city?.message}
+              className="sm:col-span-3"
+            >
+              <input
+                id="addr-city"
+                type="text"
+                placeholder="São Paulo"
+                className={inputClassName(Boolean(errors.address?.city))}
+                {...register('address.city')}
+              />
+            </FormField>
+
+            <FormField
+              label="UF"
+              htmlFor="addr-state"
+              error={errors.address?.state?.message}
+              className="sm:col-span-1"
+            >
+              <input
+                id="addr-state"
+                type="text"
+                maxLength={2}
+                placeholder="SP"
+                className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
+                {...register('address.state')}
+              />
+            </FormField>
+
+            <FormField
+              label="País"
+              htmlFor="addr-country"
+              error={errors.address?.country?.message}
+              className="sm:col-span-2"
+            >
+              <input
+                id="addr-country"
+                type="text"
+                placeholder="Brasil"
+                className={inputClassName(Boolean(errors.address?.country))}
+                {...register('address.country')}
+              />
+            </FormField>
+
+            <FormField
+              label="Código IBGE"
+              htmlFor="addr-ibge"
+              error={errors.address?.ibge_code?.message}
+              className="sm:col-span-2"
+            >
+              <input
+                id="addr-ibge"
+                type="text"
+                placeholder="3550308"
+                className={`${inputClassName(Boolean(errors.address?.ibge_code))} font-mono tabular-nums`}
+                {...register('address.ibge_code')}
+              />
+            </FormField>
+          </div>
+        </div>
+
+        <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-slate-800">
+          <button
+            type="submit"
+            disabled={updateMutation.isPending || !isDirty}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+          >
+            {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

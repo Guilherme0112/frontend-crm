@@ -1,0 +1,6 @@
+{
+  "name": "Vértice CRM",
+  "description": "Plataforma CRM multi-tenant para gestão de pipelines Kanban, leads, templates de envio, equipe e faturamento.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
