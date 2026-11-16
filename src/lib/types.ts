@@ -471,11 +471,8 @@ export type SubscriptionStatus =
   | 'trialing'
   | 'pending';
 
-/**
- * Cartão é debitado automaticamente pelo Mercado Pago. Pix e boleto não têm
- * débito automático: o cliente paga uma cobrança nova a cada mês.
- */
-export type BillingMethod = 'card' | 'pix' | 'boleto';
+/** Cartão debitado automaticamente pelo Mercado Pago, via preapproval. */
+export type BillingMethod = 'card';
 
 export interface Subscription {
   id: number;
@@ -484,8 +481,8 @@ export interface Subscription {
   status: SubscriptionStatus;
   billing_method?: BillingMethod;
   starts_at: string;
+  external_id?: string | null;
   ends_at?: string | null;
-  next_charge_at?: string | null;
   canceled_at?: string | null;
   created_at?: string;
 }
@@ -502,14 +499,8 @@ export interface CheckoutSession {
   status: SubscriptionStatus;
   billing_method: BillingMethod;
   external_id: string | null;
-  /** Cartão: URL do Checkout Pro para onde redirecionar. */
+  /** URL do Checkout Pro para onde redirecionar. */
   init_point: string | null;
-  /** Pix/boleto: a fatura emitida. */
-  invoice_id: number | null;
-  qr_code: string | null;
-  qr_code_base64: string | null;
-  ticket_url: string | null;
-  barcode: string | null;
 }
 
 export type InvoiceStatus = 'open' | 'paid' | 'void';
@@ -522,16 +513,10 @@ export interface Invoice {
   status: InvoiceStatus;
   due_date: string;
   paid_at?: string | null;
-  payment_method?: BillingMethod | null;
-  qr_code?: string | null;
-  qr_code_base64?: string | null;
-  ticket_url?: string | null;
-  barcode?: string | null;
-  charge_expires_at?: string | null;
   created_at?: string;
 }
 
-export type PaymentMethodType = 'card' | 'pix' | 'boleto';
+export type PaymentMethodType = 'card';
 
 export interface PaymentMethod {
   id: number;
@@ -594,7 +579,6 @@ export interface DashboardSummary {
     plan_id?: number;
   } | null;
 }
-
 
 export interface CreatePaymentMethodPayload {
   type: PaymentMethodType;

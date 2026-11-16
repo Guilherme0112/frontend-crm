@@ -1,14 +1,12 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   AlertCircle,
-  Banknote,
   CreditCard,
   Plus,
-  QrCode,
   Star,
   Trash2,
 } from 'lucide-react';
@@ -21,11 +19,11 @@ import {
   usePlansFullQuery,
   useSetDefaultPaymentMethodMutation,
   useSubscriptionsFullQuery,
+  useSyncSubscriptionMutation,
 } from './hooks';
 import { Pagination } from '@/src/components/common/Pagination';
 import { useClientPagination } from '@/src/lib/useClientPagination';
 import { Modal } from '@/src/components/common/Modal';
-import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { CardsGridSkeleton } from '@/src/components/common/Skeleton';
@@ -38,19 +36,15 @@ import {
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
 import { formatCurrency, formatDate } from '@/src/lib/format';
-import { ChargeDetails } from './ChargeDetails';
 import type {
-  BillingMethod,
-  CheckoutSession,
   PaymentMethod,
-  PaymentMethodType,
   Plan,
   Subscription,
 } from '@/src/lib/types';
 
 const paymentMethodSchema = z
   .object({
-    type: z.enum(['card', 'pix', 'boleto']),
+    type: z.enum(['card']),
     brand: z.string().trim().optional(),
     last4: z
       .string()
@@ -69,21 +63,7 @@ const paymentMethodSchema = z
 
 type PaymentMethodFormValues = z.infer<typeof paymentMethodSchema>;
 
-const BILLING_OPTIONS: ReadonlyArray<{
-  id: BillingMethod;
-  label: string;
-  hint: string;
-  icon: typeof CreditCard;
-}> = [
-  {
-    id: 'card',
-    label: 'Cartão',
-    hint: 'Débito automático todo mês',
-    icon: CreditCard,
-  },
-  { id: 'pix', label: 'Pix', hint: 'QR novo a cada mês', icon: QrCode },
-  { id: 'boleto', label: 'Boleto', hint: 'Boleto novo a cada mês', icon: Banknote },
-];
+
 
 /** Plano de cortesia: ativa direto, sem gateway e sem cobrança. */
 function isFreePlan(plan: Plan): boolean {
@@ -95,15 +75,8 @@ function isTrialPlan(plan: Plan): boolean {
   return plan.slug === 'trial';
 }
 
-function getPaymentMethodLabel(type: PaymentMethodType): string {
-  switch (type) {
-    case 'card':
-      return 'Cartão';
-    case 'pix':
-      return 'Pix';
-    case 'boleto':
-      return 'Boleto';
-  }
+function getPaymentMethodLabel(): string {
+  return 'Cartão';
 }
 
 export function BillingPage() {
@@ -119,21 +92,17 @@ export function BillingPage() {
   const setDefaultPmMutation = useSetDefaultPaymentMethodMutation();
 
   const [selectedPlanToSubscribe, setSelectedPlanToSubscribe] = useState<Plan | null>(null);
-  const [chosenPaymentMethodId, setChosenPaymentMethodId] = useState<string>('');
   const [subscribeConflictMsg, setSubscribeConflictMsg] = useState<string | null>(null);
-  const [billingMethod, setBillingMethod] = useState<BillingMethod>('card');
-  // Cobrança emitida de pix/boleto, exibida no lugar do formulário após assinar.
-  const [issuedCharge, setIssuedCharge] = useState<CheckoutSession | null>(null);
   const [cancelingSub, setCancelingSub] = useState<Subscription | null>(null);
   const [pmModalOpen, setPmModalOpen] = useState(false);
   const [deletingPm, setDeletingPm] = useState<PaymentMethod | null>(null);
+  const syncSubMutation = useSyncSubscriptionMutation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     register,
     handleSubmit,
     reset,
-    control,
-    watch,
     setError,
     formState: { errors },
   } = useForm<PaymentMethodFormValues>({
@@ -147,12 +116,52 @@ export function BillingPage() {
     },
   });
 
-  const watchedPmType = watch('type');
 
   // Listas completas: alimentam a lógica da tela (assinatura ativa, nome do
   // plano no histórico, seletor de método no modal).
   const plans = plansQuery.items ?? [];
   const subscriptions = subscriptionsQuery.items ?? [];
+
+  // Retorno do Checkout Pro: o Mercado Pago redireciona para a back_url com
+  // ?preapproval_id=...&status=... — ao voltar, reconcilia a assinatura
+  // automaticamente (equivale ao botão "Sincronizar") e limpa a URL.
+  const preapprovalId = searchParams.get('preapproval_id');
+  useEffect(() => {
+    if (!preapprovalId) {
+      return;
+    }
+
+    const pending = subscriptions.find(
+      (s) => s.external_id === preapprovalId && s.status === 'pending',
+    );
+
+    const finish = () => {
+      searchParams.delete('preapproval_id');
+      searchParams.delete('status');
+      setSearchParams(searchParams, { replace: true });
+    };
+
+    if (!pending) {
+      finish();
+
+      return;
+    }
+
+    syncSubMutation
+      .mutateAsync(pending.id)
+      .then((updated) => {
+        if (updated.status === 'active') {
+          toast.success('Assinatura ativada', 'Seu plano Basic está ativo. Bem-vindo!');
+        } else {
+          toast.info('Pagamento em processamento', 'Assim que o Mercado Pago confirmar, a assinatura será ativada.');
+        }
+      })
+      .catch(() => {
+        toast.error('Erro ao confirmar pagamento', 'Atualize a página ou clique em Sincronizar.');
+      })
+      .finally(finish);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preapprovalId]);
   const paymentMethods = paymentMethodsQuery.items ?? [];
 
   // Recortes exibidos, paginados no cliente.
@@ -174,18 +183,12 @@ export function BillingPage() {
 
   const openSubscribeModal = (plan: Plan) => {
     setSubscribeConflictMsg(null);
-    setIssuedCharge(null);
-    // Cortesia não passa pelo gateway; o método vai só por consistência.
-    setBillingMethod('card');
-    const defaultPm = paymentMethods.find((pm) => pm.is_default) ?? paymentMethods[0];
-    setChosenPaymentMethodId(defaultPm ? String(defaultPm.id) : '');
     setSelectedPlanToSubscribe(plan);
   };
 
   const closeSubscribeModal = () => {
     setSelectedPlanToSubscribe(null);
     setSubscribeConflictMsg(null);
-    setIssuedCharge(null);
   };
 
   const handleConfirmSubscribe = async () => {
@@ -195,7 +198,7 @@ export function BillingPage() {
     try {
       const session = await createCheckoutMutation.mutateAsync({
         plan_slug: selectedPlanToSubscribe.slug,
-        billing_method: billingMethod,
+        billing_method: 'card',
       });
 
       // Cortesia: já nasce ativa, sem cobrança nenhuma.
@@ -222,13 +225,6 @@ export function BillingPage() {
 
         return;
       }
-
-      // Pix/boleto: a cobrança já veio pronta; mostra no próprio modal.
-      setIssuedCharge(session);
-      toast.success(
-        'Cobrança gerada',
-        'Assim que o pagamento for confirmado a assinatura é ativada.',
-      );
     } catch (error) {
       const status = getApiStatus(error);
       const apiMsg = getApiErrorMessage(error);
@@ -471,7 +467,7 @@ export function BillingPage() {
               Métodos de pagamento
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Cartões, chaves Pix ou boletos cadastrados para sua empresa.
+              Cartões cadastrados para débito automático da mensalidade.
             </p>
           </div>
 
@@ -489,7 +485,7 @@ export function BillingPage() {
           <EmptyState
             icon={<CreditCard className="h-5 w-5" />}
             title="Nenhum método de pagamento cadastrado"
-            description="Adicione um cartão, Pix ou boleto para usar como forma de pagamento padrão."
+            description="Adicione um cartão para usar como forma de pagamento padrão."
             action={
               <button
                 type="button"
@@ -511,13 +507,11 @@ export function BillingPage() {
                 <div className="flex items-center gap-3.5">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-950/[0.07] bg-zinc-50 text-zinc-600 dark:border-white/[0.07] dark:bg-[#101012] dark:text-zinc-300">
                     {pm.type === 'card' && <CreditCard className="h-5 w-5" />}
-                    {pm.type === 'pix' && <QrCode className="h-5 w-5" />}
-                    {pm.type === 'boleto' && <Banknote className="h-5 w-5" />}
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {getPaymentMethodLabel(pm.type)}
+                        {getPaymentMethodLabel()}
                         {pm.brand ? ` · ${pm.brand}` : ''}
                       </span>
                       {pm.last4 && (
@@ -659,36 +653,7 @@ export function BillingPage() {
               </p>
             </div>
 
-            {issuedCharge ? (
-              <>
-                <ChargeDetails
-                  charge={{
-                    billing_method: issuedCharge.billing_method,
-                    qr_code: issuedCharge.qr_code,
-                    qr_code_base64: issuedCharge.qr_code_base64,
-                    ticket_url: issuedCharge.ticket_url,
-                    barcode: issuedCharge.barcode,
-                  }}
-                />
-
-                <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                  <Link
-                    to="/invoices"
-                    onClick={closeSubscribeModal}
-                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                  >
-                    Ver em Faturas
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={closeSubscribeModal}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                  >
-                    Concluir
-                  </button>
-                </div>
-              </>
-            ) : isFreePlan(selectedPlanToSubscribe) ? (
+            {isFreePlan(selectedPlanToSubscribe) ? (
               <>
                 <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -728,75 +693,14 @@ export function BillingPage() {
               </>
             ) : (
               <>
-                <fieldset>
-                  <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Como você quer pagar?
-                  </legend>
-
-                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                    {BILLING_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-                      const isActive = billingMethod === option.id;
-
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => setBillingMethod(option.id)}
-                          aria-pressed={isActive}
-                          className={
-                            isActive
-                              ? 'flex flex-col items-start gap-1 rounded-lg border border-blue-600 bg-blue-50 p-3 text-left dark:border-blue-400 dark:bg-blue-950/40'
-                              : 'flex flex-col items-start gap-1 rounded-lg border border-zinc-950/[0.08] bg-white p-3 text-left transition-colors hover:bg-zinc-50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:bg-white/[0.04]'
-                          }
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <Icon
-                              className={
-                                isActive
-                                  ? 'h-4 w-4 text-blue-600 dark:text-blue-400'
-                                  : 'h-4 w-4 text-zinc-400 dark:text-zinc-500'
-                              }
-                              strokeWidth={1.8}
-                            />
-                            <span
-                              className={
-                                isActive
-                                  ? 'text-sm font-semibold text-blue-700 dark:text-blue-300'
-                                  : 'text-sm font-semibold text-zinc-800 dark:text-zinc-200'
-                              }
-                            >
-                              {option.label}
-                            </span>
-                          </span>
-                          <span className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
-                            {option.hint}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-
-                {/* O aviso é essencial: no pix e no boleto não existe débito
-                    automático, então o cliente precisa saber que vai pagar de
-                    novo todo mês. */}
-                <div
-                  className={
-                    billingMethod === 'card'
-                      ? 'flex items-start gap-2.5 rounded-lg border border-zinc-950/[0.07] bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-white/[0.07] dark:bg-white/[0.04] dark:text-zinc-300'
-                      : 'flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200'
-                  }
-                >
+                            <div className="flex items-start gap-2.5 rounded-lg border border-zinc-950/[0.07] bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-white/[0.07] dark:bg-white/[0.04] dark:text-zinc-300">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    {billingMethod === 'card'
-                      ? 'Você será redirecionado ao Mercado Pago para cadastrar o cartão. A cobrança é debitada automaticamente todo mês.'
-                      : `Não há débito automático em ${billingMethod === 'pix' ? 'Pix' : 'boleto'}. Todo mês geramos uma nova cobrança e você precisa pagá-la para manter a assinatura ativa.`}
+                    Você será redirecionado ao Mercado Pago para cadastrar o cartão. A cobrança é debitada automaticamente todo mês.
                   </span>
                 </div>
 
-                {subscribeConflictMsg && (
+{subscribeConflictMsg && (
                   <div
                     role="alert"
                     className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
@@ -820,11 +724,7 @@ export function BillingPage() {
                     disabled={createCheckoutMutation.isPending}
                     className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {createCheckoutMutation.isPending
-                      ? 'Gerando cobrança...'
-                      : billingMethod === 'card'
-                        ? 'Ir para o pagamento'
-                        : 'Gerar cobrança'}
+                    {createCheckoutMutation.isPending ? 'Gerando cobrança...' : 'Ir para o pagamento'}
                   </button>
                 </div>
               </>
@@ -838,32 +738,11 @@ export function BillingPage() {
         open={pmModalOpen}
         onClose={() => setPmModalOpen(false)}
         title="Novo método de pagamento"
-        description="Cadastre um cartão, Pix ou boleto para futuras cobranças."
+        description="Cadastre um cartão para as cobranças automáticas da assinatura."
       >
         <form onSubmit={handleSubmit(onCreatePaymentMethod)} className="space-y-4" noValidate>
-          <FormField label="Tipo" htmlFor="pm-type" required error={errors.type?.message}>
-            <Controller
-              name="type"
-              control={control}
-              render={({ field }) => (
-                <Autocomplete
-                  id="pm-type"
-                  value={field.value}
-                  onChange={(v) => field.onChange(v === '' ? 'card' : v)}
-                  placeholder="Selecione o tipo..."
-                  ariaLabel="Tipo de método de pagamento"
-                  hasError={Boolean(errors.type)}
-                  options={[
-                    { value: 'card', label: 'Cartão de crédito' },
-                    { value: 'pix', label: 'Pix' },
-                    { value: 'boleto', label: 'Boleto' },
-                  ]}
-                />
-              )}
-            />
-          </FormField>
 
-          {watchedPmType === 'card' && (
+          {(
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Bandeira" htmlFor="pm-brand" error={errors.brand?.message}>
                 <input

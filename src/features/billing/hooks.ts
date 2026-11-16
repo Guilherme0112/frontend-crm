@@ -46,16 +46,6 @@ export function useCreateCheckoutMutation() {
   });
 }
 
-export function useChargeInvoiceMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api.chargeInvoice(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
-    },
-  });
-}
-
 /** Força a reconciliação quando o webhook do Mercado Pago não chegou. */
 export function useSyncSubscriptionMutation() {
   const queryClient = useQueryClient();

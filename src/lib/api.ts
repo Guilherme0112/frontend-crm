@@ -534,11 +534,7 @@ export async function getSubscription(id: number): Promise<Subscription> {
 /**
  * Abre a assinatura no Mercado Pago.
  *
- * Cartão devolve `init_point` (redirecionar para o Checkout Pro); pix e boleto
- * devolvem a cobrança já emitida (QR / linha digitável) na própria resposta.
- *
- * Substitui o antigo createSubscription, que postava em POST /subscriptions —
- * rota que não existe no backend e respondia 405.
+ * Cartão devolve `init_point` (redirecionar para o Checkout Pro).
  */
 export async function createCheckout(
   payload: CreateCheckoutPayload,
@@ -547,12 +543,6 @@ export async function createCheckout(
     '/subscriptions/checkout',
     payload,
   );
-  return res.data.data;
-}
-
-/** Emite (ou devolve, se ainda válida) a cobrança de pix/boleto de uma fatura. */
-export async function chargeInvoice(id: number): Promise<Invoice> {
-  const res = await apiClient.post<ApiResponse<Invoice>>(`/invoices/${id}/charge`);
   return res.data.data;
 }
 
