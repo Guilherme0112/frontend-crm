@@ -183,6 +183,7 @@ export interface UpdateLeadPayload {
   utm_campaign?: string | null;
   utm_term?: string | null;
   utm_content?: string | null;
+  utm_device?: string | null;
   referrer?: string | null;
   landing_page?: string | null;
 }
@@ -303,6 +304,7 @@ export interface LeadSource {
   utm_campaign: string | null;
   utm_term: string | null;
   utm_content: string | null;
+  utm_device: string | null;
   referrer: string | null;
   landing_page: string | null;
 }
@@ -352,7 +354,13 @@ export interface CrmDashboardReport {
   dwell_observations: number;
   leads_by_step: CrmDashboardStepRow[];
   leads_by_source_last_30_days: { source: string; leads: number }[];
+  leads_by_device_last_30_days: CrmDeviceRow[];
   recent_step_changes: CrmDashboardChange[];
+}
+
+export interface CrmDeviceRow {
+  device: string;
+  leads: number;
 }
 
 export interface CrmsComparisonStepRow {
@@ -387,6 +395,7 @@ export interface CrmsComparisonReport {
     step_changes_last_30_days: number;
   };
   sources_last_30_days: CrmsComparisonSourceRow[];
+  devices_last_30_days: CrmDeviceRow[];
   rows: CrmsComparisonRow[];
 }
 
@@ -427,6 +436,8 @@ export type PlanInterval = 'monthly' | 'yearly';
 export interface Plan {
   id: number;
   name: string;
+  /** Identificador usado no checkout (o backend cobra por slug, não por id). */
+  slug: string | null;
   description?: string | null;
   price: number;
   currency: string;
@@ -453,22 +464,52 @@ export interface UpdatePlanPayload {
   is_active?: boolean;
 }
 
-export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing';
+export type SubscriptionStatus =
+  | 'active'
+  | 'canceled'
+  | 'past_due'
+  | 'trialing'
+  | 'pending';
+
+/**
+ * Cartão é debitado automaticamente pelo Mercado Pago. Pix e boleto não têm
+ * débito automático: o cliente paga uma cobrança nova a cada mês.
+ */
+export type BillingMethod = 'card' | 'pix' | 'boleto';
 
 export interface Subscription {
   id: number;
   plan_id: number;
   payment_method_id?: number | null;
   status: SubscriptionStatus;
+  billing_method?: BillingMethod;
   starts_at: string;
   ends_at?: string | null;
+  next_charge_at?: string | null;
   canceled_at?: string | null;
   created_at?: string;
 }
 
-export interface CreateSubscriptionPayload {
-  plan_id: number;
-  payment_method_id?: number | null;
+export interface CreateCheckoutPayload {
+  plan_slug: string;
+  billing_method: BillingMethod;
+}
+
+/** Resposta de POST /subscriptions/checkout. */
+export interface CheckoutSession {
+  subscription_id: number;
+  plan_slug: string;
+  status: SubscriptionStatus;
+  billing_method: BillingMethod;
+  external_id: string | null;
+  /** Cartão: URL do Checkout Pro para onde redirecionar. */
+  init_point: string | null;
+  /** Pix/boleto: a fatura emitida. */
+  invoice_id: number | null;
+  qr_code: string | null;
+  qr_code_base64: string | null;
+  ticket_url: string | null;
+  barcode: string | null;
 }
 
 export type InvoiceStatus = 'open' | 'paid' | 'void';
@@ -481,6 +522,12 @@ export interface Invoice {
   status: InvoiceStatus;
   due_date: string;
   paid_at?: string | null;
+  payment_method?: BillingMethod | null;
+  qr_code?: string | null;
+  qr_code_base64?: string | null;
+  ticket_url?: string | null;
+  barcode?: string | null;
+  charge_expires_at?: string | null;
   created_at?: string;
 }
 

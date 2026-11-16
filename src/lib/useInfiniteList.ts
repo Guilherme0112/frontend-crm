@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import * as api from './api';
 import type { PaginatedResponse } from './api';
@@ -32,6 +33,31 @@ export function useInfiniteList<T>(
     meta,
     total: meta?.total ?? items.length,
   };
+}
+
+/**
+ * Mesma lista, mas puxando todas as páginas até o fim.
+ *
+ * Para coleções pequenas e fechadas (planos, métodos de pagamento, histórico
+ * de assinaturas) em que a tela precisa do conjunto inteiro para montar
+ * seletores e derivar estado — a paginação delas é feita no cliente.
+ */
+export function useFullList<T>(
+  queryKey: readonly unknown[],
+  fetchPage: (page: number, perPage: number) => Promise<PaginatedResponse<T>>,
+  perPage = 100,
+  enabled = true,
+) {
+  const list = useInfiniteList(queryKey, fetchPage, perPage, enabled);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = list;
+
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  return list;
 }
 
 export type { PaginatedResponse };

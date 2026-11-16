@@ -98,6 +98,19 @@
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
   }
 
+  /* Marcas de gráfico: cada fatia carrega seus dois tons como custom property
+     e o tema escolhe qual pintar. Os tons do modo escuro são escolhidos para a
+     superfície escura, não um clareamento automático dos claros. */
+  .device-seg,
+  .device-swatch {
+    background-color: var(--seg-light);
+  }
+
+  .dark .device-seg,
+  .dark .device-swatch {
+    background-color: var(--seg-dark);
+  }
+
   /* Section label (eyebrow) used in sidebar / page headers */
   .eyebrow {
     font-size: 0.65rem;

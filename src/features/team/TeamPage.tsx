@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,13 +7,13 @@ import {
   useCreateUserMutation,
   useDeleteUserMutation,
   useUpdateUserMutation,
-  useUsersInfiniteQuery,
+  useUsersQuery,
 } from './hooks';
 import { useAuth } from '@/src/auth/AuthContext';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
-import { LoadMoreButton } from '@/src/components/common/LoadMoreButton';
+import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -67,7 +67,8 @@ type UserFormValues = {
 export function TeamPage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const usersQuery = useUsersInfiniteQuery();
+  const [page, setPage] = useState(1);
+  const usersQuery = useUsersQuery(page);
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
   const deleteMutation = useDeleteUserMutation();
@@ -168,7 +169,17 @@ export function TeamPage() {
     }
   };
 
-  const users = usersQuery.items ?? [];
+  const users = usersQuery.data?.data ?? [];
+  const meta = usersQuery.data?.meta ?? null;
+  const total = meta?.total ?? 0;
+  const lastPage = meta?.last_page ?? 1;
+
+  // Remover o último membro de uma página deixa a página sem conteúdo.
+  useEffect(() => {
+    if (meta && page > meta.last_page) {
+      setPage(Math.max(1, meta.last_page));
+    }
+  }, [meta, page]);
 
   return (
     <div className="space-y-6">
@@ -295,14 +306,15 @@ export function TeamPage() {
         </div>
       )}
 
-      {usersQuery.hasNextPage && (
-        <LoadMoreButton
-          total={usersQuery.total}
-          loaded={users.length}
-          isFetchingNextPage={usersQuery.isFetchingNextPage}
-          hasNextPage={Boolean(usersQuery.hasNextPage)}
-          onLoadMore={() => void usersQuery.fetchNextPage()}
-          className="mt-5"
+      {total > 0 && (
+        <Pagination
+          page={meta?.current_page ?? page}
+          lastPage={lastPage}
+          total={total}
+          from={meta?.from ?? null}
+          to={meta?.to ?? null}
+          onPageChange={setPage}
+          ariaLabel="Paginação de usuários"
         />
       )}
 

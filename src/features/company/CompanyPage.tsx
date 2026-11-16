@@ -152,7 +152,7 @@ export function CompanyPage() {
 
   if (companyQuery.isPending) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="w-full space-y-6">
         <Skeleton className="h-9 w-56" />
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="space-y-4">
@@ -176,7 +176,7 @@ export function CompanyPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
           Empresa

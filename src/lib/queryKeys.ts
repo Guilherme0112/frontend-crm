@@ -10,6 +10,7 @@ export const queryKeys = {
   },
   users: {
     all: ['users'] as const,
+    list: (page: number, perPage: number) => ['users', 'list', page, perPage] as const,
     detail: (id: number) => ['users', id] as const,
   },
   audit: {
@@ -50,6 +51,7 @@ export const queryKeys = {
   },
   emailConfigs: {
     all: ['email-configs'] as const,
+    list: (page: number, perPage: number) => ['email-configs', 'list', page, perPage] as const,
     detail: (id: number) => ['email-configs', id] as const,
   },
   plans: {
@@ -62,6 +64,7 @@ export const queryKeys = {
   },
   invoices: {
     all: ['invoices'] as const,
+    list: (page: number, perPage: number) => ['invoices', 'list', page, perPage] as const,
     detail: (id: number) => ['invoices', id] as const,
   },
   paymentMethods: {

@@ -11,7 +11,8 @@ import type {
   CreatePlanPayload,
   CreateSendingTemplatePayload,
   CreateStepPayload,
-  CreateSubscriptionPayload,
+  CreateCheckoutPayload,
+  CheckoutSession,
   CreateUserPayload,
   LeadStepChangePage,
   LeadSource,
@@ -530,10 +531,34 @@ export async function getSubscription(id: number): Promise<Subscription> {
   return res.data.data;
 }
 
-export async function createSubscription(
-  payload: CreateSubscriptionPayload,
-): Promise<Subscription> {
-  const res = await apiClient.post<ApiResponse<Subscription>>('/subscriptions', payload);
+/**
+ * Abre a assinatura no Mercado Pago.
+ *
+ * Cartão devolve `init_point` (redirecionar para o Checkout Pro); pix e boleto
+ * devolvem a cobrança já emitida (QR / linha digitável) na própria resposta.
+ *
+ * Substitui o antigo createSubscription, que postava em POST /subscriptions —
+ * rota que não existe no backend e respondia 405.
+ */
+export async function createCheckout(
+  payload: CreateCheckoutPayload,
+): Promise<CheckoutSession> {
+  const res = await apiClient.post<ApiResponse<CheckoutSession>>(
+    '/subscriptions/checkout',
+    payload,
+  );
+  return res.data.data;
+}
+
+/** Emite (ou devolve, se ainda válida) a cobrança de pix/boleto de uma fatura. */
+export async function chargeInvoice(id: number): Promise<Invoice> {
+  const res = await apiClient.post<ApiResponse<Invoice>>(`/invoices/${id}/charge`);
+  return res.data.data;
+}
+
+/** Reconciliação manual, para quando o webhook não alcança a aplicação. */
+export async function syncSubscription(id: number): Promise<Subscription> {
+  const res = await apiClient.post<ApiResponse<Subscription>>(`/subscriptions/${id}/sync`);
   return res.data.data;
 }
 

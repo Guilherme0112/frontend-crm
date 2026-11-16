@@ -15,14 +15,15 @@ import {
 import {
   useCancelSubscriptionMutation,
   useCreatePaymentMethodMutation,
-  useCreateSubscriptionMutation,
+  useCreateCheckoutMutation,
   useDeletePaymentMethodMutation,
-  usePaymentMethodsInfiniteQuery,
-  usePlansInfiniteQuery,
+  usePaymentMethodsFullQuery,
+  usePlansFullQuery,
   useSetDefaultPaymentMethodMutation,
-  useSubscriptionsInfiniteQuery,
+  useSubscriptionsFullQuery,
 } from './hooks';
-import { LoadMoreButton } from '@/src/components/common/LoadMoreButton';
+import { Pagination } from '@/src/components/common/Pagination';
+import { useClientPagination } from '@/src/lib/useClientPagination';
 import { Modal } from '@/src/components/common/Modal';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
@@ -37,7 +38,15 @@ import {
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
 import { formatCurrency, formatDate } from '@/src/lib/format';
-import type { PaymentMethod, PaymentMethodType, Plan, Subscription } from '@/src/lib/types';
+import { ChargeDetails } from './ChargeDetails';
+import type {
+  BillingMethod,
+  CheckoutSession,
+  PaymentMethod,
+  PaymentMethodType,
+  Plan,
+  Subscription,
+} from '@/src/lib/types';
 
 const paymentMethodSchema = z
   .object({
@@ -60,6 +69,32 @@ const paymentMethodSchema = z
 
 type PaymentMethodFormValues = z.infer<typeof paymentMethodSchema>;
 
+const BILLING_OPTIONS: ReadonlyArray<{
+  id: BillingMethod;
+  label: string;
+  hint: string;
+  icon: typeof CreditCard;
+}> = [
+  {
+    id: 'card',
+    label: 'Cartão',
+    hint: 'Débito automático todo mês',
+    icon: CreditCard,
+  },
+  { id: 'pix', label: 'Pix', hint: 'QR novo a cada mês', icon: QrCode },
+  { id: 'boleto', label: 'Boleto', hint: 'Boleto novo a cada mês', icon: Banknote },
+];
+
+/** Plano de cortesia: ativa direto, sem gateway e sem cobrança. */
+function isFreePlan(plan: Plan): boolean {
+  return plan.price <= 0;
+}
+
+/** O Trial é concedido no cadastro; contratá-lo de novo renovaria o teste. */
+function isTrialPlan(plan: Plan): boolean {
+  return plan.slug === 'trial';
+}
+
 function getPaymentMethodLabel(type: PaymentMethodType): string {
   switch (type) {
     case 'card':
@@ -73,11 +108,11 @@ function getPaymentMethodLabel(type: PaymentMethodType): string {
 
 export function BillingPage() {
   const { toast } = useToast();
-  const plansQuery = usePlansInfiniteQuery();
-  const subscriptionsQuery = useSubscriptionsInfiniteQuery();
-  const paymentMethodsQuery = usePaymentMethodsInfiniteQuery();
+  const plansQuery = usePlansFullQuery();
+  const subscriptionsQuery = useSubscriptionsFullQuery();
+  const paymentMethodsQuery = usePaymentMethodsFullQuery();
 
-  const createSubMutation = useCreateSubscriptionMutation();
+  const createCheckoutMutation = useCreateCheckoutMutation();
   const cancelSubMutation = useCancelSubscriptionMutation();
   const createPmMutation = useCreatePaymentMethodMutation();
   const deletePmMutation = useDeletePaymentMethodMutation();
@@ -86,6 +121,9 @@ export function BillingPage() {
   const [selectedPlanToSubscribe, setSelectedPlanToSubscribe] = useState<Plan | null>(null);
   const [chosenPaymentMethodId, setChosenPaymentMethodId] = useState<string>('');
   const [subscribeConflictMsg, setSubscribeConflictMsg] = useState<string | null>(null);
+  const [billingMethod, setBillingMethod] = useState<BillingMethod>('card');
+  // Cobrança emitida de pix/boleto, exibida no lugar do formulário após assinar.
+  const [issuedCharge, setIssuedCharge] = useState<CheckoutSession | null>(null);
   const [cancelingSub, setCancelingSub] = useState<Subscription | null>(null);
   const [pmModalOpen, setPmModalOpen] = useState(false);
   const [deletingPm, setDeletingPm] = useState<PaymentMethod | null>(null);
@@ -111,9 +149,16 @@ export function BillingPage() {
 
   const watchedPmType = watch('type');
 
+  // Listas completas: alimentam a lógica da tela (assinatura ativa, nome do
+  // plano no histórico, seletor de método no modal).
   const plans = plansQuery.items ?? [];
   const subscriptions = subscriptionsQuery.items ?? [];
   const paymentMethods = paymentMethodsQuery.items ?? [];
+
+  // Recortes exibidos, paginados no cliente.
+  const plansPage = useClientPagination(plans, 6);
+  const paymentMethodsPage = useClientPagination(paymentMethods, 5);
+  const subscriptionsPage = useClientPagination(subscriptions, 10);
 
   const planById = useMemo(() => {
     const map = new Map<number, Plan>();
@@ -129,31 +174,71 @@ export function BillingPage() {
 
   const openSubscribeModal = (plan: Plan) => {
     setSubscribeConflictMsg(null);
+    setIssuedCharge(null);
+    // Cortesia não passa pelo gateway; o método vai só por consistência.
+    setBillingMethod('card');
     const defaultPm = paymentMethods.find((pm) => pm.is_default) ?? paymentMethods[0];
     setChosenPaymentMethodId(defaultPm ? String(defaultPm.id) : '');
     setSelectedPlanToSubscribe(plan);
   };
 
-  const handleConfirmSubscribe = async () => {
-    if (!selectedPlanToSubscribe) return;
+  const closeSubscribeModal = () => {
+    setSelectedPlanToSubscribe(null);
     setSubscribeConflictMsg(null);
+    setIssuedCharge(null);
+  };
+
+  const handleConfirmSubscribe = async () => {
+    if (!selectedPlanToSubscribe?.slug) return;
+    setSubscribeConflictMsg(null);
+
     try {
-      await createSubMutation.mutateAsync({
-        plan_id: selectedPlanToSubscribe.id,
-        payment_method_id: chosenPaymentMethodId ? Number(chosenPaymentMethodId) : null,
+      const session = await createCheckoutMutation.mutateAsync({
+        plan_slug: selectedPlanToSubscribe.slug,
+        billing_method: billingMethod,
       });
+
+      // Cortesia: já nasce ativa, sem cobrança nenhuma.
+      if (session.status === 'active' && !session.init_point) {
+        toast.success('Plano ativado', 'Nenhum pagamento é necessário para este plano.');
+        closeSubscribeModal();
+
+        return;
+      }
+
+      // Cartão: o pagamento acontece no Checkout Pro do Mercado Pago.
+      if (session.billing_method === 'card') {
+        if (!session.init_point) {
+          toast.error(
+            'Checkout indisponível',
+            'O Mercado Pago não devolveu o link de pagamento. Tente novamente.',
+          );
+
+          return;
+        }
+
+        toast.info('Redirecionando para o Mercado Pago...');
+        window.location.href = session.init_point;
+
+        return;
+      }
+
+      // Pix/boleto: a cobrança já veio pronta; mostra no próprio modal.
+      setIssuedCharge(session);
       toast.success(
-        'Assinatura ativada',
-        'A primeira fatura foi gerada e já está disponível em Faturas.',
+        'Cobrança gerada',
+        'Assim que o pagamento for confirmado a assinatura é ativada.',
       );
-      setSelectedPlanToSubscribe(null);
     } catch (error) {
       const status = getApiStatus(error);
       const apiMsg = getApiErrorMessage(error);
+
       if (status === 409) {
-        const friendly = `Cancele seu plano atual antes de assinar outro. (${apiMsg})`;
-        setSubscribeConflictMsg(friendly);
+        setSubscribeConflictMsg(`Cancele seu plano atual antes de assinar outro. (${apiMsg})`);
         toast.error('Assinatura ativa existente', apiMsg);
+      } else if (status === 503) {
+        setSubscribeConflictMsg(apiMsg);
+        toast.error('Mercado Pago indisponível', apiMsg);
       } else {
         toast.error('Erro ao contratar plano', apiMsg);
       }
@@ -305,7 +390,7 @@ export function BillingPage() {
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => {
+            {plansPage.items.map((plan) => {
               const isCurrent = activeSubscription?.plan_id === plan.id;
               return (
                 <article
@@ -335,18 +420,29 @@ export function BillingPage() {
                   </div>
 
                   <div className="mt-6 border-t border-zinc-950/[0.05] pt-4 dark:border-white/[0.07]">
-                    <button
-                      type="button"
-                      onClick={() => openSubscribeModal(plan)}
-                      disabled={!plan.is_active}
-                      className={
-                        isCurrent
-                          ? 'w-full rounded-lg border border-zinc-950/[0.12] bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-950/[0.05] dark:border-white/[0.12] dark:bg-white/[0.05] dark:text-zinc-200'
-                          : 'w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
-                      }
-                    >
-                      {isCurrent ? 'Plano atual' : 'Assinar plano'}
-                    </button>
+                    {/* O Trial não é contratável: vem com o cadastro e tem prazo. */}
+                    {isTrialPlan(plan) ? (
+                      <p className="text-center text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                        Concedido automaticamente no cadastro, por 7 dias.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openSubscribeModal(plan)}
+                        disabled={!plan.is_active}
+                        className={
+                          isCurrent
+                            ? 'w-full rounded-lg border border-zinc-950/[0.12] bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-950/[0.05] dark:border-white/[0.12] dark:bg-white/[0.05] dark:text-zinc-200'
+                            : 'w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
+                        }
+                      >
+                        {isCurrent
+                          ? 'Plano atual'
+                          : isFreePlan(plan)
+                            ? 'Ativar plano'
+                            : 'Assinar plano'}
+                      </button>
+                    )}
                   </div>
                 </article>
               );
@@ -354,14 +450,15 @@ export function BillingPage() {
           </div>
         )}
 
-        {plansQuery.hasNextPage && (
-          <LoadMoreButton
-            total={plansQuery.total}
-            loaded={plans.length}
-            isFetchingNextPage={plansQuery.isFetchingNextPage}
-            hasNextPage={Boolean(plansQuery.hasNextPage)}
-            onLoadMore={() => void plansQuery.fetchNextPage()}
-            className="mt-4"
+        {plansPage.total > 0 && (
+          <Pagination
+            page={plansPage.page}
+            lastPage={plansPage.lastPage}
+            total={plansPage.total}
+            from={plansPage.from}
+            to={plansPage.to}
+            onPageChange={plansPage.setPage}
+            ariaLabel="Paginação de planos"
           />
         )}
       </section>
@@ -406,7 +503,7 @@ export function BillingPage() {
           />
         ) : (
           <div className="divide-y divide-zinc-950/[0.07] overflow-hidden rounded-xl border border-zinc-950/[0.07] bg-white dark:divide-white/[0.07] dark:border-white/[0.07] dark:bg-[#17171a]">
-            {paymentMethods.map((pm) => (
+            {paymentMethodsPage.items.map((pm) => (
               <div
                 key={pm.id}
                 className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
@@ -468,14 +565,15 @@ export function BillingPage() {
           </div>
         )}
 
-        {paymentMethodsQuery.hasNextPage && (
-          <LoadMoreButton
-            total={paymentMethodsQuery.total}
-            loaded={paymentMethods.length}
-            isFetchingNextPage={paymentMethodsQuery.isFetchingNextPage}
-            hasNextPage={Boolean(paymentMethodsQuery.hasNextPage)}
-            onLoadMore={() => void paymentMethodsQuery.fetchNextPage()}
-            className="mt-2"
+        {paymentMethodsPage.total > 0 && (
+          <Pagination
+            page={paymentMethodsPage.page}
+            lastPage={paymentMethodsPage.lastPage}
+            total={paymentMethodsPage.total}
+            from={paymentMethodsPage.from}
+            to={paymentMethodsPage.to}
+            onPageChange={paymentMethodsPage.setPage}
+            ariaLabel="Paginação de métodos de pagamento"
           />
         )}
       </section>
@@ -498,7 +596,7 @@ export function BillingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
-                {subscriptions.map((sub) => (
+                {subscriptionsPage.items.map((sub) => (
                   <tr key={sub.id}>
                     <td className="px-5 py-3 font-mono text-xs tabular-nums text-zinc-500">
                       #{sub.id}
@@ -521,14 +619,15 @@ export function BillingPage() {
             </table>
           </div>
 
-          {subscriptionsQuery.hasNextPage && (
-            <LoadMoreButton
-              total={subscriptionsQuery.total}
-              loaded={subscriptions.length}
-              isFetchingNextPage={subscriptionsQuery.isFetchingNextPage}
-              hasNextPage={Boolean(subscriptionsQuery.hasNextPage)}
-              onLoadMore={() => void subscriptionsQuery.fetchNextPage()}
-              className="mt-2"
+          {subscriptionsPage.total > 0 && (
+            <Pagination
+              page={subscriptionsPage.page}
+              lastPage={subscriptionsPage.lastPage}
+              total={subscriptionsPage.total}
+              from={subscriptionsPage.from}
+              to={subscriptionsPage.to}
+              onPageChange={subscriptionsPage.setPage}
+              ariaLabel="Paginação do histórico de assinaturas"
             />
           )}
         </section>
@@ -560,54 +659,176 @@ export function BillingPage() {
               </p>
             </div>
 
-            <FormField label="Método de pagamento (opcional)" htmlFor="sub-pm">
-              <Autocomplete
-                id="sub-pm"
-                value={chosenPaymentMethodId}
-                onChange={setChosenPaymentMethodId}
-                placeholder="Sem método vinculado"
-                emptyLabel="Sem método vinculado"
-                emptyMessage="Nenhum método encontrado"
-                ariaLabel="Método de pagamento"
-                options={paymentMethods.map((pm) => ({
-                  value: String(pm.id),
-                  label: [
-                    getPaymentMethodLabel(pm.type),
-                    pm.brand ? ` (${pm.brand})` : '',
-                    pm.last4 ? ` •••• ${pm.last4}` : '',
-                    pm.is_default ? ' — Padrão' : '',
-                  ].join(''),
-                }))}
-              />
-            </FormField>
+            {issuedCharge ? (
+              <>
+                <ChargeDetails
+                  charge={{
+                    billing_method: issuedCharge.billing_method,
+                    qr_code: issuedCharge.qr_code,
+                    qr_code_base64: issuedCharge.qr_code_base64,
+                    ticket_url: issuedCharge.ticket_url,
+                    barcode: issuedCharge.barcode,
+                  }}
+                />
 
-            {subscribeConflictMsg && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{subscribeConflictMsg}</span>
-              </div>
+                <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
+                  <Link
+                    to="/invoices"
+                    onClick={closeSubscribeModal}
+                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+                  >
+                    Ver em Faturas
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={closeSubscribeModal}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </>
+            ) : isFreePlan(selectedPlanToSubscribe) ? (
+              <>
+                <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Este plano é gratuito: não há forma de pagamento a escolher nem cobrança a
+                    gerar. A ativação é imediata.
+                  </span>
+                </div>
+
+                {subscribeConflictMsg && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{subscribeConflictMsg}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
+                  <button
+                    type="button"
+                    onClick={closeSubscribeModal}
+                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleConfirmSubscribe()}
+                    disabled={createCheckoutMutation.isPending}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {createCheckoutMutation.isPending ? 'Ativando...' : 'Ativar plano'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <fieldset>
+                  <legend className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Como você quer pagar?
+                  </legend>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                    {BILLING_OPTIONS.map((option) => {
+                      const Icon = option.icon;
+                      const isActive = billingMethod === option.id;
+
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setBillingMethod(option.id)}
+                          aria-pressed={isActive}
+                          className={
+                            isActive
+                              ? 'flex flex-col items-start gap-1 rounded-lg border border-blue-600 bg-blue-50 p-3 text-left dark:border-blue-400 dark:bg-blue-950/40'
+                              : 'flex flex-col items-start gap-1 rounded-lg border border-zinc-950/[0.08] bg-white p-3 text-left transition-colors hover:bg-zinc-50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:bg-white/[0.04]'
+                          }
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Icon
+                              className={
+                                isActive
+                                  ? 'h-4 w-4 text-blue-600 dark:text-blue-400'
+                                  : 'h-4 w-4 text-zinc-400 dark:text-zinc-500'
+                              }
+                              strokeWidth={1.8}
+                            />
+                            <span
+                              className={
+                                isActive
+                                  ? 'text-sm font-semibold text-blue-700 dark:text-blue-300'
+                                  : 'text-sm font-semibold text-zinc-800 dark:text-zinc-200'
+                              }
+                            >
+                              {option.label}
+                            </span>
+                          </span>
+                          <span className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+                            {option.hint}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                {/* O aviso é essencial: no pix e no boleto não existe débito
+                    automático, então o cliente precisa saber que vai pagar de
+                    novo todo mês. */}
+                <div
+                  className={
+                    billingMethod === 'card'
+                      ? 'flex items-start gap-2.5 rounded-lg border border-zinc-950/[0.07] bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-white/[0.07] dark:bg-white/[0.04] dark:text-zinc-300'
+                      : 'flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200'
+                  }
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {billingMethod === 'card'
+                      ? 'Você será redirecionado ao Mercado Pago para cadastrar o cartão. A cobrança é debitada automaticamente todo mês.'
+                      : `Não há débito automático em ${billingMethod === 'pix' ? 'Pix' : 'boleto'}. Todo mês geramos uma nova cobrança e você precisa pagá-la para manter a assinatura ativa.`}
+                  </span>
+                </div>
+
+                {subscribeConflictMsg && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{subscribeConflictMsg}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
+                  <button
+                    type="button"
+                    onClick={closeSubscribeModal}
+                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleConfirmSubscribe()}
+                    disabled={createCheckoutMutation.isPending}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {createCheckoutMutation.isPending
+                      ? 'Gerando cobrança...'
+                      : billingMethod === 'card'
+                        ? 'Ir para o pagamento'
+                        : 'Gerar cobrança'}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-              <button
-                type="button"
-                onClick={() => setSelectedPlanToSubscribe(null)}
-                className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleConfirmSubscribe()}
-                disabled={createSubMutation.isPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {createSubMutation.isPending ? 'Contratando...' : 'Confirmar assinatura'}
-              </button>
-            </div>
           </div>
         )}
       </Modal>

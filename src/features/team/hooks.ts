@@ -1,15 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
-import { useInfiniteList } from '@/src/lib/useInfiniteList';
 import type { CreateUserPayload, UpdateUserPayload } from '@/src/lib/types';
 
-export function useUsersInfiniteQuery(perPage = 25) {
-  return useInfiniteList(
-    queryKeys.users.all,
-    (page, size) => api.listUsers(page, size),
-    perPage,
-  );
+const USERS_PER_PAGE = 10;
+
+export function useUsersQuery(page = 1, perPage = USERS_PER_PAGE) {
+  return useQuery({
+    queryKey: queryKeys.users.list(page, perPage),
+    queryFn: () => api.listUsers(page, perPage),
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useCreateUserMutation() {

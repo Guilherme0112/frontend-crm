@@ -1,3 +1,5 @@
+import { useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -17,6 +19,7 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { formatDate } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
+import { DeviceBreakdown } from './DeviceBreakdown';
 
 const STEP_TINTS = [
   'bg-sky-500',
@@ -56,23 +59,55 @@ function StatTile({
   );
 }
 
+const TOOLTIP_WIDTH = 240;
+
+/**
+ * Barra de funil com tooltip em portal.
+ *
+ * O tooltip precisa sair do fluxo da tabela: a tabela vive dentro de um
+ * `overflow-x-auto`, e um contêiner com overflow em um eixo passa a recortar
+ * o outro eixo também. Posicionado de forma absoluta ele era cortado (não
+ * aparecia) e ainda inflava o scrollHeight da tabela, criando uma barra de
+ * rolagem vertical fantasma dentro do card.
+ */
 function FunnelBar({ steps }: { steps: { position: number; name: string; leads: number }[] }) {
   const total = steps.reduce((acc, s) => acc + s.leads, 0);
   const label = steps.map((s) => `${s.name}: ${s.leads}`).join(' · ');
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [tip, setTip] = useState<{ left: number; top: number; flipped: boolean } | null>(null);
+
+  const open = useCallback(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const estimatedHeight = 56 + steps.length * 22;
+    const flipped = rect.bottom + estimatedHeight + 16 > window.innerHeight;
+    const left = Math.min(
+      Math.max(rect.left + rect.width / 2 - TOOLTIP_WIDTH / 2, 8),
+      window.innerWidth - TOOLTIP_WIDTH - 8,
+    );
+
+    setTip({ left, top: flipped ? rect.top - 8 : rect.bottom + 8, flipped });
+  }, [steps.length]);
+
+  const close = useCallback(() => setTip(null), []);
 
   return (
     <div
-      className="group/funnel relative inline-flex outline-none"
+      ref={anchorRef}
+      className="group/funnel relative flex w-full outline-none"
       tabIndex={0}
       role="button"
       aria-label={`Funil — ${total} leads. ${label}`}
+      onMouseEnter={open}
+      onMouseLeave={close}
+      onFocus={open}
+      onBlur={close}
     >
       {total === 0 ? (
         <span className="text-xs text-zinc-400 dark:text-zinc-500">Sem leads</span>
       ) : (
-        <div
-          className="flex h-3.5 w-48 overflow-hidden rounded-full transition-shadow group-hover/funnel:ring-2 group-hover/funnel:ring-zinc-900/20 group-focus-visible/funnel:ring-2 group-focus-visible/funnel:ring-blue-500 dark:group-hover/funnel:ring-white/20"
-        >
+        <div className="flex h-3.5 w-full min-w-[120px] overflow-hidden rounded-full ring-offset-2 ring-offset-white transition-shadow group-hover/funnel:ring-2 group-hover/funnel:ring-zinc-900/20 group-focus-visible/funnel:ring-2 group-focus-visible/funnel:ring-blue-500 dark:ring-offset-[#17171a] dark:group-hover/funnel:ring-white/20">
           {steps.map((step) =>
             step.leads > 0 ? (
               <span
@@ -85,45 +120,53 @@ function FunnelBar({ steps }: { steps: { position: number; name: string; leads: 
         </div>
       )}
 
-      {/* Tooltip */}
-      <div
-        role="tooltip"
-        className="pointer-events-none absolute left-1/2 top-full z-40 mt-2 w-60 -translate-x-1/2 rounded-xl border border-zinc-950/[0.15] bg-zinc-950 p-3 text-zinc-100 opacity-0 shadow-[var(--shadow-pop)] transition-opacity duration-150 group-hover/funnel:opacity-100 group-focus-visible/funnel:opacity-100 dark:border-white/[0.12]"
-      >
-        <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-          Funil · {total} {total === 1 ? 'lead' : 'leads'}
-        </p>
-        {total === 0 ? (
-          <p className="mt-2 text-[11px] text-zinc-400">Sem leads nas etapas.</p>
-        ) : (
-          <ul className="mt-2 space-y-1.5">
-            {steps.map((step) => {
-              const pct = total > 0 ? Math.round((step.leads / total) * 100) : 0;
-              return (
-                <li key={step.position} className="flex items-center gap-2 text-[11px]">
-                  <span
-                    className={cn('h-2.5 w-2.5 shrink-0 rounded-[3px]', STEP_TINTS[step.position % STEP_TINTS.length])}
-                    aria-hidden="true"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-zinc-200">
-                    {step.position}. {step.name}
-                  </span>
-                  <span className="shrink-0 font-mono font-semibold tabular-nums text-zinc-100">
-                    {step.leads}
-                  </span>
-                  <span className="w-9 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-500">
-                    {pct}%
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+      {tip &&
+        createPortal(
+          <div
+            role="tooltip"
+            style={{
+              left: tip.left,
+              top: tip.top,
+              width: TOOLTIP_WIDTH,
+              transform: tip.flipped ? 'translateY(-100%)' : undefined,
+            }}
+            className="pointer-events-none fixed z-[60] rounded-xl border border-zinc-950/[0.15] bg-zinc-950 p-3 text-zinc-100 shadow-[var(--shadow-pop)] dark:border-white/[0.12]"
+          >
+            <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              Funil · {total} {total === 1 ? 'lead' : 'leads'}
+            </p>
+            {total === 0 ? (
+              <p className="mt-2 text-[11px] text-zinc-400">Sem leads nas etapas.</p>
+            ) : (
+              <ul className="mt-2 space-y-1.5">
+                {steps.map((step, index) => {
+                  const pct = Math.round((step.leads / total) * 100);
+                  return (
+                    <li key={step.position} className="flex items-center gap-2 text-[11px]">
+                      <span
+                        className={cn(
+                          'h-2.5 w-2.5 shrink-0 rounded-[3px]',
+                          STEP_TINTS[step.position % STEP_TINTS.length],
+                        )}
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 flex-1 truncate text-zinc-200">
+                        {index + 1}. {step.name}
+                      </span>
+                      <span className="shrink-0 font-mono font-semibold tabular-nums text-zinc-100">
+                        {step.leads}
+                      </span>
+                      <span className="w-9 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-500">
+                        {pct}%
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>,
+          document.body,
         )}
-        <span
-          aria-hidden="true"
-          className="absolute bottom-full left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-l border-t border-zinc-950/[0.15] bg-zinc-950 dark:border-white/[0.12]"
-        />
-      </div>
     </div>
   );
 }
@@ -254,6 +297,15 @@ export function CrmsOverviewPage() {
         </section>
       )}
 
+      {/* Dispositivos consolidados */}
+      {comparison && (
+        <DeviceBreakdown
+          rows={comparison.devices_last_30_days}
+          windowDays={comparison.window_days}
+          title="Leads por dispositivo (todos os CRMs)"
+        />
+      )}
+
       {/* Comparison table */}
       <section
         aria-labelledby="crms-comparison-title"
@@ -284,15 +336,16 @@ export function CrmsOverviewPage() {
             <table className="w-full border-collapse text-left text-[13px]">
               <thead>
                 <tr className="border-b border-zinc-950/[0.06] text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:border-white/[0.06] dark:text-zinc-500">
-                  <th className="px-5 py-3">CRM</th>
-                  <th className="px-5 py-3 text-right">Etapas</th>
-                  <th className="px-5 py-3 text-right">Leads totais</th>
-                  <th className="px-5 py-3 text-right">Leads 30d</th>
-                  <th className="px-5 py-3 text-right">Mov. 30d</th>
-                  <th className="px-5 py-3">Funil (distribuição)</th>
-                  <th className="px-5 py-3">Top origem</th>
-                  <th className="px-5 py-3">Top origens (30d)</th>
-                  <th className="px-5 py-3 text-right">Ação</th>
+                  <th className="whitespace-nowrap px-5 py-3">CRM</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Etapas</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Leads totais</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Leads 30d</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Mov. 30d</th>
+                  {/* w-full: esta coluna absorve a folga da tabela */}
+                  <th className="w-full whitespace-nowrap px-5 py-3">Funil (distribuição)</th>
+                  <th className="whitespace-nowrap px-5 py-3">Top origem (total)</th>
+                  <th className="whitespace-nowrap px-5 py-3">Top origens (30d)</th>
+                  <th className="whitespace-nowrap px-5 py-3 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-950/[0.05] dark:divide-white/[0.05]">
@@ -310,33 +363,33 @@ export function CrmsOverviewPage() {
                         </span>
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono tabular-nums text-zinc-600 dark:text-zinc-400">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-600 dark:text-zinc-400">
                       {row.steps_count}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
                       {row.leads_total}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
                       {row.leads_last_30_days}
                     </td>
-                    <td className="px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
                       {row.step_changes_last_30_days}
                     </td>
                     <td className="px-5 py-3.5">
                       <FunnelBar steps={row.leads_by_step} />
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="whitespace-nowrap px-5 py-3.5">
                       {row.top_source ? (
                         <code className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">{row.top_source}</code>
                       ) : (
                         <span className="text-zinc-400 dark:text-zinc-500">—</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="whitespace-nowrap px-5 py-3.5">
                       {row.sources_last_30_days.length === 0 ? (
                         <span className="text-zinc-400 dark:text-zinc-500">—</span>
                       ) : (
-                        <span className="flex flex-wrap gap-1">
+                        <span className="flex flex-nowrap gap-1">
                           {row.sources_last_30_days.map((s) => (
                             <span
                               key={s.source}
@@ -350,7 +403,7 @@ export function CrmsOverviewPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right">
                       <Link
                         to={`/crms/${row.crm_id}/dashboard`}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
@@ -364,15 +417,21 @@ export function CrmsOverviewPage() {
               </tbody>
               {comparison?.totals && (
                 <tfoot>
-                  <tr className="border-t border-zinc-950/[0.07] bg-zinc-50 font-mono text-[13px] font-semibold dark:border-white/[0.07] dark:bg-white/[0.03]">
-                    <td className="px-5 py-3 text-zinc-500 dark:text-zinc-400">Total</td>
-                    <td className="px-5 py-3 text-right text-zinc-400">—</td>
-                    <td className="px-5 py-3 text-right text-zinc-900 dark:text-zinc-100">{comparison.totals.leads_total}</td>
-                    <td className="px-5 py-3 text-right text-zinc-900 dark:text-zinc-100">{comparison.totals.leads_last_30_days}</td>
-                    <td className="px-5 py-3 text-right text-zinc-900 dark:text-zinc-100">{comparison.totals.step_changes_last_30_days}</td>
-                    <td className="px-5 py-3" colSpan={2} />
-                    <td className="px-5 py-3" />
-                    <td className="px-5 py-3" />
+                  <tr className="border-t border-zinc-950/[0.07] bg-zinc-50 text-[13px] font-semibold dark:border-white/[0.07] dark:bg-white/[0.03]">
+                    <td className="whitespace-nowrap px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                      Total · {rows.length} {rows.length === 1 ? 'pipeline' : 'pipelines'}
+                    </td>
+                    <td className="px-5 py-3 text-right font-mono text-zinc-400 dark:text-zinc-500">—</td>
+                    <td className="whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {comparison.totals.leads_total}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {comparison.totals.leads_last_30_days}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {comparison.totals.step_changes_last_30_days}
+                    </td>
+                    <td className="px-5 py-3" colSpan={4} />
                   </tr>
                 </tfoot>
               )}

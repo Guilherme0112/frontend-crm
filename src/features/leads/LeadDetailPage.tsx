@@ -47,6 +47,7 @@ const leadDetailSchema = z.object({
   utm_campaign: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
   utm_term: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
   utm_content: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
+  utm_device: z.string().trim().max(40, 'Máximo de 40 caracteres').optional(),
   referrer: z.string().trim().max(512, 'Máximo de 512 caracteres').optional(),
   landing_page: z.string().trim().max(512, 'Máximo de 512 caracteres').optional(),
 });
@@ -94,6 +95,7 @@ export function LeadDetailPage() {
         utm_campaign: source?.utm_campaign ?? '',
         utm_term: source?.utm_term ?? '',
         utm_content: source?.utm_content ?? '',
+        utm_device: source?.utm_device ?? '',
         referrer: source?.referrer ?? '',
         landing_page: source?.landing_page ?? '',
       });
@@ -116,6 +118,7 @@ export function LeadDetailPage() {
           utm_campaign: values.utm_campaign?.trim() || null,
           utm_term: values.utm_term?.trim() || null,
           utm_content: values.utm_content?.trim() || null,
+          utm_device: values.utm_device?.trim() || null,
           referrer: values.referrer?.trim() || null,
           landing_page: values.landing_page?.trim() || null,
         },
@@ -140,7 +143,7 @@ export function LeadDetailPage() {
 
   if (leadQuery.isPending) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="w-full space-y-4">
         <Skeleton className="h-8 w-48" />
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="space-y-4">
@@ -155,7 +158,7 @@ export function LeadDetailPage() {
 
   if (leadQuery.isError || !leadQuery.data) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="w-full space-y-4">
         <Link
           to="/crms"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -175,7 +178,7 @@ export function LeadDetailPage() {
   const lead = leadQuery.data;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="w-full space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <Link
@@ -335,6 +338,21 @@ export function LeadDetailPage() {
                   className={`${inputClassName(Boolean(errors.utm_content))} font-mono`}
                   {...register('utm_content')}
                 />
+              </FormField>
+              <FormField label="Device" htmlFor="lead-utm-device" error={errors.utm_device?.message}>
+                <input
+                  id="lead-utm-device"
+                  type="text"
+                  list="lead-utm-device-options"
+                  placeholder="mobile"
+                  className={`${inputClassName(Boolean(errors.utm_device))} font-mono`}
+                  {...register('utm_device')}
+                />
+                <datalist id="lead-utm-device-options">
+                  <option value="mobile" />
+                  <option value="desktop" />
+                  <option value="tablet" />
+                </datalist>
               </FormField>
               <FormField label="Referrer" htmlFor="lead-referrer" error={errors.referrer?.message}>
                 <input

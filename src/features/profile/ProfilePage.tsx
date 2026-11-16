@@ -55,7 +55,10 @@ export function ProfilePage() {
         </button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* items-start: cada card fica com a altura do próprio conteúdo. Com o
+          stretch padrão do grid, o card do usuário era esticado até a altura
+          da coluna vizinha (tema + empresa) e sobrava um vazio no rodapé. */}
+      <div className="grid items-start gap-6 lg:grid-cols-2 2xl:grid-cols-3">
         <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="flex items-center gap-4 border-b border-zinc-950/[0.07] pb-5 dark:border-white/[0.07]">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-base font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
@@ -111,8 +114,8 @@ export function ProfilePage() {
           </div>
         </section>
 
-        <section className="space-y-6">
-          <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+        <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+          <div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               Preferências de Tema
             </h2>
@@ -143,8 +146,10 @@ export function ProfilePage() {
               })}
             </div>
           </div>
+        </section>
 
-          <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+        <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+          <div>
             <div className="border-b border-zinc-950/[0.07] pb-5 dark:border-white/[0.07]">
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 {company?.name || 'Empresa'}

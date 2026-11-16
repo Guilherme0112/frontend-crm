@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import {
   useCreateEmailConfigMutation,
   useDeleteEmailConfigMutation,
-  useEmailConfigsInfiniteQuery,
+  useEmailConfigsQuery,
   useUpdateEmailConfigMutation,
 } from './hooks';
 import { EmailConfigForm, type EmailConfigFormValues } from './EmailConfigForm';
-import { useSubscriptionsInfiniteQuery } from '@/src/features/billing/hooks';
+import { useSubscriptionsFullQuery } from '@/src/features/billing/hooks';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
-import { LoadMoreButton } from '@/src/components/common/LoadMoreButton';
+import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -53,8 +53,9 @@ function UpsellIsland() {
 
 export function EmailConfigsPage() {
   const { toast } = useToast();
-  const configsQuery = useEmailConfigsInfiniteQuery();
-  const subscriptionsQuery = useSubscriptionsInfiniteQuery();
+  const [page, setPage] = useState(1);
+  const configsQuery = useEmailConfigsQuery(page);
+  const subscriptionsQuery = useSubscriptionsFullQuery();
   const createMutation = useCreateEmailConfigMutation();
   const updateMutation = useUpdateEmailConfigMutation();
   const deleteMutation = useDeleteEmailConfigMutation();
@@ -123,8 +124,19 @@ export function EmailConfigsPage() {
     }
   };
 
-  const configs = configsQuery.items ?? [];
+  const configs = configsQuery.data?.data ?? [];
+  const meta = configsQuery.data?.meta ?? null;
+  const total = meta?.total ?? 0;
+  const lastPage = meta?.last_page ?? 1;
   const isMutating = createMutation.isPending || updateMutation.isPending;
+
+  // Excluir a última configuração de uma página deixa a página sem conteúdo.
+  useEffect(() => {
+    if (meta && page > meta.last_page) {
+      setPage(Math.max(1, meta.last_page));
+    }
+  }, [meta, page]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -265,14 +277,15 @@ export function EmailConfigsPage() {
         </div>
       )}
 
-      {configsQuery.hasNextPage && (
-        <LoadMoreButton
-          total={configsQuery.total}
-          loaded={configs.length}
-          isFetchingNextPage={configsQuery.isFetchingNextPage}
-          hasNextPage={Boolean(configsQuery.hasNextPage)}
-          onLoadMore={() => void configsQuery.fetchNextPage()}
-          className="mt-5"
+      {total > 0 && (
+        <Pagination
+          page={meta?.current_page ?? page}
+          lastPage={lastPage}
+          total={total}
+          from={meta?.from ?? null}
+          to={meta?.to ?? null}
+          onPageChange={setPage}
+          ariaLabel="Paginação de configurações de e-mail"
         />
       )}
 

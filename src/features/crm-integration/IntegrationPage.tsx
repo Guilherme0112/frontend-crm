@@ -40,7 +40,7 @@ export function IntegrationPage() {
 
   if (crmQuery.isPending || stepsQuery.isPending) {
     return (
-      <div className="mx-auto max-w-2xl space-y-5">
+      <div className="w-full space-y-5">
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-8 w-72" />
         <Skeleton className="h-36 w-full rounded-2xl" />
@@ -52,7 +52,7 @@ export function IntegrationPage() {
 
   if (crmQuery.isError || !crm) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="w-full space-y-4">
         <Link
           to="/crms"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -71,7 +71,7 @@ export function IntegrationPage() {
 
   if (stepsQuery.isError) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4">
+      <div className="w-full space-y-4">
         <Link
           to={`/crms/${crm.id}/board`}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -101,7 +101,7 @@ export function IntegrationPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="w-full space-y-6">
       {/* Breadcrumb */}
       <nav aria-label="Caminho" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
         <Link to="/crms" className="transition-colors hover:text-zinc-700 dark:hover:text-zinc-200">

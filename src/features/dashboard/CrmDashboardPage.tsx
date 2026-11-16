@@ -14,6 +14,7 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { formatDate, formatDuration } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
+import { DeviceBreakdown } from './DeviceBreakdown';
 
 function StatCard({
   label,
@@ -344,6 +345,13 @@ export function CrmDashboardPage() {
           </Link>
         </section>
       </div>
+
+      {/* Leads por dispositivo (30d) */}
+      <DeviceBreakdown
+        rows={data.leads_by_device_last_30_days}
+        windowDays={data.window_days}
+        title="Leads por dispositivo — últimos 30 dias"
+      />
 
       {/* Recent changes */}
       <section
