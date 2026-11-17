@@ -1,10 +1,13 @@
+import Button from '@mui/material/Button';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Megaphone, Trash2 } from 'lucide-react';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -201,47 +204,42 @@ export function LeadDetailPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3.5 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-[#17171a] dark:text-red-400 dark:hover:bg-red-950/40"
-        >
-          <Trash2 className="h-4 w-4" />
-          <span>Excluir lead</span>
-        </button>
+        <Button variant="outlined" color="error" startIcon={<Trash2 className="h-4 w-4" />} onClick={() => setConfirmOpen(true)}>
+          Excluir lead
+        </Button>
       </div>
 
       <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
           <FormField label="Nome" htmlFor="lead-name" required error={errors.name?.message}>
-            <input
+            <TextInput
               id="lead-name"
               type="text"
-              className={inputClassName(Boolean(errors.name))}
+              hasError={Boolean(errors.name)}
               {...register('name')}
             />
           </FormField>
 
           <FormField label="E-mail" htmlFor="lead-email" required error={errors.email?.message}>
-            <input
+            <TextInput
               id="lead-email"
               type="email"
-              className={inputClassName(Boolean(errors.email))}
+              hasError={Boolean(errors.email)}
               {...register('email')}
             />
           </FormField>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField label="Telefone" htmlFor="lead-phone" error={errors.phone?.message}>
               <Controller
                 control={control}
                 name="phone"
                 render={({ field }) => (
-                  <input
+                  <TextInput
                     id="lead-phone"
                     type="tel"
                     placeholder="(11) 98765-4321"
-                    className={inputClassName(Boolean(errors.phone))}
+                    hasError={Boolean(errors.phone)}
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskPhone(e.target.value))}
                     onBlur={field.onBlur}
@@ -270,20 +268,19 @@ export function LeadDetailPage() {
           </div>
 
           <FormField label="Site" htmlFor="lead-website" error={errors.website?.message}>
-            <input
+            <TextInput
               id="lead-website"
               type="url"
               placeholder="https://empresa.com.br"
-              className={inputClassName(Boolean(errors.website))}
+              hasError={Boolean(errors.website)}
               {...register('website')}
             />
           </FormField>
 
           <FormField label="Observações" htmlFor="lead-desc" error={errors.description?.message}>
-            <textarea
+            <TextArea
               id="lead-desc"
-              rows={4}
-              className={inputClassName(Boolean(errors.description))}
+              hasError={Boolean(errors.description)}
               {...register('description')}
             />
           </FormField>
@@ -295,57 +292,57 @@ export function LeadDetailPage() {
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Source (ex: google)" htmlFor="lead-utm-source" error={errors.utm_source?.message}>
-                <input
+                <TextInput
                   id="lead-utm-source"
                   type="text"
                   placeholder="google"
-                  className={`${inputClassName(Boolean(errors.utm_source))} font-mono`}
+                  hasError={Boolean(errors.utm_source)} className="font-mono"
                   {...register('utm_source')}
                 />
               </FormField>
               <FormField label="Medium (ex: cpc)" htmlFor="lead-utm-medium" error={errors.utm_medium?.message}>
-                <input
+                <TextInput
                   id="lead-utm-medium"
                   type="text"
                   placeholder="cpc"
-                  className={`${inputClassName(Boolean(errors.utm_medium))} font-mono`}
+                  hasError={Boolean(errors.utm_medium)} className="font-mono"
                   {...register('utm_medium')}
                 />
               </FormField>
               <FormField label="Campaign" htmlFor="lead-utm-campaign" error={errors.utm_campaign?.message}>
-                <input
+                <TextInput
                   id="lead-utm-campaign"
                   type="text"
                   placeholder="lancamento-2026"
-                  className={`${inputClassName(Boolean(errors.utm_campaign))} font-mono`}
+                  hasError={Boolean(errors.utm_campaign)} className="font-mono"
                   {...register('utm_campaign')}
                 />
               </FormField>
               <FormField label="Term" htmlFor="lead-utm-term" error={errors.utm_term?.message}>
-                <input
+                <TextInput
                   id="lead-utm-term"
                   type="text"
                   placeholder="palavra-chave"
-                  className={`${inputClassName(Boolean(errors.utm_term))} font-mono`}
+                  hasError={Boolean(errors.utm_term)} className="font-mono"
                   {...register('utm_term')}
                 />
               </FormField>
               <FormField label="Content" htmlFor="lead-utm-content" error={errors.utm_content?.message}>
-                <input
+                <TextInput
                   id="lead-utm-content"
                   type="text"
                   placeholder="cta-azul"
-                  className={`${inputClassName(Boolean(errors.utm_content))} font-mono`}
+                  hasError={Boolean(errors.utm_content)} className="font-mono"
                   {...register('utm_content')}
                 />
               </FormField>
               <FormField label="Device" htmlFor="lead-utm-device" error={errors.utm_device?.message}>
-                <input
+                <TextInput
                   id="lead-utm-device"
                   type="text"
-                  list="lead-utm-device-options"
+                  slotProps={{ htmlInput: { list: 'lead-utm-device-options' } }}
                   placeholder="mobile"
-                  className={`${inputClassName(Boolean(errors.utm_device))} font-mono`}
+                  hasError={Boolean(errors.utm_device)} className="font-mono"
                   {...register('utm_device')}
                 />
                 <datalist id="lead-utm-device-options">
@@ -355,34 +352,30 @@ export function LeadDetailPage() {
                 </datalist>
               </FormField>
               <FormField label="Referrer" htmlFor="lead-referrer" error={errors.referrer?.message}>
-                <input
+                <TextInput
                   id="lead-referrer"
                   type="text"
                   placeholder="https://google.com"
-                  className={`${inputClassName(Boolean(errors.referrer))} font-mono`}
+                  hasError={Boolean(errors.referrer)} className="font-mono"
                   {...register('referrer')}
                 />
               </FormField>
             </div>
             <FormField label="Landing page" htmlFor="lead-landing-page" error={errors.landing_page?.message}>
-              <input
+              <TextInput
                 id="lead-landing-page"
                 type="url"
                 placeholder="https://site.com.br/lp"
-                className={`${inputClassName(Boolean(errors.landing_page))} font-mono`}
+                hasError={Boolean(errors.landing_page)} className="font-mono"
                 {...register('landing_page')}
               />
             </FormField>
           </fieldset>
 
           <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <button
-              type="submit"
-              disabled={updateMutation.isPending || !isDirty}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
-            >
+            <Button variant="contained" disabled={updateMutation.isPending || !isDirty} type="submit">
               {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-            </button>
+            </Button>
           </div>
         </form>
       </section>

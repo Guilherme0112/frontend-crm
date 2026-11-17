@@ -25,7 +25,7 @@ export const queryKeys = {
     all: ['crms'] as const,
     detail: (id: number) => ['crms', id] as const,
     steps: (crmId: number) => ['crms', crmId, 'steps'] as const,
-    stepsAll: (crmId?: number) => ['crms', 'steps-all', crmId ?? 0] as const,
+    stepsAll: (crmId?: number, search?: string) => ['crms', 'steps-all', crmId ?? 0, search ?? ''] as const,
   },
   leads: {
     all: ['leads'] as const,

@@ -1,3 +1,4 @@
+import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -242,15 +243,9 @@ export function CrmAuditPage() {
                 Página <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{data.page}</span> de {totalPages}
               </p>
               <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={data.page <= 1}
-                  aria-label="Página anterior"
-                  className="rounded-lg border border-zinc-950/[0.1] p-1.5 text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/[0.1] dark:hover:bg-white/[0.05] dark:hover:text-zinc-100"
-                >
+                <IconButton size="small" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={data.page <= 1} aria-label="Página anterior">
                   <ChevronLeft className="h-4 w-4" />
-                </button>
+                </IconButton>
                 <button
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

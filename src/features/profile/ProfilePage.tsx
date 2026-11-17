@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Monitor, Moon, RefreshCw, Sun } from 'lucide-react';
@@ -44,15 +45,9 @@ export function ProfilePage() {
             Dados do usuário autenticado e da empresa vinculada à sessão.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void handleRefresh()}
-          disabled={refreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Atualizar sessão</span>
-        </button>
+        <Button variant="outlined" color="inherit" startIcon={<RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />} onClick={() => void handleRefresh()} disabled={refreshing}>
+          Atualizar sessão
+        </Button>
       </div>
 
       {/* items-start: cada card fica com a altura do próprio conteúdo. Com o

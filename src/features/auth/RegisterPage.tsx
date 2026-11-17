@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,7 +8,8 @@ import { AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AuthLayout } from '@/src/components/layout/AuthLayout';
 import { useToast } from '@/src/components/common/Toast';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import {
   PHONE_REGEX,
@@ -131,11 +133,11 @@ export function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <h2 className="eyebrow border-b border-zinc-950/[0.07] pb-2.5 text-zinc-400 dark:border-white/[0.07] dark:text-zinc-500">
                 Dados da empresa
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-6 sm:grid-cols-2">
                 <FormField
                   label="Nome da empresa"
                   htmlFor="company_name"
@@ -143,11 +145,11 @@ export function RegisterPage() {
                   error={errors.company_name?.message}
                   className="sm:col-span-2"
                 >
-                  <input
+                  <TextInput
                     id="company_name"
                     type="text"
                     placeholder="Ex.: Acme Brasil Ltda"
-                    className={inputClassName(Boolean(errors.company_name))}
+                    hasError={Boolean(errors.company_name)}
                     {...register('company_name')}
                   />
                 </FormField>
@@ -162,12 +164,12 @@ export function RegisterPage() {
                     control={control}
                     name="company_document"
                     render={({ field }) => (
-                      <input
+                      <TextInput
                         id="company_document"
                         type="text"
                         inputMode="numeric"
                         placeholder="00.000.000/0000-00"
-                        className={inputClassName(Boolean(errors.company_document))}
+                        hasError={Boolean(errors.company_document)}
                         value={field.value || ''}
                         onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
                         onBlur={field.onBlur}
@@ -181,34 +183,34 @@ export function RegisterPage() {
                   htmlFor="company_website"
                   error={errors.company_website?.message}
                 >
-                  <input
+                  <TextInput
                     id="company_website"
                     type="url"
                     placeholder="https://suaempresa.com.br"
-                    className={inputClassName(Boolean(errors.company_website))}
+                    hasError={Boolean(errors.company_website)}
                     {...register('company_website')}
                   />
                 </FormField>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <h2 className="eyebrow border-b border-zinc-950/[0.07] pb-2.5 text-zinc-400 dark:border-white/[0.07] dark:text-zinc-500">
                 Administrador da conta
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-6 sm:grid-cols-2">
                 <FormField
                   label="Nome completo"
                   htmlFor="name"
                   required
                   error={errors.name?.message}
                 >
-                  <input
+                  <TextInput
                     id="name"
                     type="text"
                     autoComplete="name"
                     placeholder="Ana Souza"
-                    className={inputClassName(Boolean(errors.name))}
+                    hasError={Boolean(errors.name)}
                     {...register('name')}
                   />
                 </FormField>
@@ -222,11 +224,11 @@ export function RegisterPage() {
                     control={control}
                     name="phone"
                     render={({ field }) => (
-                      <input
+                      <TextInput
                         id="phone"
                         type="tel"
                         placeholder="(11) 98765-4321"
-                        className={inputClassName(Boolean(errors.phone))}
+                        hasError={Boolean(errors.phone)}
                         value={field.value || ''}
                         onChange={(e) => field.onChange(maskPhone(e.target.value))}
                         onBlur={field.onBlur}
@@ -242,12 +244,12 @@ export function RegisterPage() {
                   error={errors.email?.message}
                   className="sm:col-span-2"
                 >
-                  <input
+                  <TextInput
                     id="email"
                     type="email"
                     autoComplete="email"
                     placeholder="ana@suaempresa.com.br"
-                    className={inputClassName(Boolean(errors.email))}
+                    hasError={Boolean(errors.email)}
                     {...register('email')}
                   />
                 </FormField>
@@ -259,12 +261,12 @@ export function RegisterPage() {
                   required
                   error={errors.password?.message}
                 >
-                  <input
+                  <TextInput
                     id="password"
                     type="password"
                     autoComplete="new-password"
                     placeholder="••••••••"
-                    className={inputClassName(Boolean(errors.password))}
+                    hasError={Boolean(errors.password)}
                     {...register('password')}
                   />
                 </FormField>
@@ -275,26 +277,22 @@ export function RegisterPage() {
                   required
                   error={errors.password_confirmation?.message}
                 >
-                  <input
+                  <TextInput
                     id="password_confirmation"
                     type="password"
                     autoComplete="new-password"
                     placeholder="••••••••"
-                    className={inputClassName(Boolean(errors.password_confirmation))}
+                    hasError={Boolean(errors.password_confirmation)}
                     {...register('password_confirmation')}
                   />
                 </FormField>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
+            <Button variant="contained" color="inherit" disabled={isSubmitting} type="submit" className="w-full">
               <span>{isSubmitting ? 'Criando conta...' : 'Criar conta e acessar'}</span>
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
-            </button>
+            </Button>
           </form>
 
           <p className="mt-6 border-t border-zinc-950/[0.07] pt-5 text-center text-sm text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">

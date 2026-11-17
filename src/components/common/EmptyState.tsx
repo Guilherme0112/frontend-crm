@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
-import { cn } from '@/src/lib/cn';
+import Avatar from '@mui/material/Avatar';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 
 interface EmptyStateProps {
   icon?: ReactNode;
@@ -17,24 +20,52 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-950/[0.14] bg-white/50 px-6 py-14 text-center dark:border-white/[0.1] dark:bg-white/[0.02]',
-        className,
-      )}
+    <Paper
+      variant="outlined"
+      className={className}
+      sx={{
+        borderRadius: 4,
+        borderStyle: 'dashed',
+        px: 3,
+        py: 7,
+        bgcolor: 'transparent',
+      }}
     >
-      {icon && (
-        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-950/[0.07] bg-white text-zinc-500 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400">
-          {icon}
-        </div>
-      )}
-      <h3 className="font-display text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-        {title}
-      </h3>
-      <p className="mt-1.5 max-w-md text-sm text-zinc-600 dark:text-zinc-400">
-        {description}
-      </p>
-      {action && <div className="mt-5">{action}</div>}
-    </div>
+      <Stack spacing={0} sx={{ alignItems: 'center', textAlign: 'center' }}>
+        {icon && (
+          <Avatar
+            variant="rounded"
+            sx={{
+              width: 44,
+              height: 44,
+              mb: 2,
+              bgcolor: 'background.paper',
+              color: 'text.secondary',
+              border: 1,
+              borderColor: 'divider',
+            }}
+          >
+            {icon}
+          </Avatar>
+        )}
+
+        <Typography
+          component="h3"
+          sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}
+        >
+          {title}
+        </Typography>
+
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 0.75, maxWidth: 448 }}
+        >
+          {description}
+        </Typography>
+
+        {action && <div style={{ marginTop: 20 }}>{action}</div>}
+      </Stack>
+    </Paper>
   );
 }

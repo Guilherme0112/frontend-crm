@@ -1,5 +1,21 @@
-import type { ReactNode } from 'react';
-import { cn } from '@/src/lib/cn';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import FormControl from '@mui/material/FormControl';
+import FormHelperText from '@mui/material/FormHelperText';
+import FormLabel from '@mui/material/FormLabel';
+
+interface FieldMeta {
+  label?: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  htmlFor?: string;
+}
+
+const FieldContext = createContext<FieldMeta | null>(null);
+
+export function useFieldMeta(): FieldMeta {
+  return useContext(FieldContext) ?? {};
+}
 
 interface FormFieldProps {
   label: string;
@@ -9,6 +25,7 @@ interface FormFieldProps {
   required?: boolean;
   children: ReactNode;
   className?: string;
+  floatingLabel?: boolean;
 }
 
 export function FormField({
@@ -19,33 +36,44 @@ export function FormField({
   required,
   children,
   className,
+  floatingLabel = true,
 }: FormFieldProps) {
+  const meta = useMemo<FieldMeta>(
+    () => (floatingLabel ? { label, required, error, hint, htmlFor } : { error, hint }),
+    [floatingLabel, label, required, error, hint, htmlFor],
+  );
+
   return (
-    <div className={cn('space-y-1.5', className)}>
-      <label
-        htmlFor={htmlFor}
-        className="block text-[13px] font-medium text-zinc-700 dark:text-zinc-300"
+    <FieldContext.Provider value={meta}>
+      <FormControl
+        fullWidth
+        error={Boolean(error)}
+        required={required}
+        className={className}
+        sx={{ mb: 2, ...(floatingLabel ? null : { gap: 1 }) }}
       >
-        {label}
-        {required && <span className="ml-0.5 text-red-600 dark:text-red-400">*</span>}
-      </label>
-      {children}
-      {hint && !error && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</p>
-      )}
-      {error && (
-        <p role="alert" className="text-xs font-medium text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      )}
-    </div>
+        {! floatingLabel && (
+          <FormLabel
+            htmlFor={htmlFor}
+            sx={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: 'text.primary',
+              '&.Mui-focused, &.Mui-error': { color: 'text.primary' },
+            }}
+          >
+            {label}
+          </FormLabel>
+        )}
+
+        {children}
+
+        {(error || hint) && ! floatingLabel && (
+          <FormHelperText role={error ? 'alert' : undefined} sx={{ mx: 0 }}>
+            {error ?? hint}
+          </FormHelperText>
+        )}
+      </FormControl>
+    </FieldContext.Provider>
   );
 }
-
-export const inputClassName = (hasError?: boolean) =>
-  cn(
-    'w-full rounded-lg border bg-white px-3.5 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm transition-shadow focus:outline-none focus:ring-2 dark:bg-[#101012] dark:text-zinc-100 dark:placeholder:text-zinc-600',
-    hasError
-      ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-800'
-      : 'border-zinc-950/[0.12] focus:border-zinc-900 focus:ring-zinc-900/10 dark:border-white/[0.12] dark:focus:border-zinc-400 dark:focus:ring-white/10',
-  );

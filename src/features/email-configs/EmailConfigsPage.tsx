@@ -1,6 +1,8 @@
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import {
   useCreateEmailConfigMutation,
   useDeleteEmailConfigMutation,
@@ -147,7 +149,14 @@ export function EmailConfigsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Operação</p>
+          <Link
+            to="/sending-templates"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Templates de envio</span>
+          </Link>
+          <p className="eyebrow mt-2 text-zinc-400 dark:text-zinc-500">Operação</p>
           <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Configuração de email
           </h1>
@@ -157,14 +166,9 @@ export function EmailConfigsPage() {
         </div>
 
         {!isTrial && (
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-700 whitespace-nowrap dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.2} />
-            <span>Nova configuração</span>
-          </button>
+          <Button variant="contained" color="inherit" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal} className="shrink-0 whitespace-nowrap">
+            Nova configuração
+          </Button>
         )}
       </div>
 
@@ -186,14 +190,9 @@ export function EmailConfigsPage() {
           title="Nenhum SMTP configurado"
           description="Cadastre um servidor SMTP para que os grupos possam enviar os templates de email."
           action={
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.2} />
-              <span>Criar primeira configuração</span>
-            </button>
+            <Button variant="contained" color="inherit" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal}>
+              Criar primeira configuração
+            </Button>
           }
         />
       ) : (
@@ -258,22 +257,12 @@ export function EmailConfigsPage() {
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="inline-flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(config)}
-                        aria-label={`Editar ${config.name}`}
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
-                      >
+                      <IconButton size="small" onClick={() => openEditModal(config)} aria-label={`Editar ${config.name}`}>
                         <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeletingConfig(config)}
-                        aria-label={`Excluir ${config.name}`}
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                      >
+                      </IconButton>
+                      <IconButton size="small" onClick={() => setDeletingConfig(config)} aria-label={`Excluir ${config.name}`}>
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     </div>
                   </td>
                 </tr>

@@ -5,6 +5,7 @@ import { useToast } from '@/src/components/common/Toast';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { cn } from '@/src/lib/cn';
 import type { Step } from '@/src/lib/types';
+import { TextInput } from '@/src/components/common/TextInput';
 
 interface StepComboboxProps {
   crmId: number;
@@ -143,7 +144,7 @@ export function StepCombobox({ crmId, steps, value, onChange, disabled }: StepCo
       {open && (
         <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-zinc-950/[0.1] bg-white shadow-[var(--shadow-pop)] dark:border-white/[0.1] dark:bg-[#1b1b1f]">
           <div className="border-b border-zinc-950/[0.06] p-2 dark:border-white/[0.06]">
-            <input
+            <TextInput
               ref={inputRef}
               type="text"
               value={query}

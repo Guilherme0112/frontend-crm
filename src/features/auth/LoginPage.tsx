@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -7,7 +8,8 @@ import { AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
 import { AuthLayout } from '@/src/components/layout/AuthLayout';
 import { useToast } from '@/src/components/common/Toast';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 
 const loginSchema = z.object({
@@ -85,26 +87,26 @@ export function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
             <FormField label="E-mail" htmlFor="email" required error={errors.email?.message}>
-              <input
+              <TextInput
                 id="email"
                 type="email"
                 autoComplete="email"
                 placeholder="voce@empresa.com.br"
-                className={inputClassName(Boolean(errors.email))}
+                hasError={Boolean(errors.email)}
                 {...register('email')}
               />
             </FormField>
 
             <FormField label="Senha" htmlFor="password" required error={errors.password?.message}>
               <div className="relative">
-                <input
+                <TextInput
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className={inputClassName(Boolean(errors.password))}
+                  hasError={Boolean(errors.password)}
                   {...register('password')}
                 />
                 <button
@@ -118,14 +120,10 @@ export function LoginPage() {
               </div>
             </FormField>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
+            <Button variant="contained" color="inherit" disabled={isSubmitting} type="submit" className="w-full">
               <span>{isSubmitting ? 'Entrando...' : 'Entrar'}</span>
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}
-            </button>
+            </Button>
           </form>
 
           <div className="mt-6 border-t border-zinc-950/[0.07] pt-5 dark:border-white/[0.07]">

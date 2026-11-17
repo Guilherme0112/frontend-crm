@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
@@ -368,13 +369,9 @@ export function BillingPage() {
           </div>
 
           {activeSubscription && (
-            <button
-              type="button"
-              onClick={() => setCancelingSub(activeSubscription)}
-              className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:bg-[#17171a] dark:text-red-400 dark:hover:bg-red-950/40"
-            >
+            <Button variant="outlined" color="error" onClick={() => setCancelingSub(activeSubscription)}>
               Cancelar assinatura
-            </button>
+            </Button>
           )}
         </div>
 
@@ -647,21 +644,12 @@ export function BillingPage() {
                 )}
 
                 <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                  <button
-                    type="button"
-                    onClick={closeSubscribeModal}
-                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                  >
+                  <Button variant="outlined" color="inherit" onClick={closeSubscribeModal}>
                     Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleConfirmSubscribe()}
-                    disabled={createCheckoutMutation.isPending}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
+                  </Button>
+                  <Button variant="contained" onClick={() => void handleConfirmSubscribe()} disabled={createCheckoutMutation.isPending}>
                     {createCheckoutMutation.isPending ? 'Ativando...' : 'Ativar plano'}
-                  </button>
+                  </Button>
                 </div>
               </>
             ) : (
@@ -698,29 +686,20 @@ export function BillingPage() {
                 )}
 
                 <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                  <button
-                    type="button"
-                    onClick={closeSubscribeModal}
-                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                  >
+                  <Button variant="outlined" color="inherit" onClick={closeSubscribeModal}>
                     Cancelar
-                  </button>
+                  </Button>
 
                   {/* O Brick tem o próprio botão de envio. Este só aparece quando
                       não há cartão a digitar: troca de plano, ou redirect. */}
                   {(isOnPaidPlan || !canUseCardForm) && (
-                    <button
-                      type="button"
-                      onClick={() => void handleConfirmSubscribe()}
-                      disabled={isSubscribePending}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                    >
+                    <Button variant="contained" onClick={() => void handleConfirmSubscribe()} disabled={isSubscribePending}>
                       {isSubscribePending
                         ? 'Processando...'
                         : isOnPaidPlan
                           ? 'Confirmar troca de plano'
                           : 'Ir para o pagamento'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </>

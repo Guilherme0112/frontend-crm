@@ -89,11 +89,12 @@ export function useStepsQuery(crmId: number, enabled = true) {
 }
 
 /** Etapas de toda a empresa (ou de um CRM), achatadas, para dropdowns. */
-export function useAllStepsQuery(crmId?: number) {
+export function useAllStepsQuery(crmId?: number, search?: string, limit = 10) {
   return useQuery({
-    queryKey: queryKeys.crms.stepsAll(crmId),
-    queryFn: () => api.listStepsAll(crmId),
+    queryKey: queryKeys.crms.stepsAll(crmId, search),
+    queryFn: () => api.listStepsAll(crmId, search, limit),
     staleTime: 5 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 }
 

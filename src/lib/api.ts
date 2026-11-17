@@ -270,9 +270,17 @@ export interface StepWithCrm {
   crm_name: string;
 }
 
-export async function listStepsAll(crmId?: number): Promise<StepWithCrm[]> {
+export async function listStepsAll(
+  crmId?: number,
+  search?: string,
+  limit?: number,
+): Promise<StepWithCrm[]> {
   const res = await apiClient.get<{ data: StepWithCrm[] }>('/steps', {
-    params: crmId !== undefined ? { crm_id: crmId } : {},
+    params: {
+      ...(crmId !== undefined ? { crm_id: crmId } : {}),
+      ...(search ? { search } : {}),
+      ...(limit !== undefined ? { limit } : {}),
+    },
   });
   return res.data.data;
 }

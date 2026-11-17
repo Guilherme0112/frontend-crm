@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Eye, FileText } from 'lucide-react';
@@ -185,15 +186,9 @@ export function InvoicesPage() {
                           </button>
                         )}
 
-                        <button
-                          type="button"
-                          onClick={() => void handleViewPdf(inv.id)}
-                          disabled={downloadingId === inv.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-950/[0.12] bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 whitespace-nowrap dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>{downloadingId === inv.id ? 'Gerando...' : 'Ver recibo'}</span>
-                        </button>
+                        <Button variant="outlined" color="inherit" startIcon={<Eye className="h-3.5 w-3.5" />} onClick={() => void handleViewPdf(inv.id)} disabled={downloadingId === inv.id} className="whitespace-nowrap">
+                          {downloadingId === inv.id ? 'Gerando...' : 'Ver recibo'}
+                        </Button>
                       </div>
                     </td>
                   </tr>

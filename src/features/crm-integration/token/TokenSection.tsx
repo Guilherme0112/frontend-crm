@@ -1,3 +1,5 @@
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 import { Check, Copy, Lock, RefreshCw, TriangleAlert, X } from 'lucide-react';
 import { useRegenerateCrmTokenMutation } from '@/src/features/crm/hooks';
@@ -80,21 +82,20 @@ export function TokenSection({ crm }: TokenSectionProps) {
           <span className="min-w-0 flex-1">
             Token regenerado. Integrações que usam o antigo vão falhar com erro 404 até serem atualizadas.
           </span>
-          <button
-            type="button"
+          <IconButton
+            size="small"
+            aria-label="Dispensar aviso"
             onClick={() => {
               setShowBanner(false);
               try {
                 sessionStorage.removeItem(REGENERATED_FLAG);
               } catch {
-                // ignore
+                /* ignore */
               }
             }}
-            className="rounded-md p-1 text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900/40"
-            aria-label="Dispensar aviso"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
       )}
 
@@ -124,14 +125,10 @@ export function TokenSection({ crm }: TokenSectionProps) {
               </>
             )}
           </button>
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950/70"
-          >
+          <Button variant="outlined" color="error" onClick={() => setConfirmOpen(true)}>
             <RefreshCw className="h-4 w-4" strokeWidth={1.8} />
             Regenerar
-          </button>
+          </Button>
         </div>
       </div>
 

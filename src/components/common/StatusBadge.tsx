@@ -1,5 +1,5 @@
+import Chip from '@mui/material/Chip';
 import { AlertCircle, CheckCircle2, Clock, MinusCircle } from 'lucide-react';
-import { cn } from '@/src/lib/cn';
 
 type SemanticTone = 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -9,28 +9,33 @@ interface StatusIndicatorProps {
   className?: string;
 }
 
-const TONE_CLASSES: Record<SemanticTone, string> = {
-  success: 'text-emerald-700 dark:text-emerald-400',
-  warning: 'text-amber-700 dark:text-amber-400',
-  danger: 'text-red-700 dark:text-red-400',
-  neutral: 'text-zinc-600 dark:text-zinc-400',
+const TONE_COLOR = {
+  success: 'success',
+  warning: 'warning',
+  danger: 'error',
+  neutral: 'default',
+} as const;
+
+const TONE_ICON = {
+  success: CheckCircle2,
+  warning: Clock,
+  danger: AlertCircle,
+  neutral: MinusCircle,
 };
 
 export function StatusIndicator({ tone, label, className }: StatusIndicatorProps) {
+  const Icon = TONE_ICON[tone];
+
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 text-xs font-medium whitespace-nowrap shrink-0',
-        TONE_CLASSES[tone],
-        className,
-      )}
-    >
-      {tone === 'success' && <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
-      {tone === 'warning' && <Clock className="h-3.5 w-3.5 shrink-0" />}
-      {tone === 'danger' && <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
-      {tone === 'neutral' && <MinusCircle className="h-3.5 w-3.5 shrink-0" />}
-      <span>{label}</span>
-    </span>
+    <Chip
+      size="small"
+      variant="outlined"
+      color={TONE_COLOR[tone]}
+      className={className}
+      icon={<Icon className="h-3.5 w-3.5" />}
+      label={label}
+      sx={{ fontSize: 12, '& .MuiChip-icon': { ml: 0.75 } }}
+    />
   );
 }
 

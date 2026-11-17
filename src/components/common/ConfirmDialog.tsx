@@ -1,6 +1,8 @@
-import { AlertCircle } from 'lucide-react';
+import Button from '@mui/material/Button';
+import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
 import { Modal } from './Modal';
-import { cn } from '@/src/lib/cn';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -29,45 +31,32 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
-      <div className="space-y-4">
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
+      <Stack spacing={2}>
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
           {description}
-        </p>
+        </Typography>
 
         {errorMessage && (
-          <div
-            role="alert"
-            className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
-          >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
+          <Alert severity="error" variant="outlined">
+            {errorMessage}
+          </Alert>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08]"
-          >
+        <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end', pt: 0.5 }}>
+          <Button variant="outlined" color="inherit" onClick={onClose} disabled={isPending}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+
+          <Button
+            variant="contained"
+            color={variant === 'danger' ? 'error' : 'primary'}
             onClick={onConfirm}
             disabled={isPending}
-            className={cn(
-              'rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50',
-              variant === 'danger'
-                ? 'bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500'
-                : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500',
-            )}
           >
             {isPending ? 'Processando...' : confirmLabel}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Stack>
+      </Stack>
     </Modal>
   );
 }

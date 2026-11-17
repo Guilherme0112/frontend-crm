@@ -1,8 +1,11 @@
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { PHONE_REGEX, maskPhone } from '@/src/lib/format';
+import { TextInput } from '@/src/components/common/TextInput';
 
 const inlineLeadSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome'),
@@ -49,18 +52,13 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
         <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
           Novo lead
         </span>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded p-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-          aria-label="Cancelar"
-        >
+        <IconButton size="small" onClick={onCancel} aria-label="Cancelar">
           <X className="h-3.5 w-3.5" />
-        </button>
+        </IconButton>
       </div>
 
       <div>
-        <input
+        <TextInput
           type="text"
           placeholder="Nome do lead *"
           autoFocus
@@ -73,7 +71,7 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
       </div>
 
       <div>
-        <input
+        <TextInput
           type="email"
           placeholder="E-mail *"
           className="w-full rounded-md border border-zinc-950/[0.12] bg-white px-2.5 py-1.5 text-xs text-zinc-900 focus:border-blue-600 focus:outline-none dark:border-white/[0.12] dark:bg-[#101012] dark:text-zinc-100"
@@ -89,7 +87,7 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
           control={control}
           name="phone"
           render={({ field }) => (
-            <input
+            <TextInput
               type="tel"
               placeholder="Telefone (opcional)"
               className="w-full rounded-md border border-zinc-950/[0.12] bg-white px-2.5 py-1.5 text-xs text-zinc-900 focus:border-blue-600 focus:outline-none dark:border-white/[0.12] dark:bg-[#101012] dark:text-zinc-100"
@@ -112,13 +110,9 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
         >
           Cancelar
         </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
+        <Button variant="contained" disabled={isPending} type="submit">
           {isPending ? 'Salvando...' : 'Adicionar'}
-        </button>
+        </Button>
       </div>
     </form>
   );

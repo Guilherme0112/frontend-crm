@@ -1,3 +1,5 @@
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +14,10 @@ import {
 import { useAuth } from '@/src/auth/AuthContext';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -193,14 +198,9 @@ export function TeamPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openCreateModal}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Novo membro</span>
-        </button>
+        <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateModal} className="whitespace-nowrap shrink-0">
+          Novo membro
+        </Button>
       </div>
 
       {usersQuery.isPending ? (
@@ -219,14 +219,9 @@ export function TeamPage() {
           title="Nenhum usuário cadastrado"
           description="Adicione membros para colaborar na gestão dos leads e CRMs."
           action={
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Adicionar membro</span>
-            </button>
+            <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
+              Adicionar membro
+            </Button>
           }
         />
       ) : (
@@ -262,40 +257,21 @@ export function TeamPage() {
                       {u.phone || '—'}
                     </td>
                     <td className="px-5 py-3.5">
-                      <button
-                        type="button"
-                        onClick={() => void handleToggleActive(u)}
-                        disabled={togglingId === u.id}
-                        title="Clique para alternar ativo/inativo"
-                        className="inline-flex items-center gap-2 rounded-md border border-zinc-950/[0.07] px-2.5 py-1 transition-colors hover:bg-zinc-950/[0.05] disabled:opacity-50 dark:border-white/[0.12] dark:hover:bg-white/[0.07]"
-                      >
+                      <IconButton size="small" onClick={() => void handleToggleActive(u)} disabled={togglingId === u.id} title="Clique para alternar ativo/inativo">
                         <StatusIndicator
                           tone={u.is_active ? 'success' : 'neutral'}
                           label={u.is_active ? 'Ativo' : 'Inativo'}
                         />
-                      </button>
+                      </IconButton>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(u)}
-                          aria-label={`Editar ${u.name}`}
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
-                        >
+                        <IconButton size="small" onClick={() => openEditModal(u)} aria-label={`Editar ${u.name}`}>
                           <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDeleteError(null);
-                            setDeletingUser(u);
-                          }}
-                          aria-label={`Excluir ${u.name}`}
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                        >
+                        </IconButton>
+                        <IconButton size="small" onClick={() => { setDeleteError(null); setDeletingUser(u); }} aria-label={`Excluir ${u.name}`}>
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </IconButton>
                       </div>
                     </td>
                   </tr>
@@ -328,28 +304,28 @@ export function TeamPage() {
             : 'Cadastre um novo usuário vinculado à empresa.'
         }
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
           <FormField label="Nome completo" htmlFor="team-name" required error={errors.name?.message}>
-            <input
+            <TextInput
               id="team-name"
               type="text"
               placeholder="Carlos Mendes"
-              className={inputClassName(Boolean(errors.name))}
+              hasError={Boolean(errors.name)}
               {...register('name')}
             />
           </FormField>
 
           <FormField label="E-mail" htmlFor="team-email" required error={errors.email?.message}>
-            <input
+            <TextInput
               id="team-email"
               type="email"
               placeholder="carlos@empresa.com.br"
-              className={inputClassName(Boolean(errors.email))}
+              hasError={Boolean(errors.email)}
               {...register('email')}
             />
           </FormField>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               label={editingUser ? 'Nova senha (opcional)' : 'Senha'}
               htmlFor="team-pass"
@@ -357,11 +333,11 @@ export function TeamPage() {
               hint="Mínimo de 8 caracteres"
               error={errors.password?.message}
             >
-              <input
+              <TextInput
                 id="team-pass"
                 type="password"
                 placeholder="••••••••"
-                className={inputClassName(Boolean(errors.password))}
+                hasError={Boolean(errors.password)}
                 {...register('password')}
               />
             </FormField>
@@ -371,11 +347,11 @@ export function TeamPage() {
                 control={control}
                 name="phone"
                 render={({ field }) => (
-                  <input
+                  <TextInput
                     id="team-phone"
                     type="tel"
                     placeholder="(11) 98765-4321"
-                    className={inputClassName(Boolean(errors.phone))}
+                    hasError={Boolean(errors.phone)}
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskPhone(e.target.value))}
                     onBlur={field.onBlur}
@@ -385,34 +361,23 @@ export function TeamPage() {
             </FormField>
           </div>
 
-          <label className="flex items-center gap-2.5 text-sm text-zinc-700 dark:text-zinc-200">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-950/[0.12] text-blue-600 focus:ring-blue-600 dark:border-white/[0.12] dark:bg-[#101012]"
-              {...register('is_active')}
-            />
-            <span>Usuário ativo</span>
-          </label>
+          <FormControlLabel
+            control={<Checkbox size="small" {...register('is_active')} />}
+            label="Usuário ativo"
+            slotProps={{ typography: { sx: { fontSize: 14 } } }}
+          />
 
           <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
+            <Button variant="outlined" color="inherit" onClick={() => setModalOpen(false)}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="contained" disabled={createMutation.isPending || updateMutation.isPending} type="submit">
               {createMutation.isPending || updateMutation.isPending
                 ? 'Salvando...'
                 : editingUser
                   ? 'Salvar alterações'
                   : 'Cadastrar membro'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

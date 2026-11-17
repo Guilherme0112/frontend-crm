@@ -6,8 +6,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
-import { cn } from '@/src/lib/cn';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
+import Snackbar from '@mui/material/Snackbar';
+import Stack from '@mui/material/Stack';
 
 type ToastVariant = 'success' | 'error' | 'info';
 
@@ -60,57 +62,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div
-        aria-live="polite"
-        aria-label="Notificações"
-        className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-2.5 px-4 sm:px-0"
+
+      <Snackbar
+        open={items.length > 0}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ maxWidth: 400 }}
       >
-        {items.map((item) => (
-          <div
-            key={item.id}
-            role="status"
-            className={cn(
-              'pointer-events-auto flex items-start gap-3 rounded-xl border bg-white p-3.5 shadow-[var(--shadow-pop)] transition-all duration-150 dark:bg-[#17171a]',
-              item.variant === 'success' &&
-                'border-emerald-200 dark:border-emerald-900/70',
-              item.variant === 'error' &&
-                'border-red-200 dark:border-red-900/70',
-              item.variant === 'info' &&
-                'border-zinc-950/[0.07] dark:border-white/[0.07]',
-            )}
-          >
-            <div className="mt-0.5 shrink-0">
-              {item.variant === 'success' && (
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              )}
-              {item.variant === 'error' && (
-                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              )}
-              {item.variant === 'info' && (
-                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                {item.title}
-              </p>
-              {item.description && (
-                <p className="mt-0.5 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                  {item.description}
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => dismiss(item.id)}
-              className="shrink-0 rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-600 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
-              aria-label="Fechar notificação"
+        <Stack spacing={1} sx={{ width: '100%' }}>
+          {items.map((item) => (
+            <Alert
+              key={item.id}
+              severity={item.variant}
+              variant="filled"
+              onClose={() => dismiss(item.id)}
+              sx={{ width: '100%', alignItems: 'flex-start' }}
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
+              <AlertTitle sx={{ fontWeight: 600, mb: item.description ? 0.25 : 0 }}>
+                {item.title}
+              </AlertTitle>
+              {item.description}
+            </Alert>
+          ))}
+        </Stack>
+      </Snackbar>
     </ToastContext.Provider>
   );
 }

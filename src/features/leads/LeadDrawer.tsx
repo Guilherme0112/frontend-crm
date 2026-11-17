@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
@@ -6,7 +7,9 @@ import { z } from 'zod';
 import { ExternalLink, Trash2 } from 'lucide-react';
 import { Drawer } from '@/src/components/common/Drawer';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -131,7 +134,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
           : undefined}
       >
         {leadQuery.isPending ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
@@ -156,36 +159,36 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
               </Link>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
               <FormField label="Nome" htmlFor="drawer-lead-name" required error={errors.name?.message}>
-                <input
+                <TextInput
                   id="drawer-lead-name"
                   type="text"
-                  className={inputClassName(Boolean(errors.name))}
+                  hasError={Boolean(errors.name)}
                   {...register('name')}
                 />
               </FormField>
 
               <FormField label="E-mail" htmlFor="drawer-lead-email" required error={errors.email?.message}>
-                <input
+                <TextInput
                   id="drawer-lead-email"
                   type="email"
-                  className={inputClassName(Boolean(errors.email))}
+                  hasError={Boolean(errors.email)}
                   {...register('email')}
                 />
               </FormField>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-6 sm:grid-cols-2">
                 <FormField label="Telefone" htmlFor="drawer-lead-phone" error={errors.phone?.message}>
                   <Controller
                     control={control}
                     name="phone"
                     render={({ field }) => (
-                      <input
+                      <TextInput
                         id="drawer-lead-phone"
                         type="tel"
                         placeholder="(11) 98765-4321"
-                        className={inputClassName(Boolean(errors.phone))}
+                        hasError={Boolean(errors.phone)}
                         value={field.value || ''}
                         onChange={(e) => field.onChange(maskPhone(e.target.value))}
                         onBlur={field.onBlur}
@@ -214,49 +217,35 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
               </div>
 
               <FormField label="Site" htmlFor="drawer-lead-website" error={errors.website?.message}>
-                <input
+                <TextInput
                   id="drawer-lead-website"
                   type="url"
                   placeholder="https://empresa.com.br"
-                  className={inputClassName(Boolean(errors.website))}
+                  hasError={Boolean(errors.website)}
                   {...register('website')}
                 />
               </FormField>
 
               <FormField label="Observações" htmlFor="drawer-lead-description" error={errors.description?.message}>
-                <textarea
+                <TextArea
                   id="drawer-lead-description"
-                  rows={4}
-                  className={inputClassName(Boolean(errors.description))}
+                  hasError={Boolean(errors.description)}
                   {...register('description')}
                 />
               </FormField>
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                <button
-                  type="button"
-                  onClick={() => setConfirmOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Excluir</span>
-                </button>
+                <Button variant="outlined" color="error" startIcon={<Trash2 className="h-4 w-4" />} onClick={() => setConfirmOpen(true)}>
+                  Excluir
+                </Button>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                  >
+                  <Button variant="outlined" color="inherit" onClick={onClose}>
                     Fechar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateMutation.isPending || !isDirty}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
-                  >
+                  </Button>
+                  <Button variant="contained" disabled={updateMutation.isPending || !isDirty} type="submit">
                     {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>

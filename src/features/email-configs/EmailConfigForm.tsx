@@ -1,10 +1,12 @@
+import Button from '@mui/material/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { KeyRound, Pencil } from 'lucide-react';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
 import { applyServerErrors } from '@/src/lib/formErrors';
 import type { EmailConfig, EmailEncryption } from '@/src/lib/types';
 
@@ -113,7 +115,7 @@ export function EmailConfigForm({
   });
 
   return (
-    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+    <form onSubmit={submit} className="grid gap-6 sm:grid-cols-2" noValidate>
       <FormField
         label="Nome da configuração"
         htmlFor="ec-name"
@@ -121,37 +123,37 @@ export function EmailConfigForm({
         error={errors.name?.message}
         className="sm:col-span-2"
       >
-        <input
+        <TextInput
           id="ec-name"
           type="text"
           placeholder="Ex.: Mailtrap Produção"
           autoComplete="off"
-          className={inputClassName(Boolean(errors.name))}
+          hasError={Boolean(errors.name)}
           {...register('name')}
         />
       </FormField>
 
       <FormField label="Host" htmlFor="ec-host" required error={errors.host?.message}>
-        <input
+        <TextInput
           id="ec-host"
           type="text"
           placeholder="smtp.mailtrap.io"
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          className={`${inputClassName(Boolean(errors.host))} font-mono`}
+          hasError={Boolean(errors.host)} className="font-mono"
           {...register('host')}
         />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         <FormField label="Porta" htmlFor="ec-port" required error={errors.port?.message}>
-          <input
+          <TextInput
             id="ec-port"
             type="number"
             min={1}
             max={65535}
-            className={`${inputClassName(Boolean(errors.port))} font-mono tabular-nums`}
+            hasError={Boolean(errors.port)} className="font-mono tabular-nums"
             {...register('port', { valueAsNumber: true })}
           />
         </FormField>
@@ -182,14 +184,14 @@ export function EmailConfigForm({
       </div>
 
       <FormField label="Usuário" htmlFor="ec-username" required error={errors.username?.message}>
-        <input
+        <TextInput
           id="ec-username"
           type="text"
           placeholder="demo@example.com"
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          className={`${inputClassName(Boolean(errors.username))} font-mono`}
+          hasError={Boolean(errors.username)} className="font-mono"
           {...register('username')}
         />
       </FormField>
@@ -216,12 +218,12 @@ export function EmailConfigForm({
 
         {changingPassword ? (
           <>
-            <input
+            <TextInput
               id="ec-password"
               type="password"
               autoComplete="new-password"
               placeholder={isEdit ? 'Nova senha (em branco mantém a atual)' : 'Senha SMTP'}
-              className={inputClassName(Boolean(errors.password))}
+              hasError={Boolean(errors.password)}
               {...register('password')}
             />
             {errors.password && (
@@ -263,12 +265,12 @@ export function EmailConfigForm({
         required
         error={errors.from_address?.message}
       >
-        <input
+        <TextInput
           id="ec-from-address"
           type="email"
           placeholder="noreply@example.com"
           autoComplete="off"
-          className={`${inputClassName(Boolean(errors.from_address))} font-mono`}
+          hasError={Boolean(errors.from_address)} className="font-mono"
           {...register('from_address')}
         />
       </FormField>
@@ -279,32 +281,23 @@ export function EmailConfigForm({
         required
         error={errors.from_name?.message}
       >
-        <input
+        <TextInput
           id="ec-from-name"
           type="text"
           placeholder="Acme CRM"
           autoComplete="off"
-          className={inputClassName(Boolean(errors.from_name))}
+          hasError={Boolean(errors.from_name)}
           {...register('from_name')}
         />
       </FormField>
 
       <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 sm:col-span-2 dark:border-white/[0.07]">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-        >
+        <Button variant="outlined" color="inherit" onClick={onCancel} disabled={isSubmitting}>
           Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
+        </Button>
+        <Button variant="contained" color="inherit" disabled={isSubmitting} type="submit">
           {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar configuração'}
-        </button>
+        </Button>
       </div>
     </form>
   );

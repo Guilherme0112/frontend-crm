@@ -337,10 +337,8 @@ export function CrmsOverviewPage() {
               <thead>
                 <tr className="border-b border-zinc-950/[0.06] text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:border-white/[0.06] dark:text-zinc-500">
                   <th className="whitespace-nowrap px-5 py-3">CRM</th>
-                  <th className="whitespace-nowrap px-5 py-3 text-right">Etapas</th>
                   <th className="whitespace-nowrap px-5 py-3 text-right">Leads totais</th>
                   <th className="whitespace-nowrap px-5 py-3 text-right">Leads 30d</th>
-                  <th className="whitespace-nowrap px-5 py-3 text-right">Mov. 30d</th>
                   {/* w-full: esta coluna absorve a folga da tabela */}
                   <th className="w-full whitespace-nowrap px-5 py-3">Funil (distribuição)</th>
                   <th className="whitespace-nowrap px-5 py-3">Top origem (total)</th>
@@ -363,17 +361,11 @@ export function CrmsOverviewPage() {
                         </span>
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-600 dark:text-zinc-400">
-                      {row.steps_count}
-                    </td>
                     <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
                       {row.leads_total}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
                       {row.leads_last_30_days}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
-                      {row.step_changes_last_30_days}
                     </td>
                     <td className="px-5 py-3.5">
                       <FunnelBar steps={row.leads_by_step} />

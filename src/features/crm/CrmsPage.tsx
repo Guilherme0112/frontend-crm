@@ -1,3 +1,5 @@
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -13,7 +15,9 @@ import {
 import { Modal } from '@/src/components/common/Modal';
 import { LoadMoreButton } from '@/src/components/common/LoadMoreButton';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { CardsGridSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -143,14 +147,9 @@ export function CrmsPage() {
             <BarChart3 className="h-4 w-4" strokeWidth={1.8} />
             <span>Dashboard</span>
           </Link>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-700 whitespace-nowrap dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.2} />
-            <span>Novo CRM</span>
-          </button>
+          <Button variant="contained" color="inherit" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal} className="whitespace-nowrap">
+            Novo CRM
+          </Button>
         </div>
       </div>
 
@@ -168,14 +167,9 @@ export function CrmsPage() {
           title="Nenhum CRM encontrado"
           description="Crie seu primeiro CRM para configurar etapas personalizadas e acompanhar seus leads."
           action={
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.2} />
-              <span>Criar primeiro CRM</span>
-            </button>
+            <Button variant="contained" color="inherit" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal}>
+              Criar primeiro CRM
+            </Button>
           }
         />
       ) : (
@@ -214,24 +208,12 @@ export function CrmsPage() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(crm)}
-                      aria-label={`Editar ${crm.name}`}
-                      title="Editar CRM"
-                      className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
-                    >
+                    <IconButton size="small" onClick={() => openEditModal(crm)} aria-label={`Editar ${crm.name}`} title="Editar CRM">
                       <Pencil className="h-4 w-4" strokeWidth={1.8} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingCrm(crm)}
-                      aria-label={`Excluir ${crm.name}`}
-                      title="Excluir CRM"
-                      className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                    >
+                    </IconButton>
+                    <IconButton size="small" onClick={() => setDeletingCrm(crm)} aria-label={`Excluir ${crm.name}`} title="Excluir CRM">
                       <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
 
@@ -296,28 +278,27 @@ export function CrmsPage() {
         title={editingCrm ? 'Editar CRM' : 'Novo CRM'}
         description="Defina o nome, descrição e cor identificadora do funil."
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
           <FormField label="Nome" htmlFor="crm-name" required error={errors.name?.message}>
-            <input
+            <TextInput
               id="crm-name"
               type="text"
               placeholder="Ex.: Vendas B2B"
-              className={inputClassName(Boolean(errors.name))}
+              hasError={Boolean(errors.name)}
               {...register('name')}
             />
           </FormField>
 
           <FormField label="Descrição" htmlFor="crm-desc" error={errors.description?.message}>
-            <textarea
+            <TextArea
               id="crm-desc"
-              rows={3}
               placeholder="Descreva o objetivo deste funil..."
-              className={inputClassName(Boolean(errors.description))}
+              hasError={Boolean(errors.description)}
               {...register('description')}
             />
           </FormField>
 
-          <FormField label="Cor identificadora" htmlFor="crm-color" error={errors.color?.message}>
+          <FormField label="Cor identificadora" htmlFor="crm-color" error={errors.color?.message} floatingLabel={false}>
             <div className="flex flex-wrap items-center gap-2.5">
               <div className="flex items-center gap-1.5">
                 {PRESET_COLORS.map((hex) => (
@@ -336,10 +317,19 @@ export function CrmsPage() {
                 ))}
               </div>
               <input
+                type="color"
+                value={HEX_COLOR_REGEX.test(selectedColor) ? selectedColor : '#2563eb'}
+                onChange={(e) => setValue('color', e.target.value, { shouldValidate: true })}
+                aria-label="Escolher cor personalizada"
+                title="Escolher cor personalizada"
+                className="h-9 w-9 cursor-pointer rounded-md border border-zinc-950/[0.15] bg-transparent p-0.5 dark:border-white/[0.15]"
+              />
+
+              <TextInput
                 id="crm-color"
                 type="text"
                 placeholder="#2563eb"
-                className={`${inputClassName(Boolean(errors.color))} w-32 font-mono`}
+                hasError={Boolean(errors.color)} className="w-32 font-mono"
                 {...register('color')}
               />
             </div>
@@ -353,17 +343,13 @@ export function CrmsPage() {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            <Button variant="contained" disabled={createMutation.isPending || updateMutation.isPending} type="submit">
               {createMutation.isPending || updateMutation.isPending
                 ? 'Salvando...'
                 : editingCrm
                   ? 'Salvar alterações'
                   : 'Criar CRM'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

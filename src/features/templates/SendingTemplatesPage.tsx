@@ -1,3 +1,6 @@
+import InputAdornment from '@mui/material/InputAdornment';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -24,7 +27,9 @@ import { EmailPreview } from './EmailPreview';
 import { TemplateToolbar } from './TemplateToolbar';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { Pagination } from '@/src/components/common/Pagination';
 import { CardsGridSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -32,6 +37,7 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { formatDate } from '@/src/lib/format';
+import { useDebouncedValue } from '@/src/lib/useDebouncedValue';
 import type { SendingTemplate } from '@/src/lib/types';
 
 const templateSchema = z.object({
@@ -70,7 +76,7 @@ export function SendingTemplatesPage() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search.trim());
   const templatesQuery = useSendingTemplatesQuery(page, 10, debouncedSearch);
   const createMutation = useCreateSendingTemplateMutation();
   const updateMutation = useUpdateSendingTemplateMutation();
@@ -81,11 +87,6 @@ export function SendingTemplatesPage() {
   const [deletingTemplate, setDeletingTemplate] = useState<SendingTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<SendingTemplate | null>(null);
   const [sampleValues, setSampleValues] = useState<Record<string, string>>(DEFAULT_SAMPLE_VARS);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
-    return () => window.clearTimeout(timer);
-  }, [search]);
 
   useEffect(() => {
     setPage(1);
@@ -199,14 +200,9 @@ export function SendingTemplatesPage() {
             <Mail className="h-4 w-4" strokeWidth={1.8} />
             <span>Configuração de email</span>
           </Link>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800 whitespace-nowrap dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.2} />
-            <span>Novo template</span>
-          </button>
+          <Button variant="contained" color="inherit" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal} className="whitespace-nowrap">
+            Novo template
+          </Button>
         </div>
       </div>
 
@@ -225,43 +221,40 @@ export function SendingTemplatesPage() {
           title="Nenhum template cadastrado"
           description="Crie templates reutilizáveis com placeholders {{variavel}} para associar aos seus grupos de envio."
           action={
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
-              <Plus className="h-4 w-4" strokeWidth={2.2} />
-              <span>Criar primeiro template</span>
-            </button>
+            <Button variant="contained" color="inherit" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal}>
+              Criar primeiro template
+            </Button>
           }
         />
       ) : (
         <section className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-                aria-hidden="true"
-              />
-              <input
+            <div className="min-w-0 flex-1">
+              <TextInput
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome, descrição ou conteúdo..."
                 aria-label="Buscar template"
-                className="w-full max-w-sm rounded-lg border border-zinc-950/[0.1] bg-zinc-50 py-2 pl-9 pr-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-100 dark:focus:bg-[#17171a]"
+                className="max-w-sm"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search className="h-4 w-4" aria-hidden="true" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: search ? (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setSearch('')} aria-label="Limpar busca">
+                          <X className="h-4 w-4" />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  },
+                }}
               />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                  aria-label="Limpar busca"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
             </div>
             <p className="font-mono text-[11px] tabular-nums uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
               {total} {total === 1 ? 'template' : 'templates'}
@@ -318,33 +311,15 @@ export function SendingTemplatesPage() {
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewTemplate(tpl)}
-                        title="Pré-visualizar"
-                        aria-label={`Pré-visualizar ${tpl.name}`}
-                        className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
-                      >
+                      <IconButton size="small" onClick={() => setPreviewTemplate(tpl)} title="Pré-visualizar" aria-label={`Pré-visualizar ${tpl.name}`}>
                         <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(tpl)}
-                        title="Editar"
-                        aria-label={`Editar ${tpl.name}`}
-                        className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
-                      >
+                      </IconButton>
+                      <IconButton size="small" onClick={() => openEditModal(tpl)} title="Editar" aria-label={`Editar ${tpl.name}`}>
                         <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeletingTemplate(tpl)}
-                        title="Excluir"
-                        aria-label={`Excluir ${tpl.name}`}
-                        className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                      >
+                      </IconButton>
+                      <IconButton size="small" onClick={() => setDeletingTemplate(tpl)} title="Excluir" aria-label={`Excluir ${tpl.name}`}>
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     </div>
                   </li>
                 );
@@ -376,29 +351,28 @@ export function SendingTemplatesPage() {
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
           <div className="grid gap-6 lg:grid-cols-5">
-            <div className="space-y-4 lg:col-span-3">
+            <div className="space-y-6 lg:col-span-3">
               <FormField label="Nome" htmlFor="tpl-name" required error={errors.name?.message}>
-                <input
+                <TextInput
                   id="tpl-name"
                   type="text"
                   placeholder="Ex.: Boas-vindas Comercial"
-                  className={inputClassName(Boolean(errors.name))}
+                  hasError={Boolean(errors.name)}
                   {...register('name')}
                 />
               </FormField>
 
               <FormField label="Descrição" htmlFor="tpl-desc" error={errors.description?.message}>
-                <input
+                <TextArea
                   id="tpl-desc"
-                  type="text"
                   placeholder="Opcional"
-                  className={inputClassName(Boolean(errors.description))}
+                  hasError={Boolean(errors.description)}
                   {...register('description')}
                 />
               </FormField>
 
               <FormField
-                label="Conteúdo do email"
+                label=""
                 htmlFor="tpl-body"
                 required
                 hint="HTML suportado (ex.: <strong>, <ul>, <a href>, tabelas) — também aceita um documento HTML completo. Use {{name}}, {{company}}, etc."
@@ -418,10 +392,20 @@ export function SendingTemplatesPage() {
                     });
                   }}
                 />
-                <textarea
+                <TextArea
                   id="tpl-body"
                   rows={12}
-                  className={`${inputClassName(Boolean(errors.body))} rounded-t-none border-t-0 font-mono text-[13px] leading-relaxed`}
+                  hasError={Boolean(errors.body)}
+                  slotProps={{
+                    htmlInput: {
+                      'aria-label': 'Conteúdo do email',
+                      style: {
+                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                        fontSize: 13,
+                        lineHeight: 1.625,
+                      },
+                    },
+                  }}
                   {...register('body')}
                 />
               </FormField>
@@ -471,7 +455,7 @@ export function SendingTemplatesPage() {
                         <label className="block font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
                           {`{{${key}}}`}
                         </label>
-                        <input
+                        <TextInput
                           type="text"
                           value={sampleValues[key] ?? DEFAULT_SAMPLE_VARS[key.toLowerCase()] ?? ''}
                           onChange={(e) =>
@@ -492,24 +476,16 @@ export function SendingTemplatesPage() {
           </div>
 
           <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
+            <Button variant="outlined" color="inherit" onClick={() => setModalOpen(false)}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
+            </Button>
+            <Button variant="contained" color="inherit" disabled={createMutation.isPending || updateMutation.isPending} type="submit">
               {createMutation.isPending || updateMutation.isPending
                 ? 'Salvando...'
                 : editingTemplate
                   ? 'Salvar alterações'
                   : 'Criar template'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -560,7 +536,7 @@ export function SendingTemplatesPage() {
                     <label className="block font-mono text-xs text-zinc-500 dark:text-zinc-400">
                       {`{{${key}}}`}
                     </label>
-                    <input
+                    <TextInput
                       type="text"
                       value={sampleValues[key] ?? DEFAULT_SAMPLE_VARS[key.toLowerCase()] ?? ''}
                       onChange={(e) =>
@@ -569,7 +545,7 @@ export function SendingTemplatesPage() {
                           [key]: e.target.value,
                         }))
                       }
-                      className={inputClassName(false)}
+                      hasError={false}
                     />
                   </div>
                 ))}

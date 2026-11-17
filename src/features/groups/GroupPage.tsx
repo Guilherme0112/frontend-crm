@@ -1,3 +1,5 @@
+import InputAdornment from '@mui/material/InputAdornment';
+import Button from '@mui/material/Button';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -31,7 +33,10 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
 import { getInitials } from '@/src/lib/format';
+import { useDebouncedValue } from '@/src/lib/useDebouncedValue';
 import { cn } from '@/src/lib/cn';
+import { TextInput } from '@/src/components/common/TextInput';
+import Checkbox from '@mui/material/Checkbox';
 
 export function GroupPage() {
   const { id } = useParams();
@@ -41,7 +46,7 @@ export function GroupPage() {
   const groupQuery = useGroupQuery(groupId);
   const membersQuery = useGroupLeadsQuery(groupId);
   const templatesQuery = useSendingTemplatesQuery(1, 100);
-  const crmsQuery = useCrmsInfiniteQuery(100);
+  const crmsQuery = useCrmsInfiniteQuery(10);
   const syncMutation = useSyncGroupLeadsMutation();
   const sendMutation = useSendGroupEmailsMutation();
 
@@ -54,22 +59,31 @@ export function GroupPage() {
 
   // Só busca a lista de configs quando o modal de disparo abre — não é exibida no dia a dia.
   const emailConfigsQuery = useEmailConfigsInfiniteQuery(25, sendModalOpen);
-  const stepsAllQuery = useAllStepsQuery(crmFilter === 'all' ? undefined : crmFilter);
+  // O combo de etapas carrega 10 e consulta o servidor conforme o usuário
+  // digita — são até 500 no total, caras de trazer de uma vez.
+  const [stepSearch, setStepSearch] = useState('');
+  const stepsAllQuery = useAllStepsQuery(
+    crmFilter === 'all' ? undefined : crmFilter,
+    stepSearch || undefined,
+  );
 
   const crms = useMemo(() => crmsQuery.items, [crmsQuery.items]);
 
-  const term = search.trim();
-  const [debouncedTerm, setDebouncedTerm] = useState(term);
+  // O backend não filtra CRM por texto, então a busca do combo é local.
+  // Começa com 10 e puxa as páginas seguintes só quando o usuário digita,
+  // em vez de baixar o catálogo inteiro na abertura da tela.
+  const loadMoreCrms = () => {
+    if (crmsQuery.hasNextPage && ! crmsQuery.isFetchingNextPage) {
+      void crmsQuery.fetchNextPage();
+    }
+  };
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedTerm(term), 300);
-    return () => window.clearTimeout(timer);
-  }, [term]);
+  const debouncedTerm = useDebouncedValue(search.trim());
 
   const leadsQuery = useLeadsInfiniteQuery(
     undefined,
     debouncedTerm || undefined,
-    25,
+    10,
     crmFilter === 'all' ? undefined : crmFilter,
     stageFilter === 'all' ? undefined : stageFilter,
   );
@@ -264,28 +278,14 @@ export function GroupPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setSendModalOpen(true)}
-            disabled={sendBlocked || sendMutation.isPending}
-            title={
-              isDirty
-                ? 'Salve a seleção de leads antes de disparar'
-                : !group.email_config_id
-                  ? 'Vincule uma configuração de email ao grupo'
-                  : savedCountForSend === 0
-                    ? 'Marque ao menos um lead'
-                    : 'Enfileirar disparo do template'
-            }
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
+          <Button variant="contained" color="inherit" onClick={() => setSendModalOpen(true)} disabled={sendBlocked || sendMutation.isPending} title={ isDirty ? 'Salve a seleção de leads antes de disparar' : !group.email_config_id ? 'Vincule uma configuração de email ao grupo' : savedCountForSend === 0 ? 'Marque ao menos um lead' : 'Enfileirar disparo do template' } className="shrink-0">
             {sendMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <Zap className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             )}
             <span>Disparar grupo</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -346,18 +346,22 @@ export function GroupPage() {
           </div>
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-                aria-hidden="true"
-              />
-              <input
+            <div className="flex-1">
+              <TextInput
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nome ou e-mail..."
                 aria-label="Buscar leads"
-                className="w-full rounded-lg border border-zinc-950/[0.12] bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-white/[0.12] dark:bg-[#101012] dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search className="h-4 w-4" aria-hidden="true" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
             </div>
             <Autocomplete
@@ -369,6 +373,8 @@ export function GroupPage() {
               ariaLabel="Filtrar por CRM"
               emptyLabel="Todos os CRMs"
               options={crms.map((crm) => ({ value: String(crm.id), label: crm.name }))}
+              onSearch={loadMoreCrms}
+              loading={crmsQuery.isFetchingNextPage}
               className="min-w-44"
             />
             <Autocomplete
@@ -382,6 +388,8 @@ export function GroupPage() {
               }))}
               placeholder="Etapa..."
               emptyMessage="Nenhuma etapa encontrada"
+              onSearch={setStepSearch}
+              loading={stepsAllQuery.isFetching}
               className="min-w-48"
             />
           </div>
@@ -419,11 +427,11 @@ export function GroupPage() {
                         checked && 'bg-blue-50/50 hover:bg-blue-50/70 dark:bg-blue-950/20 dark:hover:bg-blue-950/30',
                       )}
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={checked}
                         onChange={() => toggleLead(lead.id)}
-                        className="h-4 w-4 shrink-0 rounded border-zinc-300 text-blue-600 focus:ring-blue-600 dark:border-zinc-700 dark:bg-zinc-950"
+                        size="small"
+                        sx={{ p: 0, flexShrink: 0 }}
                       />
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-950/[0.05] text-[11px] font-bold text-zinc-500 dark:bg-white/[0.06] dark:text-zinc-400">
                         {getInitials(lead.name)}
@@ -467,19 +475,14 @@ export function GroupPage() {
             </span>{' '}
             selecionado{selectedIds.size === 1 ? '' : 's'} de {leadsQuery.total ?? allLeads.length} no total
           </p>
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={!isDirty || syncMutation.isPending}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
+          <Button variant="contained" color="inherit" onClick={() => void handleSave()} disabled={!isDirty || syncMutation.isPending} className="shrink-0">
             {syncMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <Check className="h-4 w-4" aria-hidden="true" />
             )}
             Salvar alterações
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -521,26 +524,17 @@ export function GroupPage() {
           2 vezes com recuo. O envio acontece em segundo plano; acompanhe no histórico abaixo.
         </p>
         <div className="mt-4 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => setSendModalOpen(false)}
-            className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-          >
+          <Button variant="outlined" color="inherit" onClick={() => setSendModalOpen(false)}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSend()}
-            disabled={sendMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-          >
+          </Button>
+          <Button variant="contained" onClick={() => void handleSend()} disabled={sendMutation.isPending}>
             {sendMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <Zap className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             )}
             Confirmar disparo
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

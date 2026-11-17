@@ -1,3 +1,5 @@
+import IconButton from '@mui/material/IconButton';
+import Button from '@mui/material/Button';
 import { useEffect, useRef, useState } from 'react';
 import {
   Bold,
@@ -76,8 +78,6 @@ export function TemplateToolbar({ textareaId, value, onChange }: TemplateToolbar
     );
   };
 
-  const toolBtn =
-    'inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-950/[0.06] hover:text-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:text-zinc-400 dark:hover:bg-white/[0.08] dark:hover:text-zinc-100';
 
   return (
     <div
@@ -85,45 +85,39 @@ export function TemplateToolbar({ textareaId, value, onChange }: TemplateToolbar
       aria-label="Formatação do email"
       className="flex flex-wrap items-center gap-0.5 rounded-t-lg border border-b-0 border-zinc-950/[0.12] bg-zinc-50 px-2 py-1.5 dark:border-white/[0.12] dark:bg-white/[0.04]"
     >
-      <button type="button" className={toolBtn} title="Negrito" aria-label="Negrito" onClick={() => applyWrap('<strong>', '</strong>', 'texto em negrito')}>
+      <IconButton size="small" title="Negrito" aria-label="Negrito" onClick={() => applyWrap('<strong>', '</strong>', 'texto em negrito')}>
         <Bold className="h-4 w-4" strokeWidth={2.2} />
-      </button>
-      <button type="button" className={toolBtn} title="Itálico" aria-label="Itálico" onClick={() => applyWrap('<em>', '</em>', 'texto em itálico')}>
+      </IconButton>
+      <IconButton size="small" title="Itálico" aria-label="Itálico" onClick={() => applyWrap('<em>', '</em>', 'texto em itálico')}>
         <Italic className="h-4 w-4" strokeWidth={2} />
-      </button>
-      <button type="button" className={toolBtn} title="Sublinhado" aria-label="Sublinhado" onClick={() => applyWrap('<u>', '</u>', 'texto sublinhado')}>
+      </IconButton>
+      <IconButton size="small" title="Sublinhado" aria-label="Sublinhado" onClick={() => applyWrap('<u>', '</u>', 'texto sublinhado')}>
         <Underline className="h-4 w-4" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
-        className={toolBtn}
+      </IconButton>
+      <IconButton size="small"
         title="Título"
         aria-label="Título"
         onClick={() => applyWrap('<h2 style="margin:16px 0 8px;font-size:18px;line-height:1.3;color:#18181b">', '</h2>', 'Título do email')}
       >
         <Heading2 className="h-4 w-4" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
-        className={toolBtn}
+      </IconButton>
+      <IconButton size="small"
         title="Lista com marcadores"
         aria-label="Lista com marcadores"
         onClick={() => applyWrap('<ul style="margin:8px 0;padding-left:22px">\n  <li>', '</li>\n</ul>', 'item da lista')}
       >
         <List className="h-4 w-4" strokeWidth={2} />
-      </button>
-      <button
-        type="button"
-        className={toolBtn}
+      </IconButton>
+      <IconButton size="small"
         title="Lista numerada"
         aria-label="Lista numerada"
         onClick={() => applyWrap('<ol style="margin:8px 0;padding-left:22px">\n  <li>', '</li>\n</ol>', 'item da lista')}
       >
         <ListOrdered className="h-4 w-4" strokeWidth={2} />
-      </button>
-      <button type="button" className={toolBtn} title="Inserir link" aria-label="Inserir link" onClick={insertLink}>
+      </IconButton>
+      <IconButton size="small" title="Inserir link" aria-label="Inserir link" onClick={insertLink}>
         <Link2 className="h-4 w-4" strokeWidth={2} />
-      </button>
+      </IconButton>
 
       <span className="mx-1 h-5 w-px bg-zinc-950/[0.12] dark:bg-white/[0.12]" aria-hidden="true" />
 
@@ -147,19 +141,10 @@ export function TemplateToolbar({ textareaId, value, onChange }: TemplateToolbar
             className="absolute left-0 z-30 mt-1 w-48 overflow-hidden rounded-xl border border-zinc-950/[0.1] bg-white py-1 shadow-lg dark:border-white/[0.12] dark:bg-[#1b1b1f]"
           >
             {VARIABLES.map((v) => (
-              <button
-                key={v.token}
-                type="button"
-                role="option"
-                onClick={() => {
-                  insertSnippet(v.token);
-                  setVarsOpen(false);
-                }}
-                className="flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left text-[11px] transition-colors hover:bg-zinc-950/[0.05] dark:hover:bg-white/[0.06]"
-              >
+              <Button variant="contained" color="inherit" key={v.token} role="option" onClick={() => { insertSnippet(v.token); setVarsOpen(false); }} className="w-full">
                 <span className="font-mono text-[10px] text-violet-700 dark:text-violet-300">{v.token}</span>
                 <span className="text-zinc-500 dark:text-zinc-400">{v.label}</span>
-              </button>
+              </Button>
             ))}
           </div>
         )}

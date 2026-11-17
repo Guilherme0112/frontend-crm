@@ -1,3 +1,4 @@
+import IconButton from '@mui/material/IconButton';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Loader2, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Step } from '@/src/lib/types';
@@ -173,15 +174,9 @@ export function KanbanColumn({
               className="pointer-events-none absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-blue-500/80 opacity-0 transition-opacity duration-150 group-hover/gap:opacity-100"
             />
             {/* Botão + */}
-            <button
-              type="button"
-              onClick={() => setAddingAt(index)}
-              aria-label="Criar lead aqui"
-              title="Criar lead aqui"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-blue-500 bg-white text-blue-600 opacity-0 shadow-sm ring-1 ring-inset ring-blue-500/15 transition-all duration-150 hover:scale-110 hover:bg-blue-600 hover:text-white focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 group-hover/gap:opacity-100 dark:border-blue-400 dark:bg-[#101012] dark:text-blue-400 dark:ring-blue-400/20 dark:hover:bg-blue-600 dark:hover:text-white"
-            >
+            <IconButton size="small" onClick={() => setAddingAt(index)} aria-label="Criar lead aqui" title="Criar lead aqui">
               <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
-            </button>
+            </IconButton>
           </>
         )}
       </div>
@@ -276,24 +271,12 @@ export function KanbanColumn({
           >
             <GripVertical className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={() => onEditStep(step)}
-            title="Editar etapa"
-            aria-label={`Editar etapa ${step.name}`}
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-white hover:text-zinc-700 dark:hover:bg-white/[0.06] dark:hover:text-zinc-100"
-          >
+          <IconButton size="small" onClick={() => onEditStep(step)} title="Editar etapa" aria-label={`Editar etapa ${step.name}`}>
             <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onDeleteStep(step)}
-            title="Excluir etapa"
-            aria-label={`Excluir etapa ${step.name}`}
-            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-          >
+          </IconButton>
+          <IconButton size="small" onClick={() => onDeleteStep(step)} title="Excluir etapa" aria-label={`Excluir etapa ${step.name}`}>
             <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          </IconButton>
         </div>
       </div>
 

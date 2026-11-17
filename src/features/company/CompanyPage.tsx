@@ -1,10 +1,13 @@
+import Button from '@mui/material/Button';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useCompanyQuery, useUpdateCompanyMutation } from './hooks';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
@@ -191,14 +194,14 @@ export function CompanyPage() {
         className="space-y-6 rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]"
         noValidate
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-950/[0.07] pb-2 dark:border-white/[0.07]">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Informações gerais
             </h2>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2">
             <FormField
               label="Nome da empresa"
               htmlFor="comp-name"
@@ -206,10 +209,10 @@ export function CompanyPage() {
               error={errors.name?.message}
               className="sm:col-span-2"
             >
-              <input
+              <TextInput
                 id="comp-name"
                 type="text"
-                className={inputClassName(Boolean(errors.name))}
+                hasError={Boolean(errors.name)}
                 {...register('name')}
               />
             </FormField>
@@ -224,12 +227,12 @@ export function CompanyPage() {
                 name="document_number"
                 control={control}
                 render={({ field }) => (
-                  <input
+                  <TextInput
                     id="comp-document"
                     type="text"
                     inputMode="numeric"
                     placeholder="00.000.000/0000-00"
-                    className={`${inputClassName(Boolean(errors.document_number))} font-mono tabular-nums`}
+                    hasError={Boolean(errors.document_number)} className="font-mono tabular-nums"
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
                     onBlur={field.onBlur}
@@ -239,11 +242,11 @@ export function CompanyPage() {
             </FormField>
 
             <FormField label="Site" htmlFor="comp-website" error={errors.website?.message}>
-              <input
+              <TextInput
                 id="comp-website"
                 type="url"
                 placeholder="https://empresa.com.br"
-                className={inputClassName(Boolean(errors.website))}
+                hasError={Boolean(errors.website)}
                 {...register('website')}
               />
             </FormField>
@@ -254,17 +257,16 @@ export function CompanyPage() {
               error={errors.description?.message}
               className="sm:col-span-2"
             >
-              <textarea
+              <TextArea
                 id="comp-desc"
-                rows={3}
-                className={inputClassName(Boolean(errors.description))}
+                hasError={Boolean(errors.description)}
                 {...register('description')}
               />
             </FormField>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="border-b border-zinc-950/[0.07] pb-2 text-sm font-semibold text-zinc-900 dark:border-white/[0.07] dark:text-zinc-100">
             Endereço
           </h2>
@@ -280,12 +282,12 @@ export function CompanyPage() {
                 control={control}
                 name="address.zip_code"
                 render={({ field }) => (
-                  <input
+                  <TextInput
                     id="addr-zip"
                     type="text"
                     inputMode="numeric"
                     placeholder="00000-000"
-                    className={`${inputClassName(Boolean(errors.address?.zip_code))} font-mono tabular-nums`}
+                    hasError={Boolean(errors.address?.zip_code)} className="font-mono tabular-nums"
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskZipCode(e.target.value))}
                     onBlur={field.onBlur}
@@ -300,11 +302,11 @@ export function CompanyPage() {
               error={errors.address?.street?.message}
               className="sm:col-span-3"
             >
-              <input
+              <TextInput
                 id="addr-street"
                 type="text"
                 placeholder="Av. Paulista"
-                className={inputClassName(Boolean(errors.address?.street))}
+                hasError={Boolean(errors.address?.street)}
                 {...register('address.street')}
               />
             </FormField>
@@ -315,11 +317,11 @@ export function CompanyPage() {
               error={errors.address?.number?.message}
               className="sm:col-span-1"
             >
-              <input
+              <TextInput
                 id="addr-number"
                 type="text"
                 placeholder="1000"
-                className={inputClassName(Boolean(errors.address?.number))}
+                hasError={Boolean(errors.address?.number)}
                 {...register('address.number')}
               />
             </FormField>
@@ -330,11 +332,11 @@ export function CompanyPage() {
               error={errors.address?.complement?.message}
               className="sm:col-span-3"
             >
-              <input
+              <TextInput
                 id="addr-comp"
                 type="text"
                 placeholder="Sala 12"
-                className={inputClassName(Boolean(errors.address?.complement))}
+                hasError={Boolean(errors.address?.complement)}
                 {...register('address.complement')}
               />
             </FormField>
@@ -345,11 +347,11 @@ export function CompanyPage() {
               error={errors.address?.neighborhood?.message}
               className="sm:col-span-3"
             >
-              <input
+              <TextInput
                 id="addr-neigh"
                 type="text"
                 placeholder="Bela Vista"
-                className={inputClassName(Boolean(errors.address?.neighborhood))}
+                hasError={Boolean(errors.address?.neighborhood)}
                 {...register('address.neighborhood')}
               />
             </FormField>
@@ -360,11 +362,11 @@ export function CompanyPage() {
               error={errors.address?.city?.message}
               className="sm:col-span-3"
             >
-              <input
+              <TextInput
                 id="addr-city"
                 type="text"
                 placeholder="São Paulo"
-                className={inputClassName(Boolean(errors.address?.city))}
+                hasError={Boolean(errors.address?.city)}
                 {...register('address.city')}
               />
             </FormField>
@@ -375,12 +377,12 @@ export function CompanyPage() {
               error={errors.address?.state?.message}
               className="sm:col-span-1"
             >
-              <input
+              <TextInput
                 id="addr-state"
                 type="text"
                 maxLength={2}
                 placeholder="SP"
-                className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
+                hasError={Boolean(errors.address?.state)} className="uppercase"
                 {...register('address.state')}
               />
             </FormField>
@@ -391,11 +393,11 @@ export function CompanyPage() {
               error={errors.address?.country?.message}
               className="sm:col-span-2"
             >
-              <input
+              <TextInput
                 id="addr-country"
                 type="text"
                 placeholder="Brasil"
-                className={inputClassName(Boolean(errors.address?.country))}
+                hasError={Boolean(errors.address?.country)}
                 {...register('address.country')}
               />
             </FormField>
@@ -406,11 +408,11 @@ export function CompanyPage() {
               error={errors.address?.ibge_code?.message}
               className="sm:col-span-2"
             >
-              <input
+              <TextInput
                 id="addr-ibge"
                 type="text"
                 placeholder="3550308"
-                className={`${inputClassName(Boolean(errors.address?.ibge_code))} font-mono tabular-nums`}
+                hasError={Boolean(errors.address?.ibge_code)} className="font-mono tabular-nums"
                 {...register('address.ibge_code')}
               />
             </FormField>
@@ -418,13 +420,9 @@ export function CompanyPage() {
         </div>
 
         <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-          <button
-            type="submit"
-            disabled={updateMutation.isPending || !isDirty}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-          >
+          <Button variant="contained" disabled={updateMutation.isPending || !isDirty} type="submit">
             {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

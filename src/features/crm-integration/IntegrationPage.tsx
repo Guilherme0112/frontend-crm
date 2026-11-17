@@ -1,3 +1,4 @@
+import Button from '@mui/material/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plug, TriangleAlert } from 'lucide-react';
@@ -182,17 +183,12 @@ export function IntegrationPage() {
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
             O backend rejeita etapas de outro CRM automaticamente.
           </p>
-          <button
-            type="button"
-            onClick={() => void handleSaveStep()}
-            disabled={!isDirty || updateCrmMutation.isPending}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
+          <Button variant="contained" color="inherit" onClick={() => void handleSaveStep()} disabled={!isDirty || updateCrmMutation.isPending} className="shrink-0">
             {updateCrmMutation.isPending && (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             )}
             Salvar etapa
-          </button>
+          </Button>
         </div>
       </section>
 

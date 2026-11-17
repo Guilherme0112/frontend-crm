@@ -1,3 +1,5 @@
+import InputAdornment from '@mui/material/InputAdornment';
+import Button from '@mui/material/Button';
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -17,12 +19,15 @@ import { KanbanBoard } from '@/src/components/kanban/KanbanBoard';
 import { LeadDrawer } from '@/src/features/leads/LeadDrawer';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
+import { useDebouncedValue } from '@/src/lib/useDebouncedValue';
 import type { Step } from '@/src/lib/types';
 
 const stepSchema = z.object({
@@ -47,6 +52,10 @@ export function CrmBoardPage() {
   const moveLeadMutation = useMoveLeadStepMutation();
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Cada coluna do Kanban faz a própria consulta de leads: sem o atraso, uma
+  // busca de 10 letras dispara 10 requisições por etapa.
+  const debouncedSearch = useDebouncedValue(searchQuery.trim());
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [stepModalOpen, setStepModalOpen] = useState(false);
   const [editingStep, setEditingStep] = useState<Step | null>(null);
@@ -202,18 +211,22 @@ export function CrmBoardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 sm:w-64 sm:flex-none">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-              aria-hidden="true"
-            />
-            <input
+          <div className="flex-1 sm:w-64 sm:flex-none">
+            <TextInput
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filtrar por nome ou e-mail..."
               aria-label="Filtrar leads por nome ou e-mail"
-              className="w-full rounded-lg border border-zinc-950/[0.12] bg-white py-2 pr-3 pl-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-100 dark:placeholder:text-zinc-500"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search className="h-4 w-4" aria-hidden="true" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
           </div>
 
@@ -241,14 +254,9 @@ export function CrmBoardPage() {
             <span>Integração pública</span>
           </Link>
 
-          <button
-            type="button"
-            onClick={openCreateStep}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nova etapa</span>
-          </button>
+          <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateStep} className="whitespace-nowrap shrink-0">
+            Nova etapa
+          </Button>
         </div>
       </div>
 
@@ -259,21 +267,16 @@ export function CrmBoardPage() {
           title="Nenhuma etapa configurada"
           description="Adicione as etapas do seu funil (ex.: Novo Lead, Qualificação, Proposta) para começar a organizar leads."
           action={
-            <button
-              type="button"
-              onClick={openCreateStep}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Criar primeira etapa</span>
-            </button>
+            <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateStep}>
+              Criar primeira etapa
+            </Button>
           }
         />
       ) : (
         <div className="space-y-3">
           <KanbanBoard
             steps={steps}
-            searchQuery={searchQuery}
+            searchQuery={debouncedSearch}
             hasMore={Boolean(stepsQuery.hasNextPage)}
             isFetchingNextPage={stepsQuery.isFetchingNextPage}
             onLoadMore={() => void stepsQuery.fetchNextPage()}
@@ -294,50 +297,37 @@ export function CrmBoardPage() {
         title={editingStep ? 'Editar etapa' : 'Nova etapa'}
         description="As colunas do Kanban são ordenadas pelo campo posição."
       >
-        <form onSubmit={handleSubmit(onSubmitStep)} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit(onSubmitStep)} className="space-y-6" noValidate>
           <FormField label="Nome da etapa" htmlFor="step-name" required error={errors.name?.message}>
-            <input
+            <TextInput
               id="step-name"
               type="text"
               placeholder="Ex.: Qualificação"
-              className={inputClassName(Boolean(errors.name))}
+              hasError={Boolean(errors.name)}
               {...register('name')}
             />
           </FormField>
 
           <FormField label="Descrição" htmlFor="step-desc" error={errors.description?.message}>
-            <input
+            <TextArea
               id="step-desc"
-              type="text"
               placeholder="Opcional"
-              className={inputClassName(Boolean(errors.description))}
+              hasError={Boolean(errors.description)}
               {...register('description')}
             />
           </FormField>
 
-          <p className="rounded-lg border border-zinc-950/[0.07] bg-zinc-50 px-3.5 py-2 text-xs text-zinc-500 dark:border-white/[0.07] dark:bg-white/[0.03] dark:text-zinc-400">
-            A ordem das etapas é definida arrastando-as no quadro Kanban — sem campo de posição.
-          </p>
-
           <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <button
-              type="button"
-              onClick={() => setStepModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
+            <Button variant="outlined" color="inherit" onClick={() => setStepModalOpen(false)}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={createStepMutation.isPending || updateStepMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
+            </Button>
+            <Button variant="contained" disabled={createStepMutation.isPending || updateStepMutation.isPending} type="submit">
               {createStepMutation.isPending || updateStepMutation.isPending
                 ? 'Salvando...'
                 : editingStep
                   ? 'Salvar etapa'
                   : 'Criar etapa'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

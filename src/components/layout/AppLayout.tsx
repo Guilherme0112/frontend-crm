@@ -1,3 +1,5 @@
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
 import {
@@ -150,36 +152,19 @@ export function AppLayout() {
 
         {!collapsed && (
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(true)}
-              className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:text-zinc-500 dark:hover:bg-white/5 dark:hover:text-zinc-200"
-              aria-label="Recolher menu"
-              title="Recolher menu"
-            >
+            <IconButton size="small" onClick={() => setIsCollapsed(true)} aria-label="Recolher menu" title="Recolher menu">
               <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileOpen(false)}
-              className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-950/[0.05] hover:text-zinc-700 lg:hidden dark:hover:bg-white/5 dark:hover:text-zinc-200"
-              aria-label="Fechar menu"
-            >
+            </IconButton>
+            <IconButton size="small" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
               <X className="h-5 w-5" />
-            </button>
+            </IconButton>
           </div>
         )}
 
         {collapsed && (
-          <button
-            type="button"
-            onClick={() => setIsCollapsed(false)}
-            className="absolute right-0 top-20 hidden translate-x-1/2 rounded-full border border-zinc-950/[0.07] bg-white p-1 text-zinc-500 shadow-sm transition-colors hover:text-zinc-900 lg:flex dark:border-white/10 dark:bg-[#1c1c1f] dark:text-zinc-400 dark:hover:text-zinc-100"
-            aria-label="Expandir menu"
-            title="Expandir menu"
-          >
+          <IconButton size="small" onClick={() => setIsCollapsed(false)} aria-label="Expandir menu" title="Expandir menu">
             <ChevronRight className="h-3.5 w-3.5" />
-          </button>
+          </IconButton>
         )}
       </div>
 
@@ -286,15 +271,9 @@ export function AppLayout() {
             >
               {getInitials(user?.name)}
             </Link>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              title="Sair"
-              aria-label="Sair da conta"
-              className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-            >
+            <IconButton size="small" onClick={() => void logout()} title="Sair" aria-label="Sair da conta">
               <LogOut className="h-4 w-4" />
-            </button>
+            </IconButton>
           </>
         ) : (
           <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-950/[0.07] bg-zinc-50 p-1.5 dark:border-white/[0.07] dark:bg-white/[0.03]">
@@ -315,15 +294,9 @@ export function AppLayout() {
                 </p>
               </div>
             </Link>
-            <button
-              type="button"
-              onClick={() => void logout()}
-              title="Sair"
-              aria-label="Sair da conta"
-              className="shrink-0 rounded-lg p-2 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-            >
+            <IconButton size="small" onClick={() => void logout()} title="Sair" aria-label="Sair da conta" className="shrink-0">
               <LogOut className="h-4 w-4" />
-            </button>
+            </IconButton>
           </div>
         )}
       </div>
@@ -373,22 +346,9 @@ export function AppLayout() {
           )}
         >
           <div className="flex min-w-0 items-center gap-2">
-            <button
-              id="sidebar-toggle-btn"
-              type="button"
-              onClick={() => {
-                if (window.innerWidth < 1024) {
-                  setMobileOpen(true);
-                } else {
-                  setIsCollapsed((prev) => !prev);
-                }
-              }}
-              className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-900 dark:hover:bg-white/5 dark:hover:text-zinc-100"
-              aria-label="Alternar menu"
-              title="Alternar menu"
-            >
+            <IconButton size="small" id="sidebar-toggle-btn" onClick={() => { if (window.innerWidth < 1024) { setMobileOpen(true); } else { setIsCollapsed((prev) => !prev); } }} aria-label="Alternar menu" title="Alternar menu">
               <Menu className="h-[18px] w-[18px]" />
-            </button>
+            </IconButton>
             <nav aria-label="Caminho" className="flex min-w-0 items-center gap-1.5 text-[13px]">
               <span className="hidden max-w-40 truncate font-medium text-zinc-400 sm:inline dark:text-zinc-500">
                 {company?.name || 'Minha Empresa'}
@@ -403,25 +363,7 @@ export function AppLayout() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-900 dark:hover:bg-white/5 dark:hover:text-zinc-100"
-              aria-label={
-                theme === 'light'
-                  ? 'Ativar modo escuro'
-                  : theme === 'dark'
-                    ? 'Ativar modo sistema'
-                    : 'Ativar modo claro'
-              }
-              title={
-                theme === 'light'
-                  ? 'Modo escuro'
-                  : theme === 'dark'
-                    ? 'Modo sistema'
-                    : 'Modo claro'
-              }
-            >
+            <Button variant="contained" color="inherit" onClick={toggleTheme} aria-label={ theme === 'light' ? 'Ativar modo escuro' : theme === 'dark' ? 'Ativar modo sistema' : 'Ativar modo claro' } title={ theme === 'light' ? 'Modo escuro' : theme === 'dark' ? 'Modo sistema' : 'Modo claro' }>
               {theme === 'light' ? (
                 <Moon className="h-[18px] w-[18px]" strokeWidth={1.8} />
               ) : theme === 'dark' ? (
@@ -429,7 +371,7 @@ export function AppLayout() {
               ) : (
                 <Sun className="h-[18px] w-[18px]" strokeWidth={1.8} />
               )}
-            </button>
+            </Button>
 
             <div aria-hidden="true" className="mx-0.5 h-5 w-px bg-zinc-950/10 dark:bg-white/10" />
 
