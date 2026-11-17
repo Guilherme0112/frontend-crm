@@ -284,7 +284,7 @@ export function EmailConfigForm({
         <TextInput
           id="ec-from-name"
           type="text"
-          placeholder="Acme CRM"
+          placeholder="SaldUp CRM"
           autoComplete="off"
           hasError={Boolean(errors.from_name)}
           {...register('from_name')}

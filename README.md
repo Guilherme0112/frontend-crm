@@ -25,7 +25,7 @@ Interface web multi-tenant em português (pt-BR) integrada à API REST do CRM (L
 
 ## Credenciais de demonstração
 
-Caso o backend tenha sido populado com o seeder padrão ("Acme Corp"):
+Caso o backend tenha sido populado com o seeder padrão ("SaldUp"):
 
 - **E-mail:** `admin@example.com`
 - **Senha:** `password`

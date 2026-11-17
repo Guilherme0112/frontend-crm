@@ -82,7 +82,7 @@ function getPageTitle(pathname: string): string {
   if (pathname === '/company') return 'Empresa';
   if (pathname === '/team') return 'Equipe';
   if (pathname === '/profile') return 'Meu Perfil';
-  return 'Vértice CRM';
+  return 'SaldUp CRM';
 }
 
 export function AppLayout() {
@@ -133,29 +133,19 @@ export function AppLayout() {
             setMobileOpen(false);
             if (collapsed) setIsCollapsed(false);
           }}
-          className="group flex min-w-0 items-center gap-2.5 rounded-lg"
-          title="Vértice CRM"
-          aria-label="Vértice CRM — ir para Visão Geral"
+          className="group flex min-w-0 items-center rounded-lg"
+          title="SaldUp CRM"
+          aria-label="SaldUp CRM — ir para Visão Geral"
         >
-          <LogoMark className={collapsed ? 'h-9 w-9' : 'h-8 w-8'} />
-          {!collapsed && (
-            <span className="min-w-0 leading-tight">
-              <span className="block font-display text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-                Vértice
-              </span>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                CRM Comercial
-              </span>
-            </span>
-          )}
+          <LogoMark className={collapsed ? 'h-9' : 'h-8'} />
         </Link>
 
         {!collapsed && (
           <div className="flex shrink-0 items-center gap-1">
-            <IconButton size="small" onClick={() => setIsCollapsed(true)} aria-label="Recolher menu" title="Recolher menu">
+            <IconButton size="small" onClick={() => setIsCollapsed(true)} aria-label="Recolher menu" title="Recolher menu" sx={{ display: { xs: 'none', lg: 'inline-flex' } }}>
               <ChevronLeft className="h-4 w-4" />
             </IconButton>
-            <IconButton size="small" onClick={() => setMobileOpen(false)} aria-label="Fechar menu">
+            <IconButton size="small" onClick={() => setMobileOpen(false)} aria-label="Fechar menu" sx={{ display: { xs: 'inline-flex', lg: 'none' } }}>
               <X className="h-5 w-5" />
             </IconButton>
           </div>
@@ -168,9 +158,9 @@ export function AppLayout() {
         )}
       </div>
 
-      {/* Workspace switcher (decorative affordance, navigates to company) */}
+      {/* Workspace switcher (mobile only — no desktop, /company já está no nav) */}
       {!collapsed && (
-        <div className="px-3 py-3">
+        <div className="px-3 py-3 lg:hidden">
           <Link
             to="/company"
             className="flex items-center justify-between gap-2 rounded-lg border border-zinc-950/[0.07] bg-zinc-50 px-2.5 py-2 transition-colors hover:bg-zinc-950/[0.07] dark:border-white/[0.07] dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
@@ -346,7 +336,7 @@ export function AppLayout() {
           )}
         >
           <div className="flex min-w-0 items-center gap-2">
-            <IconButton size="small" id="sidebar-toggle-btn" onClick={() => { if (window.innerWidth < 1024) { setMobileOpen(true); } else { setIsCollapsed((prev) => !prev); } }} aria-label="Alternar menu" title="Alternar menu">
+            <IconButton size="small" id="sidebar-toggle-btn" sx={{ display: { xs: 'inline-flex', lg: 'none' } }} onClick={() => setMobileOpen(true)} aria-label="Abrir menu" title="Abrir menu">
               <Menu className="h-[18px] w-[18px]" />
             </IconButton>
             <nav aria-label="Caminho" className="flex min-w-0 items-center gap-1.5 text-[13px]">

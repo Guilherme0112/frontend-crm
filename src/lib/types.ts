@@ -516,7 +516,9 @@ export interface CheckoutSession {
   init_point: string | null;
 }
 
-export type InvoiceStatus = 'open' | 'paid' | 'void';
+// O backend (DemoDataSeeder) grava 'overdue' para faturas vencidas e não pagas;
+// a API devolve o status como string, então cobrimos também esse valor.
+export type InvoiceStatus = 'open' | 'paid' | 'void' | 'overdue';
 
 export interface Invoice {
   id: number;

@@ -28,9 +28,9 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       {/* Brand panel */}
       <aside className="brand-panel relative hidden w-[46%] max-w-2xl flex-col justify-between overflow-hidden p-10 text-zinc-100 lg:flex xl:p-14">
         <Link to="/" className="flex w-fit items-center gap-3">
-          <LogoMark className="h-9 w-9 bg-white text-zinc-900 ring-white/20" invert />
+          <LogoMark className="h-10" />
           <span className="font-display text-lg font-semibold tracking-tight text-white">
-            Vértice
+            SaldUp
             <span className="ml-1.5 font-normal text-zinc-400">CRM</span>
           </span>
         </Link>
@@ -70,9 +70,9 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       <div className="app-canvas relative flex flex-1 flex-col">
         <header className="flex items-center justify-between px-5 py-4 sm:px-8">
           <Link to="/" className="flex items-center gap-2.5 lg:invisible">
-            <LogoMark className="h-8 w-8" />
+            <LogoMark className="h-8" />
             <span className="font-display text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Vértice
+              SaldUp <span className="font-normal text-zinc-400 dark:text-zinc-500">CRM</span>
             </span>
           </Link>
           <button

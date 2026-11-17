@@ -24,13 +24,13 @@ const TONE_ICON = {
 };
 
 export function StatusIndicator({ tone, label, className }: StatusIndicatorProps) {
-  const Icon = TONE_ICON[tone];
+  const Icon = TONE_ICON[tone] ?? MinusCircle;
 
   return (
     <Chip
       size="small"
       variant="outlined"
-      color={TONE_COLOR[tone]}
+      color={TONE_COLOR[tone] ?? 'default'}
       className={className}
       icon={<Icon className="h-3.5 w-3.5" />}
       label={label}
@@ -39,7 +39,7 @@ export function StatusIndicator({ tone, label, className }: StatusIndicatorProps
   );
 }
 
-export function getInvoiceStatusMeta(status: 'open' | 'paid' | 'void'): {
+export function getInvoiceStatusMeta(status: string): {
   tone: SemanticTone;
   label: string;
 } {
@@ -48,8 +48,12 @@ export function getInvoiceStatusMeta(status: 'open' | 'paid' | 'void'): {
       return { tone: 'success', label: 'Paga' };
     case 'open':
       return { tone: 'warning', label: 'Em aberto' };
+    case 'overdue':
+      return { tone: 'danger', label: 'Vencida' };
     case 'void':
       return { tone: 'neutral', label: 'Cancelada' };
+    default:
+      return { tone: 'neutral', label: status || 'Desconhecida' };
   }
 }
 

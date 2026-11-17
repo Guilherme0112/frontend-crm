@@ -52,8 +52,8 @@ const DEFAULT_SAMPLE_VARS: Record<string, string> = {
   name: 'Mariana Costa',
   nome: 'Mariana Costa',
   email: 'mariana@empresa.com.br',
-  company: 'Acme Brasil',
-  empresa: 'Acme Brasil',
+  company: 'SaldUp Brasil',
+  empresa: 'SaldUp Brasil',
   phone: '(11) 98765-4321',
   telefone: '(11) 98765-4321',
 };

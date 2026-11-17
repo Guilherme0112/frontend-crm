@@ -148,7 +148,7 @@ export function RegisterPage() {
                   <TextInput
                     id="company_name"
                     type="text"
-                    placeholder="Ex.: Acme Brasil Ltda"
+                    placeholder="Ex.: Minha Empresa Ltda"
                     hasError={Boolean(errors.company_name)}
                     {...register('company_name')}
                   />
