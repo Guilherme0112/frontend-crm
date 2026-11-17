@@ -66,8 +66,14 @@ export function EmailConfigsPage() {
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [trialForbidden, setTrialForbidden] = useState(false);
 
-  const isTrial =
-    (subscriptionsQuery.items ?? []).some((s) => s.status === 'trialing') || trialForbidden;
+  // Só a assinatura vigente decide. Olhar a lista inteira mantinha o upsell no
+  // ar para sempre depois de uma troca de plano: a linha antiga continua no
+  // histórico, e quem já paga via o aviso de "exclusivo do Basic".
+  const currentSubscription =
+    (subscriptionsQuery.items ?? []).find(
+      (s) => s.status === 'active' || s.status === 'trialing',
+    ) ?? null;
+  const isTrial = currentSubscription?.status === 'trialing' || trialForbidden;
 
   const openCreateModal = () => {
     setEditingConfig(null);

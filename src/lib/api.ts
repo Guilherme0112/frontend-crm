@@ -7,7 +7,6 @@ import type {
   CreateCrmPayload,
   CreateGroupPayload,
   CreateLeadPayload,
-  CreatePaymentMethodPayload,
   CreatePlanPayload,
   CreateSendingTemplatePayload,
   CreateStepPayload,
@@ -30,7 +29,6 @@ import type {
   Lead,
   LoginPayload,
   MeData,
-  PaymentMethod,
   Plan,
   RegisterPayload,
   SendingTemplate,
@@ -114,6 +112,18 @@ apiClient.interceptors.response.use(
         }
       }
     }
+
+    // Assinatura vencida: o backend trancou tudo menos a área de pagamento.
+    // Mostrar um 403 solto em cada tela não ajuda ninguém — leva direto para
+    // onde o cliente consegue resolver.
+    if (status === 403 && error?.response?.data?.subscription_blocked === true) {
+      const onBilling = window.location.pathname.startsWith('/billing');
+
+      if (!onBilling) {
+        window.location.assign('/billing');
+      }
+    }
+
     return Promise.reject(error);
   },
 );
@@ -547,6 +557,38 @@ export async function createCheckout(
 }
 
 /** Reconciliação manual, para quando o webhook não alcança a aplicação. */
+/**
+ * Troca de plano: altera o valor da assinatura que já existe, sem redirect e
+ * sem o cliente redigitar o cartão. Se o Mercado Pago recusar a alteração, o
+ * backend devolve um checkout novo (`status: 'pending'` + `init_point`).
+ */
+export async function changeSubscriptionPlan(
+  payload: CreateCheckoutPayload,
+): Promise<CheckoutSession> {
+  const res = await apiClient.patch<ApiResponse<CheckoutSession>>('/subscriptions/plan', payload);
+  return res.data.data;
+}
+
+/** Contratação aguardando pagamento, com o link para concluí-la. */
+export async function getPendingCheckout(): Promise<CheckoutSession | null> {
+  const res = await apiClient.get<ApiResponse<CheckoutSession | null>>('/subscriptions/pending');
+  return res.data.data;
+}
+
+/** Desiste da contratação pendente, liberando a escolha de outro plano. */
+export async function discardPendingCheckout(): Promise<{ discarded: number }> {
+  const res = await apiClient.delete<ApiResponse<{ discarded: number }>>('/subscriptions/pending');
+  return res.data.data;
+}
+
+/** Chave pública do gateway, para o SDK tokenizar o cartão no navegador. */
+export async function getBillingConfig(): Promise<{ mercadopago_public_key: string | null }> {
+  const res = await apiClient.get<ApiResponse<{ mercadopago_public_key: string | null }>>(
+    '/subscriptions/config',
+  );
+  return res.data.data;
+}
+
 export async function syncSubscription(id: number): Promise<Subscription> {
   const res = await apiClient.post<ApiResponse<Subscription>>(`/subscriptions/${id}/sync`);
   return res.data.data;
@@ -570,33 +612,29 @@ export async function getInvoice(id: number): Promise<Invoice> {
   return res.data.data;
 }
 
+/**
+ * Baixa o recibo em PDF.
+ *
+ * Vai por axios (e não por um link direto) porque a rota exige o bearer token
+ * — um `<a href>` sairia sem o header e levaria 401.
+ */
+export async function downloadInvoicePdf(id: number): Promise<{ blob: Blob; fileName: string }> {
+  const res = await apiClient.get<Blob>(`/invoices/${id}/pdf`, { responseType: 'blob' });
+
+  const disposition = String(res.headers['content-disposition'] ?? '');
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+
+  // Reconstrói o Blob com o tipo explícito: sem `application/pdf` o navegador
+  // trata como download genérico em vez de abrir no visualizador.
+  const blob = res.data.type === 'application/pdf'
+    ? res.data
+    : new Blob([res.data], { type: 'application/pdf' });
+
+  return { blob, fileName: match?.[1] ?? `recibo-${id}.pdf` };
+}
+
 export async function payInvoice(id: number): Promise<Invoice> {
   const res = await apiClient.patch<ApiResponse<Invoice>>(`/invoices/${id}/pay`);
   return res.data.data;
 }
 
-// --- Payment Methods ---
-export async function listPaymentMethods(page = 1, perPage = 25): Promise<PaginatedResponse<PaymentMethod>> {
-  const res = await apiClient.get<PaginatedResponse<PaymentMethod>>('/payment-methods', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
-}
-
-export async function createPaymentMethod(
-  payload: CreatePaymentMethodPayload,
-): Promise<PaymentMethod> {
-  const res = await apiClient.post<ApiResponse<PaymentMethod>>('/payment-methods', payload);
-  return res.data.data;
-}
-
-export async function deletePaymentMethod(id: number): Promise<void> {
-  await apiClient.delete(`/payment-methods/${id}`);
-}
-
-export async function setDefaultPaymentMethod(id: number): Promise<PaymentMethod> {
-  const res = await apiClient.patch<ApiResponse<PaymentMethod>>(
-    `/payment-methods/${id}/default`,
-  );
-  return res.data.data;
-}

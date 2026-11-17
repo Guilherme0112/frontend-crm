@@ -3,7 +3,6 @@ import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import type {
   CreateCheckoutPayload,
-  CreatePaymentMethodPayload,
   CreatePlanPayload,
 } from '@/src/lib/types';
 
@@ -35,14 +34,63 @@ export function useSubscriptionsFullQuery() {
   );
 }
 
+/**
+ * Mexer na assinatura muda o plano exibido no dashboard e pode gerar fatura.
+ * Uma troca de plano reescreve as duas assinaturas de uma vez, então o cache
+ * dessas três listas sempre cai junto.
+ */
+function invalidateBilling(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions.all });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.summary });
+}
+
 export function useCreateCheckoutMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateCheckoutPayload) => api.createCheckout(payload),
+    onSuccess: () => invalidateBilling(queryClient),
+  });
+}
+
+/** Troca de plano na assinatura existente, sem redigitar cartão. */
+export function useChangePlanMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateCheckoutPayload) => api.changeSubscriptionPlan(payload),
+    onSuccess: () => invalidateBilling(queryClient),
+  });
+}
+
+/**
+ * Contratação aguardando pagamento. Busca o link no gateway, então só roda
+ * quando há de fato uma pendência a resolver.
+ */
+export function usePendingCheckoutQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.subscriptions.pending,
+    queryFn: () => api.getPendingCheckout(),
+    enabled,
+  });
+}
+
+export function useDiscardPendingCheckoutMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.discardPendingCheckout(),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      invalidateBilling(queryClient);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions.pending });
     },
+  });
+}
+
+/** Chave pública do gateway. Não muda em runtime, então fica em cache longo. */
+export function useBillingConfigQuery() {
+  return useQuery({
+    queryKey: queryKeys.billing.config,
+    queryFn: () => api.getBillingConfig(),
+    staleTime: Infinity,
   });
 }
 
@@ -51,10 +99,7 @@ export function useSyncSubscriptionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api.syncSubscription(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions.all });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
-    },
+    onSuccess: () => invalidateBilling(queryClient),
   });
 }
 
@@ -62,9 +107,7 @@ export function useCancelSubscriptionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api.cancelSubscription(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions.all });
-    },
+    onSuccess: () => invalidateBilling(queryClient),
   });
 }
 
@@ -88,38 +131,3 @@ export function usePayInvoiceMutation() {
   });
 }
 
-export function usePaymentMethodsFullQuery() {
-  return useFullList(queryKeys.paymentMethods.all, (page, size) =>
-    api.listPaymentMethods(page, size),
-  );
-}
-
-export function useCreatePaymentMethodMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreatePaymentMethodPayload) => api.createPaymentMethod(payload),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.paymentMethods.all });
-    },
-  });
-}
-
-export function useDeletePaymentMethodMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api.deletePaymentMethod(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.paymentMethods.all });
-    },
-  });
-}
-
-export function useSetDefaultPaymentMethodMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api.setDefaultPaymentMethod(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.paymentMethods.all });
-    },
-  });
-}

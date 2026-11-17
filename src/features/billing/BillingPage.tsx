@@ -1,23 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { Link, useSearchParams } from 'react-router-dom';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { AlertCircle } from 'lucide-react';
+import { CardPaymentForm } from './CardPaymentForm';
 import {
-  AlertCircle,
-  CreditCard,
-  Plus,
-  Star,
-  Trash2,
-} from 'lucide-react';
-import {
+  useBillingConfigQuery,
   useCancelSubscriptionMutation,
-  useCreatePaymentMethodMutation,
+  useChangePlanMutation,
+  useDiscardPendingCheckoutMutation,
+  usePendingCheckoutQuery,
   useCreateCheckoutMutation,
-  useDeletePaymentMethodMutation,
-  usePaymentMethodsFullQuery,
   usePlansFullQuery,
-  useSetDefaultPaymentMethodMutation,
   useSubscriptionsFullQuery,
   useSyncSubscriptionMutation,
 } from './hooks';
@@ -25,7 +17,6 @@ import { Pagination } from '@/src/components/common/Pagination';
 import { useClientPagination } from '@/src/lib/useClientPagination';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
-import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { CardsGridSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -34,34 +25,13 @@ import {
   getSubscriptionStatusMeta,
 } from '@/src/components/common/StatusBadge';
 import { useToast } from '@/src/components/common/Toast';
-import { applyServerErrors, getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
+import { getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
 import { formatCurrency, formatDate } from '@/src/lib/format';
 import type {
-  PaymentMethod,
   Plan,
   Subscription,
 } from '@/src/lib/types';
 
-const paymentMethodSchema = z
-  .object({
-    type: z.enum(['card']),
-    brand: z.string().trim().optional(),
-    last4: z
-      .string()
-      .trim()
-      .optional()
-      .refine((val) => !val || /^\d{4}$/.test(val), {
-        message: 'Informe exatamente 4 dígitos',
-      }),
-    holder_name: z.string().trim().optional(),
-    is_default: z.boolean(),
-  })
-  .refine((val) => val.type !== 'card' || Boolean(val.last4 && val.last4.length === 4), {
-    path: ['last4'],
-    message: 'Informe os 4 últimos dígitos do cartão',
-  });
-
-type PaymentMethodFormValues = z.infer<typeof paymentMethodSchema>;
 
 
 
@@ -75,46 +45,29 @@ function isTrialPlan(plan: Plan): boolean {
   return plan.slug === 'trial';
 }
 
-function getPaymentMethodLabel(): string {
-  return 'Cartão';
-}
-
 export function BillingPage() {
   const { toast } = useToast();
   const plansQuery = usePlansFullQuery();
   const subscriptionsQuery = useSubscriptionsFullQuery();
-  const paymentMethodsQuery = usePaymentMethodsFullQuery();
 
   const createCheckoutMutation = useCreateCheckoutMutation();
+  const changePlanMutation = useChangePlanMutation();
+  const billingConfigQuery = useBillingConfigQuery();
+
+  // SDK indisponível (bloqueador, rede, chave ausente): o pagamento continua
+  // possível pelo Checkout Pro. Nunca deixar o cliente sem caminho para pagar.
+  const [cardFormUnavailable, setCardFormUnavailable] = useState(false);
+  const publicKey = billingConfigQuery.data?.mercadopago_public_key ?? null;
+  const canUseCardForm = Boolean(publicKey) && !cardFormUnavailable;
+  const isSubscribePending = createCheckoutMutation.isPending || changePlanMutation.isPending;
   const cancelSubMutation = useCancelSubscriptionMutation();
-  const createPmMutation = useCreatePaymentMethodMutation();
-  const deletePmMutation = useDeletePaymentMethodMutation();
-  const setDefaultPmMutation = useSetDefaultPaymentMethodMutation();
 
   const [selectedPlanToSubscribe, setSelectedPlanToSubscribe] = useState<Plan | null>(null);
   const [subscribeConflictMsg, setSubscribeConflictMsg] = useState<string | null>(null);
   const [cancelingSub, setCancelingSub] = useState<Subscription | null>(null);
-  const [pmModalOpen, setPmModalOpen] = useState(false);
-  const [deletingPm, setDeletingPm] = useState<PaymentMethod | null>(null);
   const syncSubMutation = useSyncSubscriptionMutation();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setError,
-    formState: { errors },
-  } = useForm<PaymentMethodFormValues>({
-    resolver: zodResolver(paymentMethodSchema),
-    defaultValues: {
-      type: 'card',
-      brand: '',
-      last4: '',
-      holder_name: '',
-      is_default: true,
-    },
-  });
 
 
   // Listas completas: alimentam a lógica da tela (assinatura ativa, nome do
@@ -147,13 +100,24 @@ export function BillingPage() {
       return;
     }
 
+    const wasSwap = Boolean(pending.replaces_subscription_id);
+
     syncSubMutation
       .mutateAsync(pending.id)
       .then((updated) => {
         if (updated.status === 'active') {
-          toast.success('Assinatura ativada', 'Seu plano Basic está ativo. Bem-vindo!');
+          if (wasSwap) {
+            toast.success('Plano alterado', 'O plano anterior foi encerrado automaticamente.');
+          } else {
+            toast.success('Assinatura ativada', 'Seu plano está ativo. Bem-vindo!');
+          }
         } else {
-          toast.info('Pagamento em processamento', 'Assim que o Mercado Pago confirmar, a assinatura será ativada.');
+          toast.info(
+            'Pagamento em processamento',
+            wasSwap
+              ? 'Seu plano atual continua valendo até o Mercado Pago confirmar.'
+              : 'Assim que o Mercado Pago confirmar, a assinatura será ativada.',
+          );
         }
       })
       .catch(() => {
@@ -162,11 +126,13 @@ export function BillingPage() {
       .finally(finish);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preapprovalId]);
-  const paymentMethods = paymentMethodsQuery.items ?? [];
 
   // Recortes exibidos, paginados no cliente.
-  const plansPage = useClientPagination(plans, 6);
-  const paymentMethodsPage = useClientPagination(paymentMethods, 5);
+  // A grade mostra só o que dá para contratar. Os inativos continuam vindo da
+  // API porque o histórico de assinaturas precisa deles para resolver o nome
+  // do plano — apenas não cabem na vitrine.
+  const catalog = useMemo(() => plans.filter((p) => p.is_active), [plans]);
+  const plansPage = useClientPagination(catalog, 6);
   const subscriptionsPage = useClientPagination(subscriptions, 10);
 
   const planById = useMemo(() => {
@@ -177,9 +143,33 @@ export function BillingPage() {
 
   const activeSubscription = useMemo(
     () =>
-      subscriptions.find((s) => s.status === 'active' || s.status === 'trialing') ?? null,
+      subscriptions.find(
+        (s) => s.status === 'active' || s.status === 'trialing' || s.status === 'past_due',
+      ) ?? null,
     [subscriptions],
   );
+
+  // Cobrança recusada: o Mercado Pago ainda está retentando. O acesso continua
+  // até o fim da carência, e o cliente precisa saber disso antes de perdê-lo.
+  const pastDueSubscription =
+    activeSubscription?.status === 'past_due' ? activeSubscription : null;
+
+  // Troca contratada e ainda não paga. Enquanto ela existe, o plano atual segue
+  // valendo — nada aqui é cancelado até o Mercado Pago confirmar.
+  const pendingSwap = useMemo(
+    () => subscriptions.find((s) => s.status === 'pending') ?? null,
+    [subscriptions],
+  );
+
+  // O link de pagamento pertence ao gateway, não ao nosso banco: só é buscado
+  // quando existe mesmo uma pendência a resolver.
+  const pendingCheckoutQuery = usePendingCheckoutQuery(pendingSwap !== null);
+  const discardPendingMutation = useDiscardPendingCheckoutMutation();
+
+  // Um plano pago de pé é o que transforma "Assinar" em "Trocar".
+  const currentPlan = activeSubscription ? planById.get(activeSubscription.plan_id) ?? null : null;
+  const isOnPaidPlan =
+    activeSubscription?.status === 'active' && currentPlan !== null && !isTrialPlan(currentPlan);
 
   const openSubscribeModal = (plan: Plan) => {
     setSubscribeConflictMsg(null);
@@ -191,53 +181,109 @@ export function BillingPage() {
     setSubscribeConflictMsg(null);
   };
 
-  const handleConfirmSubscribe = async () => {
+  /**
+   * Conclui a contratação ou a troca.
+   *
+   * Com `cardTokenId`, o cartão já foi tokenizado no navegador e a assinatura
+   * nasce ativa — sem sair do app. Sem token, cai no Checkout Pro por redirect
+   * (SDK fora do ar, ou plano de cortesia que não tem o que cobrar).
+   */
+  const handleConfirmSubscribe = async (cardTokenId?: string) => {
     if (!selectedPlanToSubscribe?.slug) return;
     setSubscribeConflictMsg(null);
 
     try {
-      const session = await createCheckoutMutation.mutateAsync({
+      const payload = {
         plan_slug: selectedPlanToSubscribe.slug,
-        billing_method: 'card',
-      });
+        billing_method: 'card' as const,
+        ...(cardTokenId ? { card_token_id: cardTokenId } : {}),
+      };
 
-      // Cortesia: já nasce ativa, sem cobrança nenhuma.
-      if (session.status === 'active' && !session.init_point) {
-        toast.success('Plano ativado', 'Nenhum pagamento é necessário para este plano.');
+      // Já tem plano pago de pé: troca o valor da assinatura existente em vez
+      // de abrir outra. O backend cai sozinho no checkout se o MP recusar.
+      const session = isOnPaidPlan
+        ? await changePlanMutation.mutateAsync(payload)
+        : await createCheckoutMutation.mutateAsync(payload);
+
+      if (session.status === 'active') {
+        toast.success(
+          isOnPaidPlan ? 'Plano alterado' : 'Plano ativado',
+          isOnPaidPlan
+            ? 'A cobrança mensal já passa a usar o novo valor.'
+            : 'Sua assinatura está ativa. Bem-vindo!',
+        );
         closeSubscribeModal();
 
         return;
       }
 
-      // Cartão: o pagamento acontece no Checkout Pro do Mercado Pago.
-      if (session.billing_method === 'card') {
-        if (!session.init_point) {
-          toast.error(
-            'Checkout indisponível',
-            'O Mercado Pago não devolveu o link de pagamento. Tente novamente.',
-          );
-
-          return;
-        }
-
+      // Pendente: o pagamento precisa ser concluído no Mercado Pago.
+      if (session.init_point) {
         toast.info('Redirecionando para o Mercado Pago...');
         window.location.href = session.init_point;
 
         return;
       }
+
+      toast.info(
+        'Pagamento em processamento',
+        'Assim que o Mercado Pago confirmar, a assinatura será ativada.',
+      );
+      closeSubscribeModal();
     } catch (error) {
       const status = getApiStatus(error);
       const apiMsg = getApiErrorMessage(error);
 
       if (status === 409) {
-        setSubscribeConflictMsg(`Cancele seu plano atual antes de assinar outro. (${apiMsg})`);
-        toast.error('Assinatura ativa existente', apiMsg);
+        // Trocar de plano não exige mais cancelar nada: o 409 agora só aparece
+        // quando o plano escolhido é o que já está contratado.
+        setSubscribeConflictMsg(apiMsg);
+        toast.error('Você já está neste plano', apiMsg);
+      } else if (status === 422) {
+        // Recusa do gateway: a mensagem já vem explicando o que fazer (cartão,
+        // conta do pagador). Fica no modal, onde o cliente pode agir.
+        setSubscribeConflictMsg(apiMsg);
+        toast.error('Pagamento não autorizado', apiMsg);
       } else if (status === 503) {
         setSubscribeConflictMsg(apiMsg);
         toast.error('Mercado Pago indisponível', apiMsg);
       } else {
         toast.error('Erro ao contratar plano', apiMsg);
       }
+    }
+  };
+
+  const handleDiscardPending = async () => {
+    try {
+      await discardPendingMutation.mutateAsync();
+      toast.success('Contratação descartada', 'Agora você pode escolher outro plano.');
+    } catch (error) {
+      toast.error('Erro ao descartar a contratação', getApiErrorMessage(error));
+    }
+  };
+
+  /** Reconciliação manual, para quando o webhook do Mercado Pago não chegou. */
+  const handleSyncPendingSwap = async () => {
+    if (!pendingSwap) return;
+
+    try {
+      const updated = await syncSubMutation.mutateAsync(pendingSwap.id);
+
+      if (updated.status === 'active') {
+        toast.success(
+          pendingSwap.replaces_subscription_id ? 'Plano alterado' : 'Assinatura ativada',
+          pendingSwap.replaces_subscription_id
+            ? 'O plano anterior foi encerrado automaticamente.'
+            : 'Seu plano está ativo.',
+        );
+      } else {
+        toast.info(
+          'Pagamento ainda não confirmado',
+          'O Mercado Pago ainda não liberou a cobrança. Seu plano atual continua valendo.',
+        );
+      }
+    } catch (error) {
+      toast.error('Erro ao verificar o pagamento', getApiErrorMessage(error));
     }
   };
 
@@ -252,48 +298,11 @@ export function BillingPage() {
     }
   };
 
-  const onCreatePaymentMethod = async (values: PaymentMethodFormValues) => {
-    try {
-      await createPmMutation.mutateAsync({
-        type: values.type,
-        brand: values.brand?.trim() || null,
-        last4: values.last4?.trim() || null,
-        holder_name: values.holder_name?.trim() || null,
-        is_default: values.is_default,
-      });
-      toast.success('Método de pagamento adicionado');
-      setPmModalOpen(false);
-      reset({ type: 'card', brand: '', last4: '', holder_name: '', is_default: false });
-    } catch (error) {
-      applyServerErrors(error, setError);
-      toast.error('Erro ao cadastrar método de pagamento', getApiErrorMessage(error));
-    }
-  };
-
-  const handleSetDefaultPm = async (id: number) => {
-    try {
-      await setDefaultPmMutation.mutateAsync(id);
-      toast.success('Método padrão atualizado');
-    } catch (error) {
-      toast.error('Erro ao definir método padrão', getApiErrorMessage(error));
-    }
-  };
-
-  const handleDeletePm = async () => {
-    if (!deletingPm) return;
-    try {
-      await deletePmMutation.mutateAsync(deletingPm.id);
-      toast.success('Método de pagamento removido');
-      setDeletingPm(null);
-    } catch (error) {
-      toast.error('Erro ao remover método de pagamento', getApiErrorMessage(error));
-    }
-  };
 
   const isLoading =
-    plansQuery.isPending || subscriptionsQuery.isPending || paymentMethodsQuery.isPending;
+    plansQuery.isPending || subscriptionsQuery.isPending;
   const firstError =
-    plansQuery.error || subscriptionsQuery.error || paymentMethodsQuery.error;
+    plansQuery.error || subscriptionsQuery.error;
 
   if (firstError && !isLoading) {
     return (
@@ -303,7 +312,6 @@ export function BillingPage() {
         onRetry={() => {
           void plansQuery.refetch();
           void subscriptionsQuery.refetch();
-          void paymentMethodsQuery.refetch();
         }}
       />
     );
@@ -369,6 +377,74 @@ export function BillingPage() {
             </button>
           )}
         </div>
+
+        {pastDueSubscription && (
+          <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/40">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600 dark:text-red-400" />
+            <div className="text-sm text-red-900 dark:text-red-200">
+              <p className="font-semibold">Não conseguimos cobrar a última mensalidade</p>
+              <p className="mt-0.5 text-xs leading-relaxed">
+                O Mercado Pago vai tentar novamente nos próximos dias. Atualize o cartão para não
+                perder o acesso
+                {pastDueSubscription.grace_until
+                  ? ` — seu acesso continua até ${formatDate(pastDueSubscription.grace_until)}.`
+                  : '.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {pendingSwap && (
+          <div className="mt-5 flex flex-wrap items-start justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/40">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="text-sm text-amber-900 dark:text-amber-200">
+                <p className="font-semibold">
+                  {pendingSwap.replaces_subscription_id
+                    ? 'Troca de plano aguardando pagamento'
+                    : 'Assinatura aguardando pagamento'}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed">
+                  {planById.get(pendingSwap.plan_id)?.name ?? `Plano #${pendingSwap.plan_id}`}
+                  {pendingSwap.replaces_subscription_id
+                    ? ' entra no lugar do plano atual assim que o Mercado Pago confirmar. Até lá, nada muda e você não precisa cancelar nada.'
+                    : ' será ativado assim que o Mercado Pago confirmar o pagamento.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Sem este link o cliente fica preso: não consegue voltar para a
+                  cobrança aberta nem iniciar outra. */}
+              {pendingCheckoutQuery.data?.init_point && (
+                <a
+                  href={pendingCheckoutQuery.data.init_point}
+                  className="rounded-lg bg-amber-600 px-3.5 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
+                >
+                  Continuar pagamento
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleSyncPendingSwap()}
+                disabled={syncSubMutation.isPending}
+                className="rounded-lg border border-amber-300 bg-white px-3.5 py-2 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/60 dark:bg-[#17171a] dark:text-amber-300 dark:hover:bg-amber-950/60"
+              >
+                {syncSubMutation.isPending ? 'Verificando...' : 'Já paguei, verificar'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleDiscardPending()}
+                disabled={discardPendingMutation.isPending}
+                className="rounded-lg border border-amber-300 bg-white px-3.5 py-2 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 disabled:opacity-50 dark:border-amber-900/60 dark:bg-[#17171a] dark:text-amber-300 dark:hover:bg-amber-950/60"
+              >
+                {discardPendingMutation.isPending ? 'Descartando...' : 'Desistir e escolher outro plano'}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Plans Grid */}
@@ -425,10 +501,10 @@ export function BillingPage() {
                       <button
                         type="button"
                         onClick={() => openSubscribeModal(plan)}
-                        disabled={!plan.is_active}
+                        disabled={!plan.is_active || isCurrent}
                         className={
                           isCurrent
-                            ? 'w-full rounded-lg border border-zinc-950/[0.12] bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-950/[0.05] dark:border-white/[0.12] dark:bg-white/[0.05] dark:text-zinc-200'
+                            ? 'w-full cursor-default rounded-lg border border-zinc-950/[0.12] bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-500 dark:border-white/[0.12] dark:bg-white/[0.05] dark:text-zinc-400'
                             : 'w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
                         }
                       >
@@ -436,7 +512,9 @@ export function BillingPage() {
                           ? 'Plano atual'
                           : isFreePlan(plan)
                             ? 'Ativar plano'
-                            : 'Assinar plano'}
+                            : isOnPaidPlan
+                              ? 'Trocar para este plano'
+                              : 'Assinar plano'}
                       </button>
                     )}
                   </div>
@@ -455,119 +533,6 @@ export function BillingPage() {
             to={plansPage.to}
             onPageChange={plansPage.setPage}
             ariaLabel="Paginação de planos"
-          />
-        )}
-      </section>
-
-      {/* Payment Methods */}
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              Métodos de pagamento
-            </h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Cartões cadastrados para débito automático da mensalidade.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setPmModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.12] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Adicionar método</span>
-          </button>
-        </div>
-
-        {paymentMethods.length === 0 ? (
-          <EmptyState
-            icon={<CreditCard className="h-5 w-5" />}
-            title="Nenhum método de pagamento cadastrado"
-            description="Adicione um cartão para usar como forma de pagamento padrão."
-            action={
-              <button
-                type="button"
-                onClick={() => setPmModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Cadastrar método</span>
-              </button>
-            }
-          />
-        ) : (
-          <div className="divide-y divide-zinc-950/[0.07] overflow-hidden rounded-xl border border-zinc-950/[0.07] bg-white dark:divide-white/[0.07] dark:border-white/[0.07] dark:bg-[#17171a]">
-            {paymentMethodsPage.items.map((pm) => (
-              <div
-                key={pm.id}
-                className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-950/[0.07] bg-zinc-50 text-zinc-600 dark:border-white/[0.07] dark:bg-[#101012] dark:text-zinc-300">
-                    {pm.type === 'card' && <CreditCard className="h-5 w-5" />}
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        {getPaymentMethodLabel()}
-                        {pm.brand ? ` · ${pm.brand}` : ''}
-                      </span>
-                      {pm.last4 && (
-                        <span className="font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
-                          •••• {pm.last4}
-                        </span>
-                      )}
-                      {pm.is_default && (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                          <Star className="h-3.5 w-3.5 fill-current" />
-                          <span>Padrão</span>
-                        </span>
-                      )}
-                    </div>
-                    {pm.holder_name && (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        Titular: {pm.holder_name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {!pm.is_default && (
-                    <button
-                      type="button"
-                      onClick={() => void handleSetDefaultPm(pm.id)}
-                      disabled={setDefaultPmMutation.isPending}
-                      className="rounded-lg border border-zinc-950/[0.12] bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                    >
-                      Definir como padrão
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setDeletingPm(pm)}
-                    aria-label="Excluir método de pagamento"
-                    className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {paymentMethodsPage.total > 0 && (
-          <Pagination
-            page={paymentMethodsPage.page}
-            lastPage={paymentMethodsPage.lastPage}
-            total={paymentMethodsPage.total}
-            from={paymentMethodsPage.from}
-            to={paymentMethodsPage.to}
-            onPageChange={paymentMethodsPage.setPage}
-            ariaLabel="Paginação de métodos de pagamento"
           />
         )}
       </section>
@@ -634,8 +599,16 @@ export function BillingPage() {
           setSelectedPlanToSubscribe(null);
           setSubscribeConflictMsg(null);
         }}
-        title={`Assinar plano ${selectedPlanToSubscribe?.name ?? ''}`}
-        description="Ao confirmar, uma nova assinatura será criada junto com a primeira fatura em aberto."
+        title={
+          isOnPaidPlan
+            ? `Trocar para o plano ${selectedPlanToSubscribe?.name ?? ''}`
+            : `Assinar plano ${selectedPlanToSubscribe?.name ?? ''}`
+        }
+        description={
+          isOnPaidPlan
+            ? `Você está no plano ${currentPlan?.name ?? 'atual'}. Ele continua valendo até o pagamento do novo ser confirmado.`
+            : 'Ao confirmar, uma nova assinatura será criada junto com a primeira fatura em aberto.'
+        }
       >
         {selectedPlanToSubscribe && (
           <div className="space-y-4">
@@ -693,14 +666,28 @@ export function BillingPage() {
               </>
             ) : (
               <>
-                            <div className="flex items-start gap-2.5 rounded-lg border border-zinc-950/[0.07] bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-white/[0.07] dark:bg-white/[0.04] dark:text-zinc-300">
+                <div className="flex items-start gap-2.5 rounded-lg border border-zinc-950/[0.07] bg-zinc-50 p-3 text-xs text-zinc-600 dark:border-white/[0.07] dark:bg-white/[0.04] dark:text-zinc-300">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    Você será redirecionado ao Mercado Pago para cadastrar o cartão. A cobrança é debitada automaticamente todo mês.
+                    {isOnPaidPlan
+                      ? 'A troca é imediata e usa o cartão já cadastrado — a próxima cobrança mensal já sai pelo novo valor.'
+                      : 'A cobrança é debitada automaticamente todo mês. Os dados do cartão vão direto para o Mercado Pago e não passam pelos nossos servidores.'}
                   </span>
                 </div>
 
-{subscribeConflictMsg && (
+                {/* Troca de plano reusa o cartão que já está no gateway: não há
+                    o que digitar. */}
+                {!isOnPaidPlan && canUseCardForm && (
+                  <CardPaymentForm
+                    publicKey={publicKey}
+                    amount={selectedPlanToSubscribe.price}
+                    onToken={(cardTokenId) => void handleConfirmSubscribe(cardTokenId)}
+                    onUnavailable={() => setCardFormUnavailable(true)}
+                    disabled={isSubscribePending}
+                  />
+                )}
+
+                {subscribeConflictMsg && (
                   <div
                     role="alert"
                     className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
@@ -718,97 +705,28 @@ export function BillingPage() {
                   >
                     Cancelar
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleConfirmSubscribe()}
-                    disabled={createCheckoutMutation.isPending}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {createCheckoutMutation.isPending ? 'Gerando cobrança...' : 'Ir para o pagamento'}
-                  </button>
+
+                  {/* O Brick tem o próprio botão de envio. Este só aparece quando
+                      não há cartão a digitar: troca de plano, ou redirect. */}
+                  {(isOnPaidPlan || !canUseCardForm) && (
+                    <button
+                      type="button"
+                      onClick={() => void handleConfirmSubscribe()}
+                      disabled={isSubscribePending}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isSubscribePending
+                        ? 'Processando...'
+                        : isOnPaidPlan
+                          ? 'Confirmar troca de plano'
+                          : 'Ir para o pagamento'}
+                    </button>
+                  )}
                 </div>
               </>
             )}
           </div>
         )}
-      </Modal>
-
-      {/* Add Payment Method Modal */}
-      <Modal
-        open={pmModalOpen}
-        onClose={() => setPmModalOpen(false)}
-        title="Novo método de pagamento"
-        description="Cadastre um cartão para as cobranças automáticas da assinatura."
-      >
-        <form onSubmit={handleSubmit(onCreatePaymentMethod)} className="space-y-4" noValidate>
-
-          {(
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Bandeira" htmlFor="pm-brand" error={errors.brand?.message}>
-                <input
-                  id="pm-brand"
-                  type="text"
-                  placeholder="Visa, Mastercard..."
-                  className={inputClassName(Boolean(errors.brand))}
-                  {...register('brand')}
-                />
-              </FormField>
-
-              <FormField
-                label="Últimos 4 dígitos"
-                htmlFor="pm-last4"
-                required
-                error={errors.last4?.message}
-              >
-                <input
-                  id="pm-last4"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="4242"
-                  className={`${inputClassName(Boolean(errors.last4))} font-mono tabular-nums`}
-                  {...register('last4')}
-                />
-              </FormField>
-            </div>
-          )}
-
-          <FormField label="Nome do titular" htmlFor="pm-holder" error={errors.holder_name?.message}>
-            <input
-              id="pm-holder"
-              type="text"
-              placeholder="Nome impresso ou razão social"
-              className={inputClassName(Boolean(errors.holder_name))}
-              {...register('holder_name')}
-            />
-          </FormField>
-
-          <label className="flex items-center gap-2.5 text-sm text-zinc-700 dark:text-zinc-200">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-950/[0.12] text-blue-600 focus:ring-blue-600 dark:border-white/[0.12] dark:bg-[#101012]"
-              {...register('is_default')}
-            />
-            <span>Definir como método padrão</span>
-          </label>
-
-          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <button
-              type="button"
-              onClick={() => setPmModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={createPmMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {createPmMutation.isPending ? 'Salvando...' : 'Salvar método'}
-            </button>
-          </div>
-        </form>
       </Modal>
 
       <ConfirmDialog
@@ -817,19 +735,10 @@ export function BillingPage() {
         onConfirm={() => void handleCancelSubscription()}
         isPending={cancelSubMutation.isPending}
         title="Cancelar assinatura"
-        description="Tem certeza que deseja cancelar a assinatura ativa? Você poderá contratar um novo plano em seguida."
+        description="Tem certeza que deseja cancelar a assinatura ativa? Para apenas mudar de plano não é preciso cancelar: escolha o novo plano e a troca acontece sozinha depois do pagamento."
         confirmLabel="Confirmar cancelamento"
       />
 
-      <ConfirmDialog
-        open={Boolean(deletingPm)}
-        onClose={() => setDeletingPm(null)}
-        onConfirm={() => void handleDeletePm()}
-        isPending={deletePmMutation.isPending}
-        title="Remover método de pagamento"
-        description="Tem certeza que deseja remover este método de pagamento?"
-        confirmLabel="Remover"
-      />
     </div>
   );
 }

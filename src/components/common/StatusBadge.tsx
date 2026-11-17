@@ -56,6 +56,8 @@ export function getSubscriptionStatusMeta(
       return { tone: 'success', label: 'Ativa' };
     case 'trialing':
       return { tone: 'warning', label: 'Em teste' };
+    case 'pending':
+      return { tone: 'warning', label: 'Aguardando pagamento' };
     case 'past_due':
       return { tone: 'danger', label: 'Pagamento pendente' };
     case 'canceled':

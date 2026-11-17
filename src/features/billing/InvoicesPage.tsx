@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, FileText } from 'lucide-react';
+import { CheckCircle2, Eye, FileText } from 'lucide-react';
 import { useInvoicesQuery, usePayInvoiceMutation } from './hooks';
+import * as api from '@/src/lib/api';
 import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -20,6 +21,46 @@ export function InvoicesPage() {
   const invoicesQuery = useInvoicesQuery(page);
   const payMutation = usePayInvoiceMutation();
   const [payingId, setPayingId] = useState<number | null>(null);
+
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
+  const handleViewPdf = async (invoiceId: number) => {
+    setDownloadingId(invoiceId);
+
+    // A aba precisa ser aberta aqui, ainda dentro do clique: abrir depois do
+    // await faz o bloqueador de pop-up barrar, porque já não há gesto do
+    // usuário associado.
+    const viewer = window.open('', '_blank');
+
+    try {
+      const { blob, fileName } = await api.downloadInvoicePdf(invoiceId);
+
+      // objectURL em vez de data URI: o PDF pode passar de alguns MB, e a
+      // string base64 estouraria o limite de tamanho de URL do navegador.
+      const url = URL.createObjectURL(blob);
+
+      if (viewer) {
+        viewer.location.href = url;
+      } else {
+        // Pop-up bloqueado: em vez de falhar, entrega o arquivo.
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      // Revogar na hora cortaria o PDF antes de a aba carregar; a folga dá
+      // tempo de o visualizador ler o blob.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      viewer?.close();
+      toast.error('Erro ao gerar o recibo', getApiErrorMessage(error));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const handlePay = async (invoiceId: number) => {
     setPayingId(invoiceId);
@@ -131,8 +172,8 @@ export function InvoicesPage() {
                       {inv.paid_at ? formatDateTime(inv.paid_at) : '—'}
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      {inv.status === 'open' ? (
-                        <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2">
+                        {inv.status === 'open' && (
                           <button
                             type="button"
                             onClick={() => void handlePay(inv.id)}
@@ -142,10 +183,18 @@ export function InvoicesPage() {
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             <span>{payingId === inv.id ? 'Pagando...' : 'Marcar como paga'}</span>
                           </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-zinc-400">—</span>
-                      )}
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => void handleViewPdf(inv.id)}
+                          disabled={downloadingId === inv.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-950/[0.12] bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 whitespace-nowrap dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>{downloadingId === inv.id ? 'Gerando...' : 'Ver recibo'}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

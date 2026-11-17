@@ -482,6 +482,10 @@ export interface Subscription {
   billing_method?: BillingMethod;
   starts_at: string;
   external_id?: string | null;
+  /** Troca de plano: a assinatura que esta substitui quando o pagamento entrar. */
+  replaces_subscription_id?: number | null;
+  /** Inadimplência: até quando o acesso continua valendo com a parcela em aberto. */
+  grace_until?: string | null;
   ends_at?: string | null;
   canceled_at?: string | null;
   created_at?: string;
@@ -490,6 +494,13 @@ export interface Subscription {
 export interface CreateCheckoutPayload {
   plan_slug: string;
   billing_method: BillingMethod;
+  /**
+   * Cartão tokenizado pelo SDK do Mercado Pago no navegador. Só o token sai
+   * daqui — número, CVV e validade nunca chegam ao backend.
+   *
+   * Ausente: o backend devolve `init_point` e o pagamento vai por redirect.
+   */
+  card_token_id?: string;
 }
 
 /** Resposta de POST /subscriptions/checkout. */
@@ -499,6 +510,8 @@ export interface CheckoutSession {
   status: SubscriptionStatus;
   billing_method: BillingMethod;
   external_id: string | null;
+  /** Preenchido quando é troca de plano: a assinatura que será substituída. */
+  replaces_subscription_id: number | null;
   /** URL do Checkout Pro para onde redirecionar. */
   init_point: string | null;
 }
@@ -516,18 +529,6 @@ export interface Invoice {
   created_at?: string;
 }
 
-export type PaymentMethodType = 'card';
-
-export interface PaymentMethod {
-  id: number;
-  type: PaymentMethodType;
-  brand: string | null;
-  last4: string | null;
-  holder_name: string | null;
-  is_default: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
 
 export interface DashboardRecentLead {
   id: number;
@@ -578,12 +579,4 @@ export interface DashboardSummary {
     ends_at?: string;
     plan_id?: number;
   } | null;
-}
-
-export interface CreatePaymentMethodPayload {
-  type: PaymentMethodType;
-  brand?: string | null;
-  last4?: string | null;
-  holder_name?: string | null;
-  is_default?: boolean;
 }

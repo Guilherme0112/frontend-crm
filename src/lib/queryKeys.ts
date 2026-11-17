@@ -58,16 +58,17 @@ export const queryKeys = {
     all: ['plans'] as const,
     detail: (id: number) => ['plans', id] as const,
   },
+  billing: {
+    config: ['billing', 'config'] as const,
+  },
   subscriptions: {
     all: ['subscriptions'] as const,
+    pending: ['subscriptions', 'pending'] as const,
     detail: (id: number) => ['subscriptions', id] as const,
   },
   invoices: {
     all: ['invoices'] as const,
     list: (page: number, perPage: number) => ['invoices', 'list', page, perPage] as const,
     detail: (id: number) => ['invoices', id] as const,
-  },
-  paymentMethods: {
-    all: ['payment-methods'] as const,
   },
 };
