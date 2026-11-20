@@ -1,12 +1,13 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
+import { TextInput } from '@/src/components/common/TextInput';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { KeyRound, Pencil } from 'lucide-react';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
-import { FormField } from '@/src/components/common/FormField';
-import { TextInput } from '@/src/components/common/TextInput';
+import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { applyServerErrors } from '@/src/lib/formErrors';
 import type { EmailConfig, EmailEncryption } from '@/src/lib/types';
 
@@ -115,7 +116,7 @@ export function EmailConfigForm({
   });
 
   return (
-    <form onSubmit={submit} className="grid gap-6 sm:grid-cols-2" noValidate>
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
       <FormField
         label="Nome da configuração"
         htmlFor="ec-name"
@@ -125,10 +126,10 @@ export function EmailConfigForm({
       >
         <TextInput
           id="ec-name"
+          limit={255}
           type="text"
           placeholder="Ex.: Mailtrap Produção"
           autoComplete="off"
-          hasError={Boolean(errors.name)}
           {...register('name')}
         />
       </FormField>
@@ -136,24 +137,26 @@ export function EmailConfigForm({
       <FormField label="Host" htmlFor="ec-host" required error={errors.host?.message}>
         <TextInput
           id="ec-host"
+          limit={255}
           type="text"
           placeholder="smtp.mailtrap.io"
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          hasError={Boolean(errors.host)} className="font-mono"
+          className={`${inputClassName(Boolean(errors.host))} font-mono`}
           {...register('host')}
         />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-4">
         <FormField label="Porta" htmlFor="ec-port" required error={errors.port?.message}>
           <TextInput
             id="ec-port"
+            limit={5}
             type="number"
             min={1}
             max={65535}
-            hasError={Boolean(errors.port)} className="font-mono tabular-nums"
+            className={`${inputClassName(Boolean(errors.port))} font-mono tabular-nums`}
             {...register('port', { valueAsNumber: true })}
           />
         </FormField>
@@ -186,12 +189,13 @@ export function EmailConfigForm({
       <FormField label="Usuário" htmlFor="ec-username" required error={errors.username?.message}>
         <TextInput
           id="ec-username"
+          limit={255}
           type="text"
           placeholder="demo@example.com"
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
-          hasError={Boolean(errors.username)} className="font-mono"
+          className={`${inputClassName(Boolean(errors.username))} font-mono`}
           {...register('username')}
         />
       </FormField>
@@ -205,14 +209,14 @@ export function EmailConfigForm({
             Senha{isEdit ? '' : ' *'}
           </label>
           {isEdit && passwordAlreadySet && !changingPassword && (
-            <button
+            <ActionButton
               type="button"
+              size="small"
               onClick={() => setChangingPassword(true)}
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              startIcon={<Pencil className="h-3 w-3" />}
             >
-              <Pencil className="h-3 w-3" />
               Alterar senha
-            </button>
+            </ActionButton>
           )}
         </div>
 
@@ -220,10 +224,10 @@ export function EmailConfigForm({
           <>
             <TextInput
               id="ec-password"
+              limit={255}
               type="password"
               autoComplete="new-password"
               placeholder={isEdit ? 'Nova senha (em branco mantém a atual)' : 'Senha SMTP'}
-              hasError={Boolean(errors.password)}
               {...register('password')}
             />
             {errors.password && (
@@ -247,13 +251,9 @@ export function EmailConfigForm({
               ••••••••
             </span>
             {isEdit && (
-              <button
-                type="button"
-                onClick={() => setChangingPassword(true)}
-                className="text-[11px] font-semibold text-zinc-500 transition-colors hover:text-zinc-800 dark:hover:text-zinc-200"
-              >
+              <ActionButton type="button" size="small" onClick={() => setChangingPassword(true)}>
                 Alterar
-              </button>
+              </ActionButton>
             )}
           </div>
         )}
@@ -267,10 +267,11 @@ export function EmailConfigForm({
       >
         <TextInput
           id="ec-from-address"
+          limit={255}
           type="email"
           placeholder="noreply@example.com"
           autoComplete="off"
-          hasError={Boolean(errors.from_address)} className="font-mono"
+          className={`${inputClassName(Boolean(errors.from_address))} font-mono`}
           {...register('from_address')}
         />
       </FormField>
@@ -283,19 +284,28 @@ export function EmailConfigForm({
       >
         <TextInput
           id="ec-from-name"
+          limit={255}
           type="text"
           placeholder="SaldUp CRM"
           autoComplete="off"
-          hasError={Boolean(errors.from_name)}
           {...register('from_name')}
         />
       </FormField>
 
       <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 sm:col-span-2 dark:border-white/[0.07]">
-        <Button variant="outlined" color="inherit" onClick={onCancel} disabled={isSubmitting}>
+        <Button
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+        >
           Cancelar
         </Button>
-        <Button variant="contained" color="inherit" disabled={isSubmitting} type="submit">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        >
           {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar configuração'}
         </Button>
       </div>

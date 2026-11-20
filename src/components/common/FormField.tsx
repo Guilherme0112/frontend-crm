@@ -13,6 +13,16 @@ interface FieldMeta {
 
 const FieldContext = createContext<FieldMeta | null>(null);
 
+/** Compatibilidade com formulários legados que ainda usam inputs nativos. */
+export function inputClassName(hasError = false): string {
+  return [
+    'w-full rounded-lg border bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 dark:bg-[#101012] dark:text-zinc-100',
+    hasError
+      ? 'border-red-500 focus:border-red-600'
+      : 'border-zinc-950/[0.12] focus:border-blue-600 dark:border-white/[0.12] dark:focus:border-blue-400',
+  ].join(' ');
+}
+
 export function useFieldMeta(): FieldMeta {
   return useContext(FieldContext) ?? {};
 }
@@ -26,6 +36,8 @@ interface FormFieldProps {
   children: ReactNode;
   className?: string;
   floatingLabel?: boolean;
+  /** Remove o espaçamento vertical padrão quando o container já define o gap. */
+  dense?: boolean;
 }
 
 export function FormField({
@@ -37,6 +49,7 @@ export function FormField({
   children,
   className,
   floatingLabel = true,
+  dense = false,
 }: FormFieldProps) {
   const meta = useMemo<FieldMeta>(
     () => (floatingLabel ? { label, required, error, hint, htmlFor } : { error, hint }),
@@ -50,7 +63,7 @@ export function FormField({
         error={Boolean(error)}
         required={required}
         className={className}
-        sx={{ mb: 2, ...(floatingLabel ? null : { gap: 1 }) }}
+        sx={{ mb: dense ? 0 : 2, ...(floatingLabel ? null : { gap: 1 }) }}
       >
         {! floatingLabel && (
           <FormLabel

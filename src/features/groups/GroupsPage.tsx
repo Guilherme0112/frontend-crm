@@ -1,5 +1,8 @@
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
+import ActionButton from '@/src/components/common/Button';
+import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
@@ -18,8 +21,6 @@ import { Modal } from '@/src/components/common/Modal';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField } from '@/src/components/common/FormField';
-import { TextInput } from '@/src/components/common/TextInput';
-import { TextArea } from '@/src/components/common/TextArea';
 import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -158,9 +159,14 @@ export function GroupsPage() {
           </p>
         </div>
 
-        <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateModal} className="whitespace-nowrap shrink-0">
+        <ActionButton
+          type="button"
+          onClick={openCreateModal}
+          className="whitespace-nowrap shrink-0"
+          startIcon={<Plus className="h-4 w-4" />}
+        >
           Novo grupo
-        </Button>
+        </ActionButton>
       </div>
 
       {groupsQuery.isPending ? (
@@ -179,9 +185,13 @@ export function GroupsPage() {
           title="Nenhum grupo cadastrado"
           description="Crie grupos para segmentar seus contatos e vincular templates de envio."
           action={
-            <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
+            <ActionButton
+              type="button"
+              onClick={openCreateModal}
+              startIcon={<Plus className="h-4 w-4" />}
+            >
               Criar primeiro grupo
-            </Button>
+            </ActionButton>
           }
         />
       ) : (
@@ -237,16 +247,24 @@ export function GroupsPage() {
                         to={`/groups/${group.id}`}
                         aria-label={`Gerenciar leads de ${group.name}`}
                         title="Gerenciar leads do grupo"
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-700 dark:hover:bg-white/[0.07] dark:hover:text-zinc-200"
+                        className="inline-flex items-center justify-center rounded-lg bg-zinc-950/[0.05] p-1.5 text-zinc-500 transition-colors hover:bg-zinc-950/[0.1] hover:text-zinc-900 dark:bg-white/[0.05] dark:text-zinc-400 dark:hover:bg-white/[0.1] dark:hover:text-zinc-100"
                       >
                         <Users className="h-4 w-4" strokeWidth={1.8} />
                       </Link>
-                      <IconButton size="small" onClick={() => openEditModal(group)} aria-label={`Editar ${group.name}`}>
+                      <TableActionButton
+                        tone="primary"
+                        onClick={() => openEditModal(group)}
+                        aria-label={`Editar ${group.name}`}
+                      >
                         <Pencil className="h-4 w-4" />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => setDeletingGroup(group)} aria-label={`Excluir ${group.name}`}>
+                      </TableActionButton>
+                      <TableActionButton
+                        tone="error"
+                        onClick={() => setDeletingGroup(group)}
+                        aria-label={`Excluir ${group.name}`}
+                      >
                         <Trash2 className="h-4 w-4" />
-                      </IconButton>
+                      </TableActionButton>
                     </div>
                   </td>
                 </tr>
@@ -275,12 +293,16 @@ export function GroupsPage() {
         description="Associe um template de envio ativo a este grupo."
       >
         {templates.length === 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <p className="text-sm text-zinc-600 dark:text-zinc-300">
               Você ainda não possui templates de envio cadastrados. Crie um template primeiro para poder vinculá-lo a um grupo.
             </p>
             <div className="flex justify-end gap-3">
-              <Button variant="outlined" color="inherit" onClick={() => setModalOpen(false)}>
+              <Button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="rounded-lg border border-zinc-950/[0.12] px-4 py-2 text-sm font-medium text-zinc-700 dark:border-white/[0.12] dark:text-zinc-200"
+              >
                 Fechar
               </Button>
               <Link
@@ -292,13 +314,13 @@ export function GroupsPage() {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <FormField label="Nome" htmlFor="group-name" required error={errors.name?.message}>
               <TextInput
                 id="group-name"
+                limit={255}
                 type="text"
                 placeholder="Ex.: Clientes Enterprise"
-                hasError={Boolean(errors.name)}
                 {...register('name')}
               />
             </FormField>
@@ -357,17 +379,26 @@ export function GroupsPage() {
             <FormField label="Descrição" htmlFor="group-desc" error={errors.description?.message}>
               <TextArea
                 id="group-desc"
+                limit={5000}
+                rows={3}
                 placeholder="Opcional"
-                hasError={Boolean(errors.description)}
                 {...register('description')}
               />
             </FormField>
 
             <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-              <Button variant="outlined" color="inherit" onClick={() => setModalOpen(false)}>
+              <Button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+              >
                 Cancelar
               </Button>
-              <Button variant="contained" disabled={createMutation.isPending || updateMutation.isPending} type="submit">
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
                 {createMutation.isPending || updateMutation.isPending
                   ? 'Salvando...'
                   : editingGroup

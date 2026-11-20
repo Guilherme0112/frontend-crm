@@ -31,6 +31,7 @@ export const queryKeys = {
     all: ['leads'] as const,
     byStep: (stepId?: number) => (stepId ? (['leads', { stepId }] as const) : (['leads'] as const)),
     detail: (id: number) => ['leads', id] as const,
+    history: (id: number) => ['leads', id, 'history'] as const,
   },
   templates: {
     all: ['sending-templates'] as const,

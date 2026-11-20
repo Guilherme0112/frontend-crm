@@ -1,5 +1,6 @@
 import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,11 +14,10 @@ import {
 } from './hooks';
 import { useAuth } from '@/src/auth/AuthContext';
 import { Modal } from '@/src/components/common/Modal';
+import { TableActionButton } from '@/src/components/common/TableActionButton';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField } from '@/src/components/common/FormField';
 import { TextInput } from '@/src/components/common/TextInput';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -25,7 +25,7 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { PHONE_REGEX, maskPhone } from '@/src/lib/format';
+import { PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
 import type { User } from '@/src/lib/types';
 
 const createUserSchema = z.object({
@@ -49,7 +49,7 @@ const editUserSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || val.length >= 8, {
-      message: 'A nova senha deve ter no mínimo 8 caracteres',
+      message: 'A senha deve ter no mínimo 8 caracteres',
     }),
   phone: z
     .string()
@@ -61,28 +61,20 @@ const editUserSchema = z.object({
   is_active: z.boolean(),
 });
 
-type UserFormValues = {
-  name: string;
-  email: string;
-  password?: string;
-  phone?: string;
-  is_active: boolean;
-};
+type UserFormValues = z.infer<typeof createUserSchema>;
 
 export function TeamPage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [page, setPage] = useState(1);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+
   const usersQuery = useUsersQuery(page);
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
   const deleteMutation = useDeleteUserMutation();
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deletingUser, setDeletingUser] = useState<User | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const {
     register,
@@ -92,25 +84,43 @@ export function TeamPage() {
     setError,
     formState: { errors },
   } = useForm<UserFormValues>({
-    resolver: zodResolver(editingUser ? editUserSchema : createUserSchema),
-    defaultValues: { name: '', email: '', password: '', phone: '', is_active: true },
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      phone: '',
+      is_active: true,
+    },
   });
 
-  const openCreateModal = () => {
+  useEffect(() => {
+    if (editingUser) {
+      reset({
+        name: editingUser.name,
+        email: editingUser.email,
+        password: '',
+        phone: editingUser.phone ?? '',
+        is_active: editingUser.is_active,
+      });
+    } else {
+      reset({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        is_active: true,
+      });
+    }
+  }, [editingUser, reset]);
+
+  const openCreate = () => {
     setEditingUser(null);
-    reset({ name: '', email: '', password: '', phone: '', is_active: true });
     setModalOpen(true);
   };
 
-  const openEditModal = (u: User) => {
-    setEditingUser(u);
-    reset({
-      name: u.name,
-      email: u.email,
-      password: '',
-      phone: u.phone ?? '',
-      is_active: u.is_active,
-    });
+  const openEdit = (user: User) => {
+    setEditingUser(user);
     setModalOpen(true);
   };
 
@@ -121,9 +131,9 @@ export function TeamPage() {
           id: editingUser.id,
           payload: {
             name: values.name.trim(),
-            email: values.email.trim(),
-            ...(values.password ? { password: values.password } : {}),
+            email: values.email.trim().toLowerCase(),
             phone: values.phone?.trim() || null,
+            password: values.password || undefined,
             is_active: values.is_active,
           },
         });
@@ -131,60 +141,33 @@ export function TeamPage() {
       } else {
         await createMutation.mutateAsync({
           name: values.name.trim(),
-          email: values.email.trim(),
-          password: values.password || '',
+          email: values.email.trim().toLowerCase(),
+          password: values.password,
           phone: values.phone?.trim() || null,
           is_active: values.is_active,
         });
-        toast.success('Membro adicionado à equipe');
+        toast.success('Membro criado');
       }
       setModalOpen(false);
     } catch (error) {
       applyServerErrors(error, setError);
-      toast.error('Erro ao salvar usuário', getApiErrorMessage(error));
+      toast.error('Erro ao salvar membro', getApiErrorMessage(error));
     }
   };
 
-  const handleToggleActive = async (u: User) => {
-    setTogglingId(u.id);
-    try {
-      await updateMutation.mutateAsync({
-        id: u.id,
-        payload: { is_active: !u.is_active },
-      });
-      toast.success(u.is_active ? 'Usuário desativado' : 'Usuário ativado');
-    } catch (error) {
-      toast.error('Erro ao alterar status', getApiErrorMessage(error));
-    } finally {
-      setTogglingId(null);
-    }
-  };
-
-  const handleDelete = async () => {
+  const onDelete = async () => {
     if (!deletingUser) return;
-    setDeleteError(null);
     try {
       await deleteMutation.mutateAsync(deletingUser.id);
-      toast.success('Usuário removido da equipe');
+      toast.success('Membro excluído');
       setDeletingUser(null);
     } catch (error) {
-      const msg = getApiErrorMessage(error);
-      setDeleteError(msg);
-      toast.error('Não foi possível remover', msg);
+      toast.error('Erro ao excluir membro', getApiErrorMessage(error));
     }
   };
 
   const users = usersQuery.data?.data ?? [];
   const meta = usersQuery.data?.meta ?? null;
-  const total = meta?.total ?? 0;
-  const lastPage = meta?.last_page ?? 1;
-
-  // Remover o último membro de uma página deixa a página sem conteúdo.
-  useEffect(() => {
-    if (meta && page > meta.last_page) {
-      setPage(Math.max(1, meta.last_page));
-    }
-  }, [meta, page]);
 
   return (
     <div className="space-y-6">
@@ -194,105 +177,111 @@ export function TeamPage() {
             Equipe
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Gerencie os usuários da sua empresa, status de acesso e permissões.
+            Gerencie os usuários vinculados à sua empresa.
           </p>
         </div>
-
-        <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateModal} className="whitespace-nowrap shrink-0">
+        <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
           Novo membro
         </Button>
       </div>
 
-      {usersQuery.isPending ? (
-        <div className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <TableRowsSkeleton rows={4} cols={5} />
-        </div>
-      ) : usersQuery.isError ? (
-        <ErrorState
-          title="Erro ao carregar equipe"
-          error={usersQuery.error}
-          onRetry={() => void usersQuery.refetch()}
-        />
-      ) : users.length === 0 ? (
-        <EmptyState
-          icon={<Users className="h-5 w-5" />}
-          title="Nenhum usuário cadastrado"
-          description="Adicione membros para colaborar na gestão dos leads e CRMs."
-          action={
-            <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreateModal}>
-              Adicionar membro
-            </Button>
-          }
-        />
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-zinc-950/[0.07] text-xs font-medium text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
-                <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">E-mail</th>
-                <th className="px-5 py-3">Telefone</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
-              {users.map((u) => {
-                const isSelf = currentUser?.id === u.id;
-                return (
-                  <tr
-                    key={u.id}
-                    className="transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
-                  >
-                    <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">
-                      <span>{u.name}</span>
-                      {isSelf && (
-                        <span className="ml-2 text-xs font-normal text-zinc-500 dark:text-zinc-400">
-                          (Você)
-                        </span>
+      <section className="overflow-hidden rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
+        {usersQuery.isLoading && (
+          <div className="p-6">
+            <TableRowsSkeleton rows={5} />
+          </div>
+        )}
+
+        {usersQuery.isError && (
+          <div className="p-6">
+            <ErrorState
+              title="Não foi possível carregar a equipe"
+              error={usersQuery.error}
+              onRetry={() => void usersQuery.refetch()}
+            />
+          </div>
+        )}
+
+        {usersQuery.isSuccess && users.length === 0 && (
+          <EmptyState
+            icon={<Users className="h-6 w-6" />}
+            title="Nenhum membro encontrado"
+            description="Adicione membros para compartilhar o acesso ao CRM."
+            action={
+              <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
+                Novo membro
+              </Button>
+            }
+          />
+        )}
+
+        {users.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-950/[0.07] bg-[#fafaf9] text-xs uppercase tracking-wide text-zinc-500 dark:border-white/[0.07] dark:bg-[#101012] dark:text-zinc-400">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Nome</th>
+                  <th className="px-5 py-3 font-medium">E-mail</th>
+                  <th className="px-5 py-3 font-medium">Telefone</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3 font-medium">Criado em</th>
+                  <th className="px-5 py-3 text-right font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-[#fafaf9] dark:hover:bg-[#101012]">
+                    <td className="px-5 py-3 font-medium text-zinc-900 dark:text-zinc-100">
+                      {user.name}
+                      {currentUser?.id === user.id && (
+                        <span className="ml-2 text-xs text-zinc-400">(você)</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-zinc-600 dark:text-zinc-400">{u.email}</td>
-                    <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
-                      {u.phone || '—'}
+                    <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">{user.email}</td>
+                    <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">
+                      {user.phone ?? '—'}
                     </td>
-                    <td className="px-5 py-3.5">
-                      <IconButton size="small" onClick={() => void handleToggleActive(u)} disabled={togglingId === u.id} title="Clique para alternar ativo/inativo">
-                        <StatusIndicator
-                          tone={u.is_active ? 'success' : 'neutral'}
-                          label={u.is_active ? 'Ativo' : 'Inativo'}
-                        />
-                      </IconButton>
+                    <td className="px-5 py-3">
+                      <StatusIndicator
+                        tone={user.is_active ? 'success' : 'neutral'}
+                        label={user.is_active ? 'Ativo' : 'Inativo'}
+                      />
                     </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <IconButton size="small" onClick={() => openEditModal(u)} aria-label={`Editar ${u.name}`}>
+                    <td className="px-5 py-3 text-zinc-500 dark:text-zinc-400">
+                      {user.created_at ? formatDateTime(user.created_at) : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <TableActionButton tone="primary" aria-label="Editar" onClick={() => openEdit(user)}>
                           <Pencil className="h-4 w-4" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => { setDeleteError(null); setDeletingUser(u); }} aria-label={`Excluir ${u.name}`}>
+                        </TableActionButton>
+                        <TableActionButton
+                          tone="error"
+                          aria-label="Excluir"
+                          disabled={currentUser?.id === user.id}
+                          onClick={() => setDeletingUser(user)}
+                        >
                           <Trash2 className="h-4 w-4" />
-                        </IconButton>
+                        </TableActionButton>
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
-      {total > 0 && (
-        <Pagination
-          page={meta?.current_page ?? page}
-          lastPage={lastPage}
-          total={total}
-          from={meta?.from ?? null}
-          to={meta?.to ?? null}
-          onPageChange={setPage}
-          ariaLabel="Paginação de usuários"
-        />
-      )}
+      <Pagination
+        page={page}
+        lastPage={meta?.last_page ?? 1}
+        total={meta?.total ?? 0}
+        from={meta?.from ?? null}
+        to={meta?.to ?? null}
+        onPageChange={setPage}
+        ariaLabel="Paginação da equipe"
+      />
 
       <Modal
         open={modalOpen}
@@ -309,6 +298,7 @@ export function TeamPage() {
             <TextInput
               id="team-name"
               type="text"
+              limit={255}
               placeholder="Carlos Mendes"
               hasError={Boolean(errors.name)}
               {...register('name')}
@@ -319,6 +309,7 @@ export function TeamPage() {
             <TextInput
               id="team-email"
               type="email"
+              limit={255}
               placeholder="carlos@empresa.com.br"
               hasError={Boolean(errors.email)}
               {...register('email')}
@@ -336,6 +327,7 @@ export function TeamPage() {
               <TextInput
                 id="team-pass"
                 type="password"
+                limit={255}
                 placeholder="••••••••"
                 hasError={Boolean(errors.password)}
                 {...register('password')}
@@ -350,6 +342,7 @@ export function TeamPage() {
                   <TextInput
                     id="team-phone"
                     type="tel"
+                    limit={15}
                     placeholder="(11) 98765-4321"
                     hasError={Boolean(errors.phone)}
                     value={field.value || ''}
@@ -367,16 +360,12 @@ export function TeamPage() {
             slotProps={{ typography: { sx: { fontSize: 14 } } }}
           />
 
-          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
+          <div className="flex justify-end gap-2 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
             <Button variant="outlined" color="inherit" onClick={() => setModalOpen(false)}>
               Cancelar
             </Button>
-            <Button variant="contained" disabled={createMutation.isPending || updateMutation.isPending} type="submit">
-              {createMutation.isPending || updateMutation.isPending
-                ? 'Salvando...'
-                : editingUser
-                  ? 'Salvar alterações'
-                  : 'Cadastrar membro'}
+            <Button type="submit" variant="contained" disabled={createMutation.isPending || updateMutation.isPending}>
+              {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </form>
@@ -384,16 +373,12 @@ export function TeamPage() {
 
       <ConfirmDialog
         open={Boolean(deletingUser)}
-        onClose={() => {
-          setDeletingUser(null);
-          setDeleteError(null);
-        }}
-        onConfirm={() => void handleDelete()}
+        title="Excluir membro"
+        description={`Deseja excluir ${deletingUser?.name ?? 'este membro'}? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
         isPending={deleteMutation.isPending}
-        errorMessage={deleteError}
-        title="Excluir usuário"
-        description={`Tem certeza que deseja excluir o usuário "${deletingUser?.name ?? ''}"?`}
-        confirmLabel="Excluir usuário"
+        onConfirm={() => void onDelete()}
+        onClose={() => setDeletingUser(null)}
       />
     </div>
   );

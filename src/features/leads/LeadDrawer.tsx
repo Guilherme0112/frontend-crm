@@ -1,10 +1,12 @@
 import Button from '@mui/material/Button';
-import { useEffect, useState } from 'react';
+import Chip from '@mui/material/Chip';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ExternalLink, Trash2 } from 'lucide-react';
+import { ExternalLink, FileText, Globe, Trash2, UserRound } from 'lucide-react';
+import ActionButton from '@/src/components/common/Button';
 import { Drawer } from '@/src/components/common/Drawer';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { FormField } from '@/src/components/common/FormField';
@@ -16,7 +18,7 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
-import type { Step } from '@/src/lib/types';
+import type { Lead, Step } from '@/src/lib/types';
 import { useDeleteLeadMutation, useLeadQuery, useUpdateLeadMutation } from './hooks';
 
 const leadSchema = z.object({
@@ -36,10 +38,7 @@ const leadSchema = z.object({
     .refine((val) => !val || /^https?:\/\/.+/.test(val), {
       message: 'Informe uma URL iniciando com http:// ou https://',
     }),
-  step_id: z
-    .number({ message: 'Selecione uma etapa' })
-    .int()
-    .min(1, 'Selecione uma etapa'),
+  step_id: z.number({ message: 'Selecione uma etapa' }).int().min(1, 'Selecione uma etapa'),
   description: z.string().optional(),
 });
 
@@ -49,6 +48,61 @@ interface LeadDrawerProps {
   leadId: number | null;
   steps: Step[];
   onClose: () => void;
+}
+
+function SectionTitle({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-blue-600 dark:text-blue-400">{icon}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function LeadSummary({ lead, onClose }: { lead: Lead; onClose: () => void }) {
+  const initials = lead.name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-zinc-950/[0.06] bg-gradient-to-br from-blue-50 via-white to-white p-5 dark:from-blue-950/30 dark:via-[#17171a] dark:to-[#17171a] dark:border-white/[0.07]">
+      <div className="flex items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white shadow-sm">
+          {initials || '?'}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
+              {lead.name}
+            </h2>
+            {lead.step_name && (
+              <Chip size="small" variant="outlined" color="primary" label={lead.step_name} />
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-sm text-zinc-600 dark:text-zinc-400">{lead.email}</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+            Lead #{lead.id} · Criado em {formatDateTime(lead.created_at)}
+          </p>
+        </div>
+
+        <ActionButton
+          component={Link}
+          to={`/leads/${lead.id}`}
+          onClick={onClose}
+          size="small"
+          startIcon={<ExternalLink className="h-4 w-4" />}
+        >
+          Ver página
+        </ActionButton>
+      </div>
+    </div>
+  );
 }
 
 export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
@@ -64,7 +118,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
     handleSubmit,
     reset,
     setError,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
     defaultValues: {
@@ -97,7 +151,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
         id: leadId,
         payload: {
           name: values.name.trim(),
-          email: values.email.trim(),
+          email: values.email.trim().toLowerCase(),
           phone: values.phone?.trim() || null,
           website: values.website?.trim() || null,
           step_id: values.step_id,
@@ -111,15 +165,15 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
     }
   };
 
-  const handleDelete = async () => {
+  const onDelete = async () => {
     if (!leadId) return;
     try {
       await deleteMutation.mutateAsync(leadId);
-      toast.success('Lead removido');
+      toast.success('Lead excluído');
       setConfirmOpen(false);
       onClose();
     } catch (error) {
-      toast.error('Erro ao remover lead', getApiErrorMessage(error));
+      toast.error('Erro ao excluir lead', getApiErrorMessage(error));
     }
   };
 
@@ -128,58 +182,57 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
       <Drawer
         open={Boolean(leadId)}
         onClose={onClose}
-        title={leadQuery.data?.name || 'Detalhes do Lead'}
-        subtitle={leadQuery.data
-          ? `Etapa: ${leadQuery.data.step_name ?? steps.find((step) => step.id === leadQuery.data?.step_id)?.name ?? '—'}`
-          : undefined}
+        title="Editar lead"
+        subtitle={leadQuery.data?.email}
       >
-        {leadQuery.isPending ? (
-          <div className="space-y-6">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-24 w-full" />
+        {leadQuery.isLoading && (
+          <div className="space-y-5">
+            <Skeleton className="h-28 w-full rounded-2xl" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
           </div>
-        ) : leadQuery.isError ? (
+        )}
+
+        {leadQuery.isError && (
           <ErrorState
             title="Não foi possível carregar o lead"
             error={leadQuery.error}
             onRetry={() => void leadQuery.refetch()}
           />
-        ) : leadQuery.data ? (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.07] pb-4 text-xs text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
-              <span>Criado em {formatDateTime(leadQuery.data.created_at)}</span>
-              <Link
-                to={`/leads/${leadQuery.data.id}`}
-                className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400"
-              >
-                <span>Abrir página</span>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Link>
-            </div>
+        )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-              <FormField label="Nome" htmlFor="drawer-lead-name" required error={errors.name?.message}>
+        {leadQuery.data && (
+          <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-5" noValidate>
+            <LeadSummary lead={leadQuery.data} onClose={onClose} />
+
+            <section className="grid grid-cols-1 gap-5">
+              <SectionTitle icon={<UserRound className="h-3.5 w-3.5" />}>
+                Dados do lead
+              </SectionTitle>
+
+              <FormField label="Nome" htmlFor="drawer-lead-name" required error={errors.name?.message} dense>
                 <TextInput
                   id="drawer-lead-name"
                   type="text"
+                  limit={255}
                   hasError={Boolean(errors.name)}
                   {...register('name')}
                 />
               </FormField>
 
-              <FormField label="E-mail" htmlFor="drawer-lead-email" required error={errors.email?.message}>
+              <FormField label="E-mail" htmlFor="drawer-lead-email" required error={errors.email?.message} dense>
                 <TextInput
                   id="drawer-lead-email"
                   type="email"
+                  limit={255}
                   hasError={Boolean(errors.email)}
                   {...register('email')}
                 />
               </FormField>
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                <FormField label="Telefone" htmlFor="drawer-lead-phone" error={errors.phone?.message}>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <FormField label="Telefone" htmlFor="drawer-lead-phone" error={errors.phone?.message} dense>
                   <Controller
                     control={control}
                     name="phone"
@@ -188,6 +241,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                         id="drawer-lead-phone"
                         type="tel"
                         placeholder="(11) 98765-4321"
+                        limit={15}
                         hasError={Boolean(errors.phone)}
                         value={field.value || ''}
                         onChange={(e) => field.onChange(maskPhone(e.target.value))}
@@ -197,7 +251,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                   />
                 </FormField>
 
-                <FormField label="Etapa" htmlFor="drawer-lead-step" required error={errors.step_id?.message}>
+                <FormField label="Etapa" htmlFor="drawer-lead-step" required error={errors.step_id?.message} dense>
                   <Controller
                     name="step_id"
                     control={control}
@@ -215,52 +269,73 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                   />
                 </FormField>
               </div>
+            </section>
 
-              <FormField label="Site" htmlFor="drawer-lead-website" error={errors.website?.message}>
+            <section className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.06] bg-[#fafaf9]/70 p-4 dark:border-white/[0.06] dark:bg-white/[0.02]">
+              <SectionTitle icon={<Globe className="h-3.5 w-3.5" />}>
+                Presença online
+              </SectionTitle>
+
+              <FormField label="Site" htmlFor="drawer-lead-website" error={errors.website?.message} dense>
                 <TextInput
                   id="drawer-lead-website"
                   type="url"
                   placeholder="https://empresa.com.br"
+                  limit={512}
                   hasError={Boolean(errors.website)}
                   {...register('website')}
                 />
               </FormField>
+            </section>
 
-              <FormField label="Observações" htmlFor="drawer-lead-description" error={errors.description?.message}>
+            <section className="grid grid-cols-1 gap-5">
+              <SectionTitle icon={<FileText className="h-3.5 w-3.5" />}>
+                Observações
+              </SectionTitle>
+
+              <FormField label="Observações" htmlFor="drawer-lead-description" error={errors.description?.message} dense>
                 <TextArea
                   id="drawer-lead-description"
+                  limit={5000}
+                  rows={3}
+                  resizable
                   hasError={Boolean(errors.description)}
                   {...register('description')}
                 />
               </FormField>
+            </section>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                <Button variant="outlined" color="error" startIcon={<Trash2 className="h-4 w-4" />} onClick={() => setConfirmOpen(true)}>
-                  Excluir
+            <div className="sticky bottom-0 z-10 mt-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-950/[0.07] bg-white/95 p-3 shadow-sm backdrop-blur dark:border-white/[0.07] dark:bg-[#17171a]/95">
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                startIcon={<Trash2 className="h-4 w-4" />}
+                onClick={() => setConfirmOpen(true)}
+              >
+                Excluir
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outlined" color="inherit" size="small" onClick={onClose}>
+                  Fechar
                 </Button>
-
-                <div className="flex items-center gap-2">
-                  <Button variant="outlined" color="inherit" onClick={onClose}>
-                    Fechar
-                  </Button>
-                  <Button variant="contained" disabled={updateMutation.isPending || !isDirty} type="submit">
-                    {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-                  </Button>
-                </div>
+                <Button type="submit" variant="contained" size="small" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+                </Button>
               </div>
-            </form>
-          </div>
-        ) : null}
+            </div>
+          </form>
+        )}
       </Drawer>
 
       <ConfirmDialog
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => void handleDelete()}
-        isPending={deleteMutation.isPending}
         title="Excluir lead"
-        description={`Tem certeza que deseja excluir o lead "${leadQuery.data?.name ?? ''}"? Essa ação não pode ser desfeita.`}
-        confirmLabel="Excluir lead"
+        description="Esta ação não pode ser desfeita. Deseja continuar?"
+        confirmLabel="Excluir"
+        isPending={deleteMutation.isPending}
+        onConfirm={() => void onDelete()}
+        onClose={() => setConfirmOpen(false)}
       />
     </>
   );

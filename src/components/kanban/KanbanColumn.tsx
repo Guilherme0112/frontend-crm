@@ -1,4 +1,3 @@
-import IconButton from '@mui/material/IconButton';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Loader2, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Step } from '@/src/lib/types';
@@ -7,6 +6,8 @@ import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useCreateLeadMutation } from '@/src/features/leads/hooks';
 import { useLeadsInfiniteQuery } from '@/src/features/leads/hooks';
 import { useToast } from '@/src/components/common/Toast';
+import ActionButton from '@/src/components/common/Button';
+import { TableActionButton } from '@/src/components/common/TableActionButton';
 import { KanbanCard } from './KanbanCard';
 import { KanbanInlineLeadForm, type InlineLeadValues } from './KanbanInlineLeadForm';
 
@@ -174,9 +175,9 @@ export function KanbanColumn({
               className="pointer-events-none absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-blue-500/80 opacity-0 transition-opacity duration-150 group-hover/gap:opacity-100"
             />
             {/* Botão + */}
-            <IconButton size="small" onClick={() => setAddingAt(index)} aria-label="Criar lead aqui" title="Criar lead aqui">
+            <TableActionButton tone="primary" onClick={() => setAddingAt(index)} aria-label="Criar lead aqui" title="Criar lead aqui">
               <Plus className="h-3.5 w-3.5" strokeWidth={2.6} />
-            </IconButton>
+            </TableActionButton>
           </>
         )}
       </div>
@@ -271,12 +272,12 @@ export function KanbanColumn({
           >
             <GripVertical className="h-4 w-4" />
           </button>
-          <IconButton size="small" onClick={() => onEditStep(step)} title="Editar etapa" aria-label={`Editar etapa ${step.name}`}>
+          <TableActionButton tone="primary" onClick={() => onEditStep(step)} title="Editar etapa" aria-label={`Editar etapa ${step.name}`}>
             <Pencil className="h-3.5 w-3.5" />
-          </IconButton>
-          <IconButton size="small" onClick={() => onDeleteStep(step)} title="Excluir etapa" aria-label={`Excluir etapa ${step.name}`}>
+          </TableActionButton>
+          <TableActionButton tone="error" onClick={() => onDeleteStep(step)} title="Excluir etapa" aria-label={`Excluir etapa ${step.name}`}>
             <Trash2 className="h-3.5 w-3.5" />
-          </IconButton>
+          </TableActionButton>
         </div>
       </div>
 
@@ -331,14 +332,16 @@ export function KanbanColumn({
 
         {/* Rodapé: botão de adicionar (o composer aparece no gap do fim da lista) */}
         {addingAt !== leads.length && (
-          <button
+          <ActionButton
             type="button"
+            fullWidth
+            size="small"
             onClick={() => setAddingAt(leads.length)}
-            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-transparent py-2 text-xs font-medium text-zinc-600 transition-colors hover:border-zinc-950/[0.07] hover:bg-white hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-white/[0.15] dark:hover:bg-white/[0.05] dark:hover:text-zinc-100"
+            className="mt-1"
+            startIcon={<Plus className="h-3.5 w-3.5" />}
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Adicionar lead</span>
-          </button>
+            Adicionar lead
+          </ActionButton>
         )}
       </div>
     </section>

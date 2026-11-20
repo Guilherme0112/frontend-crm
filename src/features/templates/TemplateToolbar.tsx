@@ -1,5 +1,6 @@
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { useEffect, useRef, useState } from 'react';
 import {
   Bold,
@@ -123,18 +124,23 @@ export function TemplateToolbar({ textareaId, value, onChange }: TemplateToolbar
 
       {/* Inserir variável */}
       <div ref={varsRef} className="relative">
-        <button
+        <ActionButton
           type="button"
+          size="small"
           onClick={() => setVarsOpen((prev) => !prev)}
           aria-expanded={varsOpen}
           aria-haspopup="listbox"
           title="Inserir variável"
-          className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-violet-700 transition-colors hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/50"
+          startIcon={<Variable className="h-3.5 w-3.5" strokeWidth={2} />}
+          endIcon={
+            <ChevronDown
+              className={cn('h-3.5 w-3.5 transition-transform', varsOpen && 'rotate-180')}
+              aria-hidden="true"
+            />
+          }
         >
-          <Variable className="h-3.5 w-3.5" strokeWidth={2} />
-          <span>Variável</span>
-          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', varsOpen && 'rotate-180')} aria-hidden="true" />
-        </button>
+          Variável
+        </ActionButton>
         {varsOpen && (
           <div
             role="listbox"

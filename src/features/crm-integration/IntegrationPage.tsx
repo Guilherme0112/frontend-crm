@@ -2,7 +2,10 @@ import Button from '@mui/material/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plug, TriangleAlert } from 'lucide-react';
-import { useCrmQuery, useStepsQuery, useUpdateCrmMutation } from '@/src/features/crm/hooks';
+import { useCrmQuery, useUpdateCrmMutation } from '@/src/features/crm/hooks';
+import { useFullList } from '@/src/lib/useInfiniteList';
+import { queryKeys } from '@/src/lib/queryKeys';
+import * as api from '@/src/lib/api';
 import { TokenSection } from './token/TokenSection';
 import { StepCombobox } from './steps/StepCombobox';
 import { SnippetsCard } from './snippets/SnippetsCard';
@@ -14,10 +17,16 @@ import { getApiErrorMessage } from '@/src/lib/formErrors';
 export function IntegrationPage() {
   const { id } = useParams();
   const crmId = Number(id);
+  const isValidCrmId = Number.isInteger(crmId) && crmId > 0;
   const { toast } = useToast();
 
   const crmQuery = useCrmQuery(crmId);
-  const stepsQuery = useStepsQuery(crmId);
+  const stepsQuery = useFullList(
+    queryKeys.crms.steps(crmId),
+    (page, size) => api.listSteps(crmId, page, size),
+    100,
+    isValidCrmId,
+  );
   const updateCrmMutation = useUpdateCrmMutation();
 
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
@@ -38,6 +47,21 @@ export function IntegrationPage() {
       setSelectedStepId(crm.public_step_id ?? null);
     }
   }, [crm?.id, crm?.public_step_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!isValidCrmId) {
+    return (
+      <div className="w-full space-y-4">
+        <Link
+          to="/crms"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Todos os CRMs</span>
+        </Link>
+        <ErrorState title="CRM inválido" />
+      </div>
+    );
+  }
 
   if (crmQuery.isPending || stepsQuery.isPending) {
     return (

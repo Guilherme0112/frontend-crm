@@ -8,6 +8,7 @@ import { CrmsPage } from '@/src/features/crm/CrmsPage';
 import { CrmBoardPage } from '@/src/features/crm/CrmBoardPage';
 import { IntegrationPage } from '@/src/features/crm-integration/IntegrationPage';
 import { LeadDetailPage } from '@/src/features/leads/LeadDetailPage';
+import { LeadHistoryPage } from '@/src/features/leads/LeadHistoryPage';
 import { SendingTemplatesPage } from '@/src/features/templates/SendingTemplatesPage';
 import { GroupsPage } from '@/src/features/groups/GroupsPage';
 import { GroupPage } from '@/src/features/groups/GroupPage';
@@ -37,6 +38,7 @@ export function AppRoutes() {
           <Route path="/crms/:id/audit" element={<CrmAuditPage />} />
           <Route path="/crms/:id/dashboard" element={<CrmDashboardPage />} />
           <Route path="/leads/:id" element={<LeadDetailPage />} />
+          <Route path="/leads/:id/history" element={<LeadHistoryPage />} />
           <Route path="/sending-templates" element={<SendingTemplatesPage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupPage />} />

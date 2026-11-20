@@ -1,13 +1,13 @@
 import Button from '@mui/material/Button';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Megaphone, Trash2 } from 'lucide-react';
+import { ArrowLeft, History, Megaphone, Trash2 } from 'lucide-react';
 import { FormField } from '@/src/components/common/FormField';
-import { TextInput } from '@/src/components/common/TextInput';
-import { TextArea } from '@/src/components/common/TextArea';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -50,7 +50,6 @@ const leadDetailSchema = z.object({
   utm_campaign: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
   utm_term: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
   utm_content: z.string().trim().max(255, 'Máximo de 255 caracteres').optional(),
-  utm_device: z.string().trim().max(40, 'Máximo de 40 caracteres').optional(),
   referrer: z.string().trim().max(512, 'Máximo de 512 caracteres').optional(),
   landing_page: z.string().trim().max(512, 'Máximo de 512 caracteres').optional(),
 });
@@ -98,7 +97,6 @@ export function LeadDetailPage() {
         utm_campaign: source?.utm_campaign ?? '',
         utm_term: source?.utm_term ?? '',
         utm_content: source?.utm_content ?? '',
-        utm_device: source?.utm_device ?? '',
         referrer: source?.referrer ?? '',
         landing_page: source?.landing_page ?? '',
       });
@@ -121,7 +119,6 @@ export function LeadDetailPage() {
           utm_campaign: values.utm_campaign?.trim() || null,
           utm_term: values.utm_term?.trim() || null,
           utm_content: values.utm_content?.trim() || null,
-          utm_device: values.utm_device?.trim() || null,
           referrer: values.referrer?.trim() || null,
           landing_page: values.landing_page?.trim() || null,
         },
@@ -146,7 +143,7 @@ export function LeadDetailPage() {
 
   if (leadQuery.isPending) {
     return (
-      <div className="w-full space-y-4">
+      <div className="mx-auto max-w-2xl space-y-4">
         <Skeleton className="h-8 w-48" />
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="space-y-4">
@@ -161,7 +158,7 @@ export function LeadDetailPage() {
 
   if (leadQuery.isError || !leadQuery.data) {
     return (
-      <div className="w-full space-y-4">
+      <div className="mx-auto max-w-2xl space-y-4">
         <Link
           to="/crms"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -181,7 +178,7 @@ export function LeadDetailPage() {
   const lead = leadQuery.data;
 
   return (
-    <div className="w-full space-y-6">
+    <div className="mx-auto max-w-2xl space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <Link
@@ -204,42 +201,61 @@ export function LeadDetailPage() {
           </p>
         </div>
 
-        <Button variant="outlined" color="error" startIcon={<Trash2 className="h-4 w-4" />} onClick={() => setConfirmOpen(true)}>
-          Excluir lead
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            component={Link}
+            to={`/leads/${lead.id}/history`}
+            variant="outlined"
+            size="small"
+            startIcon={<History className="h-4 w-4" />}
+          >
+            Ver histórico
+          </Button>
+
+          <Button
+            type="button"
+            variant="outlined"
+            color="error"
+            size="small"
+            startIcon={<Trash2 className="h-4 w-4" />}
+            onClick={() => setConfirmOpen(true)}
+          >
+            Excluir lead
+          </Button>
+        </div>
       </div>
 
       <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-          <FormField label="Nome" htmlFor="lead-name" required error={errors.name?.message}>
+        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-5 sm:grid-cols-2" noValidate>
+          <FormField label="Nome" htmlFor="lead-name" required error={errors.name?.message} dense className="sm:col-span-2">
             <TextInput
               id="lead-name"
+              limit={255}
               type="text"
-              hasError={Boolean(errors.name)}
               {...register('name')}
             />
           </FormField>
 
-          <FormField label="E-mail" htmlFor="lead-email" required error={errors.email?.message}>
+          <FormField label="E-mail" htmlFor="lead-email" required error={errors.email?.message} dense className="sm:col-span-2">
             <TextInput
               id="lead-email"
+              limit={255}
               type="email"
-              hasError={Boolean(errors.email)}
               {...register('email')}
             />
           </FormField>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <FormField label="Telefone" htmlFor="lead-phone" error={errors.phone?.message}>
+          <div className="grid grid-cols-1 gap-5 sm:col-span-2 sm:grid-cols-2">
+            <FormField label="Telefone" htmlFor="lead-phone" error={errors.phone?.message} dense>
               <Controller
                 control={control}
                 name="phone"
                 render={({ field }) => (
                   <TextInput
                     id="lead-phone"
+                    limit={15}
                     type="tel"
                     placeholder="(11) 98765-4321"
-                    hasError={Boolean(errors.phone)}
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskPhone(e.target.value))}
                     onBlur={field.onBlur}
@@ -248,7 +264,7 @@ export function LeadDetailPage() {
               />
             </FormField>
 
-            <FormField label="Etapa" htmlFor="lead-step" required error={errors.step_id?.message}>
+            <FormField label="Etapa" htmlFor="lead-step" required error={errors.step_id?.message} dense>
               <Controller
                 name="step_id"
                 control={control}
@@ -267,113 +283,107 @@ export function LeadDetailPage() {
             </FormField>
           </div>
 
-          <FormField label="Site" htmlFor="lead-website" error={errors.website?.message}>
+          <FormField label="Site" htmlFor="lead-website" error={errors.website?.message} dense className="sm:col-span-2">
             <TextInput
               id="lead-website"
+              limit={512}
               type="url"
               placeholder="https://empresa.com.br"
-              hasError={Boolean(errors.website)}
               {...register('website')}
             />
           </FormField>
 
-          <FormField label="Observações" htmlFor="lead-desc" error={errors.description?.message}>
+          <FormField label="Observações" htmlFor="lead-desc" error={errors.description?.message} dense className="sm:col-span-2">
             <TextArea
               id="lead-desc"
-              hasError={Boolean(errors.description)}
+              limit={5000}
+              rows={3}
+              resizable
               {...register('description')}
             />
           </FormField>
 
-          <fieldset className="space-y-3 rounded-xl border border-zinc-950/[0.07] p-4 dark:border-white/[0.07]">
-            <legend className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          <fieldset className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.07] p-5 sm:col-span-2 sm:grid-cols-2 dark:border-white/[0.07]">
+            <legend className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:col-span-2 dark:text-zinc-400">
               <Megaphone className="h-3.5 w-3.5" strokeWidth={1.8} />
               Origem (UTM)
             </legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label="Source (ex: google)" htmlFor="lead-utm-source" error={errors.utm_source?.message}>
+            <div className="col-span-1 grid grid-cols-1 gap-5 sm:col-span-2 sm:grid-cols-2">
+              <FormField label="Source (ex: google)" htmlFor="lead-utm-source" error={errors.utm_source?.message} dense>
                 <TextInput
                   id="lead-utm-source"
+                  limit={255}
                   type="text"
                   placeholder="google"
-                  hasError={Boolean(errors.utm_source)} className="font-mono"
+                  slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                   {...register('utm_source')}
                 />
               </FormField>
-              <FormField label="Medium (ex: cpc)" htmlFor="lead-utm-medium" error={errors.utm_medium?.message}>
+              <FormField label="Medium (ex: cpc)" htmlFor="lead-utm-medium" error={errors.utm_medium?.message} dense>
                 <TextInput
                   id="lead-utm-medium"
+                  limit={255}
                   type="text"
                   placeholder="cpc"
-                  hasError={Boolean(errors.utm_medium)} className="font-mono"
+                  slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                   {...register('utm_medium')}
                 />
               </FormField>
-              <FormField label="Campaign" htmlFor="lead-utm-campaign" error={errors.utm_campaign?.message}>
+              <FormField label="Campaign" htmlFor="lead-utm-campaign" error={errors.utm_campaign?.message} dense>
                 <TextInput
                   id="lead-utm-campaign"
+                  limit={255}
                   type="text"
                   placeholder="lancamento-2026"
-                  hasError={Boolean(errors.utm_campaign)} className="font-mono"
+                  slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                   {...register('utm_campaign')}
                 />
               </FormField>
-              <FormField label="Term" htmlFor="lead-utm-term" error={errors.utm_term?.message}>
+              <FormField label="Term" htmlFor="lead-utm-term" error={errors.utm_term?.message} dense>
                 <TextInput
                   id="lead-utm-term"
+                  limit={255}
                   type="text"
                   placeholder="palavra-chave"
-                  hasError={Boolean(errors.utm_term)} className="font-mono"
+                  slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                   {...register('utm_term')}
                 />
               </FormField>
-              <FormField label="Content" htmlFor="lead-utm-content" error={errors.utm_content?.message}>
+              <FormField label="Content" htmlFor="lead-utm-content" error={errors.utm_content?.message} dense>
                 <TextInput
                   id="lead-utm-content"
+                  limit={255}
                   type="text"
                   placeholder="cta-azul"
-                  hasError={Boolean(errors.utm_content)} className="font-mono"
+                  slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                   {...register('utm_content')}
                 />
               </FormField>
-              <FormField label="Device" htmlFor="lead-utm-device" error={errors.utm_device?.message}>
-                <TextInput
-                  id="lead-utm-device"
-                  type="text"
-                  slotProps={{ htmlInput: { list: 'lead-utm-device-options' } }}
-                  placeholder="mobile"
-                  hasError={Boolean(errors.utm_device)} className="font-mono"
-                  {...register('utm_device')}
-                />
-                <datalist id="lead-utm-device-options">
-                  <option value="mobile" />
-                  <option value="desktop" />
-                  <option value="tablet" />
-                </datalist>
-              </FormField>
-              <FormField label="Referrer" htmlFor="lead-referrer" error={errors.referrer?.message}>
+              <FormField label="Referrer" htmlFor="lead-referrer" error={errors.referrer?.message} dense>
                 <TextInput
                   id="lead-referrer"
+                  limit={512}
                   type="text"
                   placeholder="https://google.com"
-                  hasError={Boolean(errors.referrer)} className="font-mono"
+                  slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                   {...register('referrer')}
                 />
               </FormField>
             </div>
-            <FormField label="Landing page" htmlFor="lead-landing-page" error={errors.landing_page?.message}>
+            <FormField label="Landing page" htmlFor="lead-landing-page" error={errors.landing_page?.message} dense className="sm:col-span-2">
               <TextInput
                 id="lead-landing-page"
+                limit={512}
                 type="url"
                 placeholder="https://site.com.br/lp"
-                hasError={Boolean(errors.landing_page)} className="font-mono"
+                slotProps={{ htmlInput: { sx: { fontFamily: 'monospace' } } }}
                 {...register('landing_page')}
               />
             </FormField>
           </fieldset>
 
-          <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Button variant="contained" disabled={updateMutation.isPending || !isDirty} type="submit">
+          <div className="flex justify-end border-t border-zinc-950/[0.07] pt-5 sm:col-span-2 dark:border-white/[0.07]">
+            <Button type="submit" variant="contained" disabled={updateMutation.isPending || !isDirty}>
               {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
             </Button>
           </div>

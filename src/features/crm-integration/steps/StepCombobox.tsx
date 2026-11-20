@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { cn } from '@/src/lib/cn';
 import type { Step } from '@/src/lib/types';
 import { TextInput } from '@/src/components/common/TextInput';
+import ActionButton from '@/src/components/common/Button';
 
 interface StepComboboxProps {
   crmId: number;
@@ -213,18 +214,20 @@ export function StepCombobox({ crmId, steps, value, onChange, disabled }: StepCo
 
             {canCreate && (
               <li role="option" aria-selected={false}>
-                <button
+                <ActionButton
                   type="button"
+                  fullWidth
+                  size="small"
                   onClick={() => void handleCreate()}
                   onMouseEnter={() => setActiveIndex(selectableCount - 1)}
+                  sx={{ justifyContent: 'flex-start' }}
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold text-blue-700 transition-colors hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-950/40',
-                    activeIndex === selectableCount - 1 && 'bg-blue-50 dark:bg-blue-950/40',
+                    activeIndex === selectableCount - 1 && 'ring-2 ring-blue-300 dark:ring-blue-500',
                   )}
+                  startIcon={<Plus className="h-4 w-4 shrink-0" aria-hidden="true" />}
                 >
-                  <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
                   Criar etapa &quot;{query.trim()}&quot;
-                </button>
+                </ActionButton>
               </li>
             )}
           </ul>

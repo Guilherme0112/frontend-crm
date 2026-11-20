@@ -1,7 +1,8 @@
-import { useState } from 'react';
 import { Check, Copy, Megaphone, TriangleAlert } from 'lucide-react';
 import { useToast } from '@/src/components/common/Toast';
+import ActionButton from '@/src/components/common/Button';
 import { cn } from '@/src/lib/cn';
+import { useCopyToClipboard } from '@/src/lib/useCopyToClipboard';
 import { maskTokenMiddle } from '../tokenMask';
 import type { Crm } from '@/src/lib/types';
 
@@ -83,40 +84,35 @@ interface SnippetsCardProps {
 }
 
 function CopyMiniButton({ text, label }: { text: string; label: string }) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const { toast } = useToast();
 
-  const copy = async () => {
+  const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
+      await copy(text);
       toast.success('Copiado para a área de transferência');
-      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Não foi possível copiar');
     }
   };
 
   return (
-    <button
+    <ActionButton
       type="button"
-      onClick={() => void copy()}
-      className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
+      size="small"
+      onClick={() => void handleCopy()}
       aria-label={label}
       title={label}
-    >
-      {copied ? (
-        <>
-          <Check className="h-3 w-3 text-emerald-400" strokeWidth={2.5} />
-          Copiado
-        </>
-      ) : (
-        <>
+      startIcon={
+        copied ? (
+          <Check className="h-3 w-3" strokeWidth={2.5} />
+        ) : (
           <Copy className="h-3 w-3" />
-          Copiar
-        </>
-      )}
-    </button>
+        )
+      }
+    >
+      {copied ? 'Copiado' : 'Copiar'}
+    </ActionButton>
   );
 }
 

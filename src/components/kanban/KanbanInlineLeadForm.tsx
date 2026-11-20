@@ -61,8 +61,10 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
         <TextInput
           type="text"
           placeholder="Nome do lead *"
+          limit={255}
           autoFocus
-          className="w-full rounded-md border border-zinc-950/[0.12] bg-white px-2.5 py-1.5 text-xs text-zinc-900 focus:border-blue-600 focus:outline-none dark:border-white/[0.12] dark:bg-[#101012] dark:text-zinc-100"
+          size="small"
+          hasError={Boolean(errors.name)}
           {...register('name')}
         />
         {errors.name && (
@@ -74,7 +76,9 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
         <TextInput
           type="email"
           placeholder="E-mail *"
-          className="w-full rounded-md border border-zinc-950/[0.12] bg-white px-2.5 py-1.5 text-xs text-zinc-900 focus:border-blue-600 focus:outline-none dark:border-white/[0.12] dark:bg-[#101012] dark:text-zinc-100"
+          limit={255}
+          size="small"
+          hasError={Boolean(errors.email)}
           {...register('email')}
         />
         {errors.email && (
@@ -90,7 +94,9 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
             <TextInput
               type="tel"
               placeholder="Telefone (opcional)"
-              className="w-full rounded-md border border-zinc-950/[0.12] bg-white px-2.5 py-1.5 text-xs text-zinc-900 focus:border-blue-600 focus:outline-none dark:border-white/[0.12] dark:bg-[#101012] dark:text-zinc-100"
+              limit={15}
+              size="small"
+              hasError={Boolean(errors.phone)}
               value={field.value || ''}
               onChange={(e) => field.onChange(maskPhone(e.target.value))}
               onBlur={field.onBlur}
@@ -103,14 +109,10 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-white/[0.06]"
-        >
+        <Button type="button" size="small" color="inherit" onClick={onCancel}>
           Cancelar
-        </button>
-        <Button variant="contained" disabled={isPending} type="submit">
+        </Button>
+        <Button size="small" variant="contained" disabled={isPending} type="submit">
           {isPending ? 'Salvando...' : 'Adicionar'}
         </Button>
       </div>

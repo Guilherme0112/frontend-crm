@@ -1,13 +1,13 @@
 import Button from '@mui/material/Button';
+import { TextInput } from '@/src/components/common/TextInput';
+import { TextArea } from '@/src/components/common/TextArea';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useCompanyQuery, useUpdateCompanyMutation } from './hooks';
-import { FormField } from '@/src/components/common/FormField';
-import { TextInput } from '@/src/components/common/TextInput';
-import { TextArea } from '@/src/components/common/TextArea';
+import { FormField, inputClassName } from '@/src/components/common/FormField';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
@@ -155,7 +155,7 @@ export function CompanyPage() {
 
   if (companyQuery.isPending) {
     return (
-      <div className="w-full space-y-6">
+      <div className="mx-auto max-w-3xl space-y-6">
         <Skeleton className="h-9 w-56" />
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="space-y-4">
@@ -179,7 +179,7 @@ export function CompanyPage() {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
           Empresa
@@ -194,14 +194,14 @@ export function CompanyPage() {
         className="space-y-6 rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]"
         noValidate
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-950/[0.07] pb-2 dark:border-white/[0.07]">
             <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Informações gerais
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               label="Nome da empresa"
               htmlFor="comp-name"
@@ -211,8 +211,8 @@ export function CompanyPage() {
             >
               <TextInput
                 id="comp-name"
+                limit={255}
                 type="text"
-                hasError={Boolean(errors.name)}
                 {...register('name')}
               />
             </FormField>
@@ -229,10 +229,11 @@ export function CompanyPage() {
                 render={({ field }) => (
                   <TextInput
                     id="comp-document"
+                    limit={18}
                     type="text"
                     inputMode="numeric"
                     placeholder="00.000.000/0000-00"
-                    hasError={Boolean(errors.document_number)} className="font-mono tabular-nums"
+                    className={`${inputClassName(Boolean(errors.document_number))} font-mono tabular-nums`}
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
                     onBlur={field.onBlur}
@@ -244,9 +245,9 @@ export function CompanyPage() {
             <FormField label="Site" htmlFor="comp-website" error={errors.website?.message}>
               <TextInput
                 id="comp-website"
+                limit={512}
                 type="url"
                 placeholder="https://empresa.com.br"
-                hasError={Boolean(errors.website)}
                 {...register('website')}
               />
             </FormField>
@@ -259,14 +260,15 @@ export function CompanyPage() {
             >
               <TextArea
                 id="comp-desc"
-                hasError={Boolean(errors.description)}
+                limit={5000}
+                rows={3}
                 {...register('description')}
               />
             </FormField>
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           <h2 className="border-b border-zinc-950/[0.07] pb-2 text-sm font-semibold text-zinc-900 dark:border-white/[0.07] dark:text-zinc-100">
             Endereço
           </h2>
@@ -287,7 +289,7 @@ export function CompanyPage() {
                     type="text"
                     inputMode="numeric"
                     placeholder="00000-000"
-                    hasError={Boolean(errors.address?.zip_code)} className="font-mono tabular-nums"
+                    className={`${inputClassName(Boolean(errors.address?.zip_code))} font-mono tabular-nums`}
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskZipCode(e.target.value))}
                     onBlur={field.onBlur}
@@ -306,7 +308,6 @@ export function CompanyPage() {
                 id="addr-street"
                 type="text"
                 placeholder="Av. Paulista"
-                hasError={Boolean(errors.address?.street)}
                 {...register('address.street')}
               />
             </FormField>
@@ -321,7 +322,6 @@ export function CompanyPage() {
                 id="addr-number"
                 type="text"
                 placeholder="1000"
-                hasError={Boolean(errors.address?.number)}
                 {...register('address.number')}
               />
             </FormField>
@@ -336,7 +336,6 @@ export function CompanyPage() {
                 id="addr-comp"
                 type="text"
                 placeholder="Sala 12"
-                hasError={Boolean(errors.address?.complement)}
                 {...register('address.complement')}
               />
             </FormField>
@@ -351,7 +350,6 @@ export function CompanyPage() {
                 id="addr-neigh"
                 type="text"
                 placeholder="Bela Vista"
-                hasError={Boolean(errors.address?.neighborhood)}
                 {...register('address.neighborhood')}
               />
             </FormField>
@@ -366,7 +364,6 @@ export function CompanyPage() {
                 id="addr-city"
                 type="text"
                 placeholder="São Paulo"
-                hasError={Boolean(errors.address?.city)}
                 {...register('address.city')}
               />
             </FormField>
@@ -382,7 +379,7 @@ export function CompanyPage() {
                 type="text"
                 maxLength={2}
                 placeholder="SP"
-                hasError={Boolean(errors.address?.state)} className="uppercase"
+                className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
                 {...register('address.state')}
               />
             </FormField>
@@ -397,7 +394,6 @@ export function CompanyPage() {
                 id="addr-country"
                 type="text"
                 placeholder="Brasil"
-                hasError={Boolean(errors.address?.country)}
                 {...register('address.country')}
               />
             </FormField>
@@ -412,7 +408,7 @@ export function CompanyPage() {
                 id="addr-ibge"
                 type="text"
                 placeholder="3550308"
-                hasError={Boolean(errors.address?.ibge_code)} className="font-mono tabular-nums"
+                className={`${inputClassName(Boolean(errors.address?.ibge_code))} font-mono tabular-nums`}
                 {...register('address.ibge_code')}
               />
             </FormField>
@@ -420,7 +416,11 @@ export function CompanyPage() {
         </div>
 
         <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-          <Button variant="contained" disabled={updateMutation.isPending || !isDirty} type="submit">
+          <Button
+            type="submit"
+            disabled={updateMutation.isPending || !isDirty}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+          >
             {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
           </Button>
         </div>

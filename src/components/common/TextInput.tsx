@@ -5,10 +5,12 @@ import { useFieldMeta } from './FormField';
 
 export type TextInputProps = Omit<TextFieldProps, 'error' | 'variant'> & {
   hasError?: boolean;
+  /** Limite de caracteres. Padrão: 100. */
+  limit?: number;
 };
 
 export const TextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextInputProps>(
-  function TextInput({ hasError, label, helperText, required, onChange, slotProps, ...props }, ref) {
+  function TextInput({ hasError, label, helperText, required, onChange, slotProps, limit = 100, ...props }, ref) {
     const field = useFieldMeta();
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
     const [filled, setFilled] = useState(false);
@@ -55,6 +57,10 @@ export const TextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Text
         error={Boolean(resolvedError)}
         slotProps={{
           ...slotProps,
+          htmlInput: {
+            ...(slotProps?.htmlInput as object | undefined),
+            maxLength: limit,
+          },
           // Só força o encolhimento: vazio, o MUI decide e a animação continua.
           inputLabel: {
             ...(slotProps?.inputLabel as object | undefined),

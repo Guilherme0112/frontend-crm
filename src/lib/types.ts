@@ -298,6 +298,49 @@ export interface LeadStepChangePage {
   items: LeadStepChange[];
 }
 
+export interface LeadHistoryMovement {
+  id: number;
+  from_step_name: string | null;
+  to_step_name: string | null;
+  changed_by_name: string | null;
+  source: 'manual' | 'public' | 'system' | string;
+}
+
+export interface LeadHistoryEmail {
+  id: number;
+  status: GroupRecipientStatus;
+  attempts: number;
+  error_message: string | null;
+  sent_at: string | null;
+  lead_email: string | null;
+  send_id: number | null;
+  send_subject: string | null;
+  template_name: string | null;
+  group_id: number | null;
+  group_name: string | null;
+}
+
+export interface LeadHistoryEntry {
+  id: string;
+  type: 'movement' | 'email';
+  created_at: string;
+  data: LeadHistoryMovement | LeadHistoryEmail;
+}
+
+export interface LeadHistory {
+  lead: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  source: LeadSource | null;
+  timeline: LeadHistoryEntry[];
+  counts: {
+    movements: number;
+    emails: number;
+  };
+}
+
 export interface LeadSource {
   utm_source: string | null;
   utm_medium: string | null;

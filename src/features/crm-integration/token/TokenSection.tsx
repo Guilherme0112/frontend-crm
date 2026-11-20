@@ -6,10 +6,9 @@ import { useRegenerateCrmTokenMutation } from '@/src/features/crm/hooks';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { useToast } from '@/src/components/common/Toast';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
+import { useCopyToClipboard } from '@/src/lib/useCopyToClipboard';
 import { maskTokenMiddle } from '../tokenMask';
 import type { Crm } from '@/src/lib/types';
-
-const REGENERATED_FLAG = 'crm-integration-token-regenerated';
 
 interface TokenSectionProps {
   crm: Crm;
@@ -18,18 +17,17 @@ interface TokenSectionProps {
 export function TokenSection({ crm }: TokenSectionProps) {
   const { toast } = useToast();
   const regenerateMutation = useRegenerateCrmTokenMutation();
-  const [copied, setCopied] = useState(false);
+  const flagKey = `crm-integration-token-regenerated:${crm.id}`;
+  const { copied, copy } = useCopyToClipboard();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(
-    () => sessionStorage.getItem(REGENERATED_FLAG) === '1',
+    () => sessionStorage.getItem(flagKey) === '1',
   );
 
   const copyToken = async () => {
     try {
-      await navigator.clipboard.writeText(crm.token);
-      setCopied(true);
+      await copy(crm.token);
       toast.success('Token copiado');
-      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Não foi possível copiar o token');
     }
@@ -40,7 +38,7 @@ export function TokenSection({ crm }: TokenSectionProps) {
       await regenerateMutation.mutateAsync(crm.id);
       toast.success('Token regenerado — atualize suas integrações');
       try {
-        sessionStorage.setItem(REGENERATED_FLAG, '1');
+        sessionStorage.setItem(flagKey, '1');
       } catch {
         // sessionStorage indisponível — banner fica só em memória
       }
@@ -88,7 +86,7 @@ export function TokenSection({ crm }: TokenSectionProps) {
             onClick={() => {
               setShowBanner(false);
               try {
-                sessionStorage.removeItem(REGENERATED_FLAG);
+                sessionStorage.removeItem(flagKey);
               } catch {
                 /* ignore */
               }

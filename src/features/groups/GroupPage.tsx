@@ -1,5 +1,6 @@
 import InputAdornment from '@mui/material/InputAdornment';
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -325,24 +326,18 @@ export function GroupPage() {
                 Marque os leads que devem receber as campanhas deste grupo.
               </p>
             </div>
-            <button
+            <ActionButton
               type="button"
+              size="small"
               onClick={toggleAllFiltered}
               disabled={filteredLeads.length === 0}
-              className="inline-flex shrink-0 items-center gap-2 text-xs font-semibold text-blue-600 transition-colors hover:text-blue-700 disabled:opacity-40 dark:text-blue-400 dark:hover:text-blue-300"
+              className="shrink-0"
+              startIcon={
+                allFilteredSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />
+              }
             >
-              {allFilteredSelected ? (
-                <>
-                  <CheckSquare className="h-4 w-4" />
-                  Desmarcar todos
-                </>
-              ) : (
-                <>
-                  <Square className="h-4 w-4" />
-                  Selecionar todos
-                </>
-              )}
-            </button>
+              {allFilteredSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+            </ActionButton>
           </div>
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">

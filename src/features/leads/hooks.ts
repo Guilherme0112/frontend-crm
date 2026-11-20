@@ -40,6 +40,15 @@ export function useLeadQuery(id: number | null) {
   });
 }
 
+export function useLeadHistoryQuery(id: number | null, limit = 100) {
+  return useQuery({
+    queryKey: queryKeys.leads.history(id ?? 0),
+    queryFn: () => api.getLeadHistory(id as number, limit),
+    enabled: Boolean(id && id > 0),
+    retry: false,
+  });
+}
+
 export function useCreateLeadMutation() {
   const queryClient = useQueryClient();
   return useMutation({

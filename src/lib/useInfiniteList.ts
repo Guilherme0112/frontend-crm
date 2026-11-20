@@ -4,8 +4,8 @@ import * as api from './api';
 import type { PaginatedResponse } from './api';
 
 /**
- * Consome uma lista paginada em formato { data: [...], meta: {...} }
- * e expõe páginas achatadas + meta do último lote carregado.
+ * Consome uma lista paginada cujo corpo é só { data: [...] }. O `meta` usado
+ * aqui é normalizado pelo interceptor do api.ts a partir de page/per_page.
  */
 export function useInfiniteList<T>(
   queryKey: readonly unknown[],

@@ -14,6 +14,7 @@ import type {
   CheckoutSession,
   CreateUserPayload,
   LeadStepChangePage,
+  LeadHistory,
   LeadSource,
   LeadSourcesReport,
   DashboardSummary,
@@ -91,8 +92,42 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * A API devolve só `{ data: [...] }` (sem links/meta). Este interceptor
+ * reconstrói o mínimo de navegação no cliente a partir de `page`/`per_page`
+ * e do tamanho da página, para as telas continuarem paginando sem acoplar
+ * metadata do Laravel ao contrato de resposta.
+ */
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const body = response.data;
+    const params = response.config.params as Record<string, unknown> | undefined;
+
+    if (
+      body &&
+      typeof body === 'object' &&
+      Array.isArray(body.data) &&
+      body.meta === undefined &&
+      params &&
+      params.per_page !== undefined
+    ) {
+      const page = Math.max(1, Number(params.page ?? 1));
+      const perPage = Math.max(1, Number(params.per_page));
+      const items = body.data as unknown[];
+      const offset = (page - 1) * perPage;
+
+      body.meta = {
+        current_page: page,
+        per_page: perPage,
+        total: offset + items.length,
+        last_page: page + (items.length === perPage ? 1 : 0),
+        from: items.length ? offset + 1 : null,
+        to: items.length ? offset + items.length : null,
+      };
+    }
+
+    return response;
+  },
   (error) => {
     const status = error?.response?.status;
     const requestUrl: string = error?.config?.url || '';
@@ -433,6 +468,13 @@ export async function getCrmsComparison(): Promise<CrmsComparisonReport> {
 
 export async function getLeadSource(leadId: number): Promise<LeadSource> {
   const res = await apiClient.get<ApiResponse<LeadSource>>(`/leads/${leadId}/source`);
+  return res.data.data;
+}
+
+export async function getLeadHistory(leadId: number, limit = 100): Promise<LeadHistory> {
+  const res = await apiClient.get<ApiResponse<LeadHistory>>(`/leads/${leadId}/history`, {
+    params: { limit },
+  });
   return res.data.data;
 }
 
