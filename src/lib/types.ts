@@ -625,3 +625,77 @@ export interface DashboardSummary {
     plan_id?: number;
   } | null;
 }
+
+// --- WhatsApp ---
+export interface WhatsappSender {
+  id: number;
+  name: string;
+  phone_number: string | null;
+  phone_number_id: string;
+  has_access_token: boolean;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateWhatsappSenderInput {
+  name: string;
+  phone_number?: string | null;
+  phone_number_id: string;
+  access_token: string;
+  is_active?: boolean;
+}
+
+export type UpdateWhatsappSenderInput = Partial<Omit<CreateWhatsappSenderInput, 'access_token'>> & {
+  access_token?: string; // omit/empty -> keep stored token
+};
+
+export interface WhatsappTemplate {
+  id: number;
+  name: string;
+  language: string;
+  category?: string | null;
+  variable_mapping: Record<string, unknown> | null;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateWhatsappTemplateInput {
+  name: string;
+  language: string;
+  category?: string | null;
+  variable_mapping?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
+export type UpdateWhatsappTemplateInput = Partial<CreateWhatsappTemplateInput>;
+
+export type WhatsappDispatchStatus = 'pending' | 'sent' | 'failed';
+
+export interface WhatsappDispatchLog {
+  id: number;
+  company_id: number;
+  group_id: number | null;
+  lead_id: number | null;
+  whatsapp_sender_id: number;
+  whatsapp_template_id: number;
+  recipient_phone: string;
+  status: WhatsappDispatchStatus;
+  wamid: string | null;
+  error_message: string | null;
+  sent_at: string | null;
+  attempts: number;
+  created_by: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/* (pagination removed: API returns only items) */
+
+export interface WhatsappDispatchResult {
+  total: number;
+  queued: number;
+  failed: number;
+  logs: number[];
+}

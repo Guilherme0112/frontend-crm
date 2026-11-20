@@ -1,16 +1,32 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import type { CreateGroupPayload, UpdateGroupPayload } from '@/src/lib/types';
+import type { WhatsappDispatchLogFilters } from '@/src/lib/api';
 
-const GROUPS_PER_PAGE = 10;
+function asListResult<T>(items: T[]) {
+  return {
+    data: items,
+    meta: {
+      current_page: 1,
+      per_page: items.length || 1,
+      total: items.length,
+      last_page: 1,
+      from: items.length ? 1 : null,
+      to: items.length ? items.length : null,
+    },
+  };
+}
 
-export function useGroupsQuery(page = 1, perPage = GROUPS_PER_PAGE) {
-  return useQuery({
-    queryKey: queryKeys.groups.list(page, perPage),
-    queryFn: () => api.listGroups(page, perPage),
-    placeholderData: keepPreviousData,
+export function useGroupsQuery(_page = 1, _perPage = 10) {
+  const query = useQuery({
+    queryKey: queryKeys.groups.all,
+    queryFn: () => api.listGroups(),
   });
+  return {
+    ...query,
+    data: query.data ? asListResult(query.data) : undefined,
+  };
 }
 
 export function useGroupQuery(id: number) {
@@ -45,10 +61,56 @@ export function useSyncGroupLeadsMutation() {
 export function useSendGroupEmailsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => api.sendGroupEmails(id),
-    onSuccess: (_, id) => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.groups.sends(id) });
+    mutationFn: ({
+      groupId,
+      templateId,
+      emailConfigId,
+    }: {
+      groupId: number;
+      templateId: number;
+      emailConfigId: number;
+    }) => api.sendGroupEmails(groupId, { template_id: templateId, email_config_id: emailConfigId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
     },
+  });
+}
+
+export function useSendGroupWhatsappMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      whatsappSenderId,
+      whatsappTemplateId,
+    }: {
+      groupId: number;
+      whatsappSenderId: number;
+      whatsappTemplateId: number;
+    }) =>
+      api.sendGroupWhatsapp(groupId, {
+        whatsapp_sender_id: whatsappSenderId,
+        whatsapp_template_id: whatsappTemplateId,
+      }),
+    onSuccess: (_, { groupId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.whatsappDispatchLogs.all });
+      void queryClient.invalidateQueries({ queryKey: ['whatsapp-dispatch-logs', 'group', groupId] });
+    },
+  });
+}
+
+export function useWhatsappDispatchLogsQuery(filters: WhatsappDispatchLogFilters, enabled = true) {
+  const normalized = {
+    group_id: filters.group_id ?? null,
+    lead_id: filters.lead_id ?? null,
+    status: filters.status ?? null,
+  };
+  return useQuery({
+    queryKey: queryKeys.whatsappDispatchLogs.list(normalized),
+    queryFn: () => api.listWhatsappDispatchLogs(filters),
+    enabled,
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((log) => log.status === 'pending') ? 3000 : false,
   });
 }
 
@@ -57,7 +119,6 @@ export function useGroupSendsQuery(groupId: number, page = 1, perPage = 10) {
     queryKey: queryKeys.groups.sendsList(groupId, page, perPage),
     queryFn: () => api.listGroupSends(groupId, page, perPage),
     enabled: Number.isFinite(groupId) && groupId > 0,
-    // While any send is processing, poll until it settles to completed/completed_with_errors.
     refetchInterval: (query) =>
       query.state.data?.items.some((send) => send.status === 'processing') ? 3000 : false,
   });

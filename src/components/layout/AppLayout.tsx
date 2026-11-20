@@ -8,7 +8,6 @@ import {
   FolderKanban,
   LayoutDashboard,
   LogOut,
-  MailCheck,
   Menu,
   User,
   Users,
@@ -37,8 +36,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/', label: 'Visão Geral', icon: LayoutDashboard, end: true },
       { to: '/crms', label: 'CRMs', icon: FolderKanban },
-      { to: '/sending-templates', label: 'Templates de Envio', icon: MailCheck },
-      { to: '/groups', label: 'Grupos', icon: UsersRound },
+      { to: '/disparos', label: 'Disparos', icon: UsersRound },
     ],
   },
   {
@@ -64,14 +62,16 @@ function getPageTitle(pathname: string): string {
   if (pathname === '/crms') return 'CRMs';
   if (pathname === '/crms/dashboard') return 'Dashboard de todos os CRMs';
   if (/^\/crms\/\d+\/board/.test(pathname)) return 'Quadro Kanban';
-  if (/^\/groups\/\d+/.test(pathname)) return 'Grupo';
+  if (/^\/groups\/\d+/.test(pathname) || /^\/disparos\/\d+/.test(pathname)) return 'Grupo';
   if (/^\/crms\/\d+\/integration/.test(pathname)) return 'Integração pública';
   if (/^\/crms\/\d+\/audit/.test(pathname)) return 'Auditoria de mudanças';
   if (/^\/crms\/\d+\/dashboard/.test(pathname)) return 'Visão geral';
   if (/^\/leads\/\d+/.test(pathname)) return 'Detalhes do Lead';
-  if (pathname === '/sending-templates') return 'Templates de Envio';
-  if (pathname === '/groups') return 'Grupos';
-  if (pathname === '/email-configs') return 'Configuração de email';
+  if (pathname === '/sending-templates') return 'Templates de E-mail';
+  if (pathname === '/groups' || pathname === '/disparos') return 'Disparos';
+  if (pathname === '/email-configs') return 'Configuração de e-mail';
+  if (pathname === '/whatsapp-senders') return 'Configurar WhatsApp';
+  if (pathname === '/whatsapp-templates') return 'Templates WhatsApp';
   if (pathname === '/billing') return 'Planos e Assinatura';
   if (pathname === '/invoices') return 'Faturas';
   if (pathname === '/company') return 'Empresa';

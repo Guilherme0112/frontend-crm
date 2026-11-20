@@ -1,21 +1,35 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
-import type {
-  CreateCheckoutPayload,
-  CreatePlanPayload,
-} from '@/src/lib/types';
+import type { CreateCheckoutPayload, CreatePlanPayload } from '@/src/lib/types';
 
-import { useFullList } from '@/src/lib/useInfiniteList';
+function asListResult<T>(items: T[]) {
+  return {
+    data: items,
+    meta: {
+      current_page: 1,
+      per_page: items.length || 1,
+      total: items.length,
+      last_page: 1,
+      from: items.length ? 1 : null,
+      to: items.length ? items.length : null,
+    },
+  };
+}
 
-/**
- * Planos, assinaturas e métodos de pagamento vêm inteiros: a tela de
- * faturamento precisa do conjunto completo para achar a assinatura ativa,
- * resolver o nome do plano no histórico e montar o seletor de método no
- * modal de contratação. A paginação dessas três listas é feita no cliente.
- */
 export function usePlansFullQuery() {
-  return useFullList(queryKeys.plans.all, (page, size) => api.listPlans(page, size));
+  const query = useQuery({
+    queryKey: queryKeys.plans.all,
+    queryFn: () => api.listPlans(),
+  });
+  const items = query.data ?? [];
+  return {
+    ...query,
+    items,
+    data: query.data,
+    meta: asListResult(items).meta,
+    total: items.length,
+  };
 }
 
 export function useCreatePlanMutation() {
@@ -29,16 +43,20 @@ export function useCreatePlanMutation() {
 }
 
 export function useSubscriptionsFullQuery() {
-  return useFullList(queryKeys.subscriptions.all, (page, size) =>
-    api.listSubscriptions(page, size),
-  );
+  const query = useQuery({
+    queryKey: queryKeys.subscriptions.all,
+    queryFn: () => api.listSubscriptions(),
+  });
+  const items = query.data ?? [];
+  return {
+    ...query,
+    items,
+    data: query.data,
+    meta: asListResult(items).meta,
+    total: items.length,
+  };
 }
 
-/**
- * Mexer na assinatura muda o plano exibido no dashboard e pode gerar fatura.
- * Uma troca de plano reescreve as duas assinaturas de uma vez, então o cache
- * dessas três listas sempre cai junto.
- */
 function invalidateBilling(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions.all });
   void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
@@ -53,7 +71,6 @@ export function useCreateCheckoutMutation() {
   });
 }
 
-/** Troca de plano na assinatura existente, sem redigitar cartão. */
 export function useChangePlanMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -62,10 +79,6 @@ export function useChangePlanMutation() {
   });
 }
 
-/**
- * Contratação aguardando pagamento. Busca o link no gateway, então só roda
- * quando há de fato uma pendência a resolver.
- */
 export function usePendingCheckoutQuery(enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.subscriptions.pending,
@@ -85,7 +98,6 @@ export function useDiscardPendingCheckoutMutation() {
   });
 }
 
-/** Chave pública do gateway. Não muda em runtime, então fica em cache longo. */
 export function useBillingConfigQuery() {
   return useQuery({
     queryKey: queryKeys.billing.config,
@@ -94,7 +106,6 @@ export function useBillingConfigQuery() {
   });
 }
 
-/** Força a reconciliação quando o webhook do Mercado Pago não chegou. */
 export function useSyncSubscriptionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -111,14 +122,15 @@ export function useCancelSubscriptionMutation() {
   });
 }
 
-const INVOICES_PER_PAGE = 10;
-
-export function useInvoicesQuery(page = 1, perPage = INVOICES_PER_PAGE) {
-  return useQuery({
-    queryKey: queryKeys.invoices.list(page, perPage),
-    queryFn: () => api.listInvoices(page, perPage),
-    placeholderData: keepPreviousData,
+export function useInvoicesQuery(_page = 1, _perPage = 10) {
+  const query = useQuery({
+    queryKey: queryKeys.invoices.all,
+    queryFn: () => api.listInvoices(),
   });
+  return {
+    ...query,
+    data: query.data ? asListResult(query.data) : undefined,
+  };
 }
 
 export function usePayInvoiceMutation() {
@@ -130,4 +142,3 @@ export function usePayInvoiceMutation() {
     },
   });
 }
-

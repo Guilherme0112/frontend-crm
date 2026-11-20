@@ -1,10 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
-import { useInfiniteList } from '@/src/lib/useInfiniteList';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useToast } from '@/src/components/common/Toast';
 import type { CreateLeadPayload, Lead, UpdateLeadPayload } from '@/src/lib/types';
+
+function asListResult<T>(items: T[]) {
+  return {
+    data: items,
+    meta: {
+      current_page: 1,
+      per_page: items.length || 1,
+      total: items.length,
+      last_page: 1,
+      from: items.length ? 1 : null,
+      to: items.length ? items.length : null,
+    },
+  };
+}
 
 export function useLeadSourceQuery(id: number | null) {
   return useQuery({
@@ -18,17 +31,26 @@ export function useLeadSourceQuery(id: number | null) {
 export function useLeadsInfiniteQuery(
   stepId: number | undefined,
   search?: string,
-  perPage = 10,
+  _perPage = 10,
   crmId?: number,
   filterStepId?: number,
 ) {
   const effectiveStepId = stepId ?? filterStepId;
-
-  return useInfiniteList(
-    [...queryKeys.leads.byStep(effectiveStepId), 'infinite', search ?? '', crmId ?? 0] as const,
-    (page, size) => api.listLeads(effectiveStepId, page, size, search, crmId),
-    perPage,
-  );
+  const query = useQuery({
+    queryKey: [...queryKeys.leads.byStep(effectiveStepId), 'all', search ?? '', crmId ?? 0] as const,
+    queryFn: () => api.listLeads(effectiveStepId, search, crmId),
+  });
+  const items = query.data ?? [];
+  return {
+    ...query,
+    data: { pages: [asListResult(items)], pageParams: [1] },
+    items,
+    meta: asListResult(items).meta,
+    total: items.length,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: async () => query,
+  };
 }
 
 export function useLeadQuery(id: number | null) {

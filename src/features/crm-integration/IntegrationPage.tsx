@@ -7,7 +7,7 @@ import { useFullList } from '@/src/lib/useInfiniteList';
 import { queryKeys } from '@/src/lib/queryKeys';
 import * as api from '@/src/lib/api';
 import { TokenSection } from './token/TokenSection';
-import { StepCombobox } from './steps/StepCombobox';
+import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { SnippetsCard } from './snippets/SnippetsCard';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
@@ -23,19 +23,37 @@ export function IntegrationPage() {
   const crmQuery = useCrmQuery(crmId);
   const stepsQuery = useFullList(
     queryKeys.crms.steps(crmId),
-    (page, size) => api.listSteps(crmId, page, size),
+    () => api.listSteps(crmId),
     100,
     isValidCrmId,
   );
   const updateCrmMutation = useUpdateCrmMutation();
 
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);
+  const [stepSearch, setStepSearch] = useState('');
   const crm = crmQuery.data;
 
   const steps = useMemo(
     () => [...(stepsQuery.items ?? [])].sort((a, b) => a.position - b.position || a.id - b.id),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [stepsQuery.items],
+  );
+
+  const filteredSteps = useMemo(() => {
+    const term = stepSearch.trim().toLowerCase();
+    if (!term) return steps;
+    return steps.filter((step) => `${step.position}. ${step.name}`.toLowerCase().includes(term));
+  }, [steps, stepSearch]);
+
+  const stepOptions = useMemo(
+    () => [
+      { value: '', label: 'Nenhuma (desativar integração)' },
+      ...filteredSteps.map((step) => ({
+        value: String(step.id),
+        label: `${step.position}. ${step.name}`,
+      })),
+    ],
+    [filteredSteps],
   );
 
   const savedStepId = crm?.public_step_id ?? null;
@@ -182,11 +200,17 @@ export function IntegrationPage() {
         </p>
 
         <div className="mt-4">
-          <StepCombobox
-            crmId={crm.id}
-            steps={steps}
-            value={selectedStepId}
-            onChange={setSelectedStepId}
+          <Autocomplete
+            value={selectedStepId === null ? '' : String(selectedStepId)}
+            onChange={(value) => setSelectedStepId(value === '' ? null : Number(value))}
+            options={stepOptions}
+            ariaLabel="Etapa de destino"
+            placeholder="Selecione uma etapa"
+            emptyMessage="Nenhuma etapa encontrada"
+            onSearch={setStepSearch}
+            debounceMs={300}
+            loading={stepsQuery.isFetching}
+            className="w-full max-w-md"
           />
         </div>
 

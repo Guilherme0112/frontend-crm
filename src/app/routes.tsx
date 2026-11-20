@@ -16,6 +16,8 @@ import { CrmAuditPage } from '@/src/features/audit/CrmAuditPage';
 import { CrmDashboardPage } from '@/src/features/dashboard/CrmDashboardPage';
 import { CrmsOverviewPage } from '@/src/features/dashboard/CrmsOverviewPage';
 import { EmailConfigsPage } from '@/src/features/email-configs/EmailConfigsPage';
+import { WhatsappSendersPage } from '@/src/features/whatsapp-senders/WhatsappSendersPage';
+import { WhatsappTemplatesPage } from '@/src/features/whatsapp-templates/WhatsappTemplatesPage';
 import { BillingPage } from '@/src/features/billing/BillingPage';
 import { InvoicesPage } from '@/src/features/billing/InvoicesPage';
 import { CompanyPage } from '@/src/features/company/CompanyPage';
@@ -40,9 +42,13 @@ export function AppRoutes() {
           <Route path="/leads/:id" element={<LeadDetailPage />} />
           <Route path="/leads/:id/history" element={<LeadHistoryPage />} />
           <Route path="/sending-templates" element={<SendingTemplatesPage />} />
+          <Route path="/disparos" element={<GroupsPage />} />
+          <Route path="/disparos/:id" element={<GroupPage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupPage />} />
           <Route path="/email-configs" element={<EmailConfigsPage />} />
+          <Route path="/whatsapp-senders" element={<WhatsappSendersPage />} />
+          <Route path="/whatsapp-templates" element={<WhatsappTemplatesPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/company" element={<CompanyPage />} />

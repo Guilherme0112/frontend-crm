@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import type {
   ApiResponse,
   AuthSessionData,
@@ -13,6 +13,8 @@ import type {
   CreateCheckoutPayload,
   CheckoutSession,
   CreateUserPayload,
+  CreateWhatsappSenderInput,
+  CreateWhatsappTemplateInput,
   LeadStepChangePage,
   LeadHistory,
   LeadSource,
@@ -44,7 +46,13 @@ import type {
   UpdateSendingTemplatePayload,
   UpdateStepPayload,
   UpdateUserPayload,
+  UpdateWhatsappSenderInput,
+  UpdateWhatsappTemplateInput,
   User,
+  WhatsappDispatchLog,
+  WhatsappDispatchResult,
+  WhatsappSender,
+  WhatsappTemplate,
 } from './types';
 
 export const AUTH_TOKEN_KEY = 'crm_token';
@@ -92,42 +100,8 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-/**
- * A API devolve só `{ data: [...] }` (sem links/meta). Este interceptor
- * reconstrói o mínimo de navegação no cliente a partir de `page`/`per_page`
- * e do tamanho da página, para as telas continuarem paginando sem acoplar
- * metadata do Laravel ao contrato de resposta.
- */
 apiClient.interceptors.response.use(
-  (response) => {
-    const body = response.data;
-    const params = response.config.params as Record<string, unknown> | undefined;
-
-    if (
-      body &&
-      typeof body === 'object' &&
-      Array.isArray(body.data) &&
-      body.meta === undefined &&
-      params &&
-      params.per_page !== undefined
-    ) {
-      const page = Math.max(1, Number(params.page ?? 1));
-      const perPage = Math.max(1, Number(params.per_page));
-      const items = body.data as unknown[];
-      const offset = (page - 1) * perPage;
-
-      body.meta = {
-        current_page: page,
-        per_page: perPage,
-        total: offset + items.length,
-        last_page: page + (items.length === perPage ? 1 : 0),
-        from: items.length ? offset + 1 : null,
-        to: items.length ? offset + items.length : null,
-      };
-    }
-
-    return response;
-  },
+  (response) => response,
   (error) => {
     const status = error?.response?.status;
     const requestUrl: string = error?.config?.url || '';
@@ -148,9 +122,6 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Assinatura vencida: o backend trancou tudo menos a área de pagamento.
-    // Mostrar um 403 solto em cada tela não ajuda ninguém — leva direto para
-    // onde o cliente consegue resolver.
     if (status === 403 && error?.response?.data?.subscription_blocked === true) {
       const onBilling = window.location.pathname.startsWith('/billing');
 
@@ -194,26 +165,10 @@ export async function updateCompany(payload: UpdateCompanyPayload): Promise<Comp
   return res.data.data;
 }
 
-export interface PaginatedMeta {
-  current_page: number;
-  per_page: number;
-  total: number;
-  last_page: number;
-  from: number | null;
-  to: number | null;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginatedMeta;
-}
-
 // --- Users ---
-export async function listUsers(page = 1, perPage = 25): Promise<PaginatedResponse<User>> {
-  const res = await apiClient.get<PaginatedResponse<User>>('/users', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listUsers(): Promise<User[]> {
+  const res = await apiClient.get<ApiResponse<User[]>>('/users');
+  return res.data.data;
 }
 
 export async function getUser(id: number): Promise<User> {
@@ -236,11 +191,9 @@ export async function deleteUser(id: number): Promise<void> {
 }
 
 // --- CRMs ---
-export async function listCrms(page = 1, perPage = 25): Promise<PaginatedResponse<Crm>> {
-  const res = await apiClient.get<PaginatedResponse<Crm>>('/crms', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listCrms(): Promise<Crm[]> {
+  const res = await apiClient.get<ApiResponse<Crm[]>>('/crms');
+  return res.data.data;
 }
 
 export async function getCrm(id: number): Promise<Crm> {
@@ -272,15 +225,9 @@ export async function deleteCrm(id: number): Promise<void> {
 }
 
 // --- Steps ---
-export async function listSteps(
-  crmId: number,
-  page = 1,
-  perPage = 25,
-): Promise<PaginatedResponse<Step>> {
-  const res = await apiClient.get<PaginatedResponse<Step>>(`/crms/${crmId}/steps`, {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listSteps(crmId: number): Promise<Step[]> {
+  const res = await apiClient.get<ApiResponse<Step[]>>(`/crms/${crmId}/steps`);
+  return res.data.data;
 }
 
 export async function createStep(crmId: number, payload: CreateStepPayload): Promise<Step> {
@@ -310,7 +257,7 @@ export async function listStepsAll(
   search?: string,
   limit?: number,
 ): Promise<StepWithCrm[]> {
-  const res = await apiClient.get<{ data: StepWithCrm[] }>('/steps', {
+  const res = await apiClient.get<ApiResponse<StepWithCrm[]>>('/steps', {
     params: {
       ...(crmId !== undefined ? { crm_id: crmId } : {}),
       ...(search ? { search } : {}),
@@ -322,18 +269,16 @@ export async function listStepsAll(
 
 // --- Leads ---
 export async function listLeads(
-  stepId: number | undefined,
-  page = 1,
-  perPage = 25,
+  stepId?: number,
   search?: string,
   crmId?: number,
-): Promise<PaginatedResponse<Lead>> {
-  const params: Record<string, string | number> = { page, per_page: perPage };
+): Promise<Lead[]> {
+  const params: Record<string, string | number> = {};
   if (stepId !== undefined) params.step_id = stepId;
   if (search) params.search = search;
   if (crmId !== undefined) params.crm_id = crmId;
-  const res = await apiClient.get<PaginatedResponse<Lead>>('/leads', { params });
-  return res.data;
+  const res = await apiClient.get<ApiResponse<Lead[]>>('/leads', { params });
+  return res.data.data;
 }
 
 export async function getLead(id: number): Promise<Lead> {
@@ -369,15 +314,11 @@ export async function updateLeadStep(
 }
 
 // --- Sending Templates ---
-export async function listSendingTemplates(
-  page = 1,
-  perPage = 25,
-  search?: string,
-): Promise<PaginatedResponse<SendingTemplate>> {
-  const res = await apiClient.get<PaginatedResponse<SendingTemplate>>('/sending-templates', {
-    params: search ? { page, per_page: perPage, search } : { page, per_page: perPage },
+export async function listSendingTemplates(search?: string): Promise<SendingTemplate[]> {
+  const res = await apiClient.get<ApiResponse<SendingTemplate[]>>('/sending-templates', {
+    params: search ? { search } : {},
   });
-  return res.data;
+  return res.data.data;
 }
 
 export async function getSendingTemplate(id: number): Promise<SendingTemplate> {
@@ -405,14 +346,9 @@ export async function deleteSendingTemplate(id: number): Promise<void> {
 }
 
 // --- Groups ---
-export async function listGroups(
-  page = 1,
-  perPage = 25,
-): Promise<PaginatedResponse<Group>> {
-  const res = await apiClient.get<PaginatedResponse<Group>>('/groups', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listGroups(): Promise<Group[]> {
+  const res = await apiClient.get<ApiResponse<Group[]>>('/groups');
+  return res.data.data;
 }
 
 export async function getGroup(id: number): Promise<Group> {
@@ -483,8 +419,11 @@ export async function syncGroupLeads(id: number, leadIds: number[]): Promise<voi
 }
 
 // --- Group Sends (campaigns) ---
-export async function sendGroupEmails(id: number): Promise<GroupSend> {
-  const res = await apiClient.post<ApiResponse<GroupSend>>(`/groups/${id}/send`);
+export async function sendGroupEmails(
+  id: number,
+  payload: { template_id: number; email_config_id: number },
+): Promise<GroupSend> {
+  const res = await apiClient.post<ApiResponse<GroupSend>>(`/groups/${id}/send`, payload);
   return res.data.data;
 }
 
@@ -513,14 +452,9 @@ export async function listGroupSendRecipients(
 }
 
 // --- Email Configs ---
-export async function listEmailConfigs(
-  page = 1,
-  perPage = 25,
-): Promise<PaginatedResponse<EmailConfig>> {
-  const res = await apiClient.get<PaginatedResponse<EmailConfig>>('/email-configs', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listEmailConfigs(): Promise<EmailConfig[]> {
+  const res = await apiClient.get<ApiResponse<EmailConfig[]>>('/email-configs');
+  return res.data.data;
 }
 
 export async function getEmailConfig(id: number): Promise<EmailConfig> {
@@ -546,11 +480,9 @@ export async function deleteEmailConfig(id: number): Promise<void> {
 }
 
 // --- Plans ---
-export async function listPlans(page = 1, perPage = 25): Promise<PaginatedResponse<Plan>> {
-  const res = await apiClient.get<PaginatedResponse<Plan>>('/plans', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listPlans(): Promise<Plan[]> {
+  const res = await apiClient.get<ApiResponse<Plan[]>>('/plans');
+  return res.data.data;
 }
 
 export async function getPlan(id: number): Promise<Plan> {
@@ -579,11 +511,9 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 }
 
 // --- Subscriptions ---
-export async function listSubscriptions(page = 1, perPage = 25): Promise<PaginatedResponse<Subscription>> {
-  const res = await apiClient.get<PaginatedResponse<Subscription>>('/subscriptions', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listSubscriptions(): Promise<Subscription[]> {
+  const res = await apiClient.get<ApiResponse<Subscription[]>>('/subscriptions');
+  return res.data.data;
 }
 
 export async function getSubscription(id: number): Promise<Subscription> {
@@ -591,11 +521,6 @@ export async function getSubscription(id: number): Promise<Subscription> {
   return res.data.data;
 }
 
-/**
- * Abre a assinatura no Mercado Pago.
- *
- * Cartão devolve `init_point` (redirecionar para o Checkout Pro).
- */
 export async function createCheckout(
   payload: CreateCheckoutPayload,
 ): Promise<CheckoutSession> {
@@ -606,12 +531,6 @@ export async function createCheckout(
   return res.data.data;
 }
 
-/** Reconciliação manual, para quando o webhook não alcança a aplicação. */
-/**
- * Troca de plano: altera o valor da assinatura que já existe, sem redirect e
- * sem o cliente redigitar o cartão. Se o Mercado Pago recusar a alteração, o
- * backend devolve um checkout novo (`status: 'pending'` + `init_point`).
- */
 export async function changeSubscriptionPlan(
   payload: CreateCheckoutPayload,
 ): Promise<CheckoutSession> {
@@ -619,19 +538,16 @@ export async function changeSubscriptionPlan(
   return res.data.data;
 }
 
-/** Contratação aguardando pagamento, com o link para concluí-la. */
 export async function getPendingCheckout(): Promise<CheckoutSession | null> {
   const res = await apiClient.get<ApiResponse<CheckoutSession | null>>('/subscriptions/pending');
   return res.data.data;
 }
 
-/** Desiste da contratação pendente, liberando a escolha de outro plano. */
 export async function discardPendingCheckout(): Promise<{ discarded: number }> {
   const res = await apiClient.delete<ApiResponse<{ discarded: number }>>('/subscriptions/pending');
   return res.data.data;
 }
 
-/** Chave pública do gateway, para o SDK tokenizar o cartão no navegador. */
 export async function getBillingConfig(): Promise<{ mercadopago_public_key: string | null }> {
   const res = await apiClient.get<ApiResponse<{ mercadopago_public_key: string | null }>>(
     '/subscriptions/config',
@@ -650,11 +566,9 @@ export async function cancelSubscription(id: number): Promise<Subscription> {
 }
 
 // --- Invoices ---
-export async function listInvoices(page = 1, perPage = 25): Promise<PaginatedResponse<Invoice>> {
-  const res = await apiClient.get<PaginatedResponse<Invoice>>('/invoices', {
-    params: { page, per_page: perPage },
-  });
-  return res.data;
+export async function listInvoices(): Promise<Invoice[]> {
+  const res = await apiClient.get<ApiResponse<Invoice[]>>('/invoices');
+  return res.data.data;
 }
 
 export async function getInvoice(id: number): Promise<Invoice> {
@@ -662,20 +576,12 @@ export async function getInvoice(id: number): Promise<Invoice> {
   return res.data.data;
 }
 
-/**
- * Baixa o recibo em PDF.
- *
- * Vai por axios (e não por um link direto) porque a rota exige o bearer token
- * — um `<a href>` sairia sem o header e levaria 401.
- */
 export async function downloadInvoicePdf(id: number): Promise<{ blob: Blob; fileName: string }> {
   const res = await apiClient.get<Blob>(`/invoices/${id}/pdf`, { responseType: 'blob' });
 
   const disposition = String(res.headers['content-disposition'] ?? '');
   const match = disposition.match(/filename="?([^"]+)"?/i);
 
-  // Reconstrói o Blob com o tipo explícito: sem `application/pdf` o navegador
-  // trata como download genérico em vez de abrir no visualizador.
   const blob = res.data.type === 'application/pdf'
     ? res.data
     : new Blob([res.data], { type: 'application/pdf' });
@@ -688,3 +594,89 @@ export async function payInvoice(id: number): Promise<Invoice> {
   return res.data.data;
 }
 
+// --- WhatsApp Senders ---
+export async function listWhatsappSenders(): Promise<WhatsappSender[]> {
+  const res = await apiClient.get<ApiResponse<WhatsappSender[]>>('/whatsapp-senders');
+  return res.data.data;
+}
+
+export async function getWhatsappSender(id: number): Promise<WhatsappSender> {
+  const res = await apiClient.get<ApiResponse<WhatsappSender>>(`/whatsapp-senders/${id}`);
+  return res.data.data;
+}
+
+export async function createWhatsappSender(
+  payload: CreateWhatsappSenderInput,
+): Promise<WhatsappSender> {
+  const res = await apiClient.post<ApiResponse<WhatsappSender>>('/whatsapp-senders', payload);
+  return res.data.data;
+}
+
+export async function updateWhatsappSender(
+  id: number,
+  payload: UpdateWhatsappSenderInput,
+): Promise<WhatsappSender> {
+  const res = await apiClient.put<ApiResponse<WhatsappSender>>(`/whatsapp-senders/${id}`, payload);
+  return res.data.data;
+}
+
+export async function deleteWhatsappSender(id: number): Promise<void> {
+  await apiClient.delete(`/whatsapp-senders/${id}`);
+}
+
+// --- WhatsApp Templates ---
+export async function listWhatsappTemplates(): Promise<WhatsappTemplate[]> {
+  const res = await apiClient.get<ApiResponse<WhatsappTemplate[]>>('/whatsapp-templates');
+  return res.data.data;
+}
+
+export async function getWhatsappTemplate(id: number): Promise<WhatsappTemplate> {
+  const res = await apiClient.get<ApiResponse<WhatsappTemplate>>(`/whatsapp-templates/${id}`);
+  return res.data.data;
+}
+
+export async function createWhatsappTemplate(
+  payload: CreateWhatsappTemplateInput,
+): Promise<WhatsappTemplate> {
+  const res = await apiClient.post<ApiResponse<WhatsappTemplate>>('/whatsapp-templates', payload);
+  return res.data.data;
+}
+
+export async function updateWhatsappTemplate(
+  id: number,
+  payload: UpdateWhatsappTemplateInput,
+): Promise<WhatsappTemplate> {
+  const res = await apiClient.put<ApiResponse<WhatsappTemplate>>(`/whatsapp-templates/${id}`, payload);
+  return res.data.data;
+}
+
+export async function deleteWhatsappTemplate(id: number): Promise<void> {
+  await apiClient.delete(`/whatsapp-templates/${id}`);
+}
+
+// --- WhatsApp Dispatch ---
+export async function sendGroupWhatsapp(
+  groupId: number,
+  payload: { whatsapp_sender_id: number; whatsapp_template_id: number },
+): Promise<WhatsappDispatchResult> {
+  const res = await apiClient.post<ApiResponse<WhatsappDispatchResult>>(
+    `/groups/${groupId}/send-whatsapp`,
+    payload,
+  );
+  return res.data.data;
+}
+
+export interface WhatsappDispatchLogFilters {
+  group_id?: number;
+  lead_id?: number;
+  status?: string;
+}
+
+export async function listWhatsappDispatchLogs(
+  filters: WhatsappDispatchLogFilters = {},
+): Promise<WhatsappDispatchLog[]> {
+  const res = await apiClient.get<ApiResponse<WhatsappDispatchLog[]>>('/whatsapp-dispatch-logs', {
+    params: filters,
+  });
+  return res.data.data;
+}

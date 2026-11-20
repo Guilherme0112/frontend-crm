@@ -1,28 +1,50 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
-import { useInfiniteList } from '@/src/lib/useInfiniteList';
 import type { CreateEmailConfigInput, UpdateEmailConfigInput } from '@/src/lib/types';
 
-const EMAIL_CONFIGS_PER_PAGE = 10;
-
-/** Lista paginada da tela de configurações de e-mail. */
-export function useEmailConfigsQuery(page = 1, perPage = EMAIL_CONFIGS_PER_PAGE) {
-  return useQuery({
-    queryKey: queryKeys.emailConfigs.list(page, perPage),
-    queryFn: () => api.listEmailConfigs(page, perPage),
-    placeholderData: keepPreviousData,
-  });
+function asListResult<T>(items: T[]) {
+  return {
+    data: items,
+    meta: {
+      current_page: 1,
+      per_page: items.length || 1,
+      total: items.length,
+      last_page: 1,
+      from: items.length ? 1 : null,
+      to: items.length ? items.length : null,
+    },
+  };
 }
 
-/** Lista completa — alimenta os seletores de configuração nos grupos. */
-export function useEmailConfigsInfiniteQuery(perPage = 25, enabled = true) {
-  return useInfiniteList(
-    queryKeys.emailConfigs.all,
-    (page, size) => api.listEmailConfigs(page, size),
-    perPage,
+export function useEmailConfigsQuery(_page = 1, _perPage = 10) {
+  const query = useQuery({
+    queryKey: queryKeys.emailConfigs.all,
+    queryFn: () => api.listEmailConfigs(),
+  });
+  return {
+    ...query,
+    data: query.data ? asListResult(query.data) : undefined,
+  };
+}
+
+export function useEmailConfigsInfiniteQuery(_perPage = 25, enabled = true) {
+  const query = useQuery({
+    queryKey: queryKeys.emailConfigs.all,
+    queryFn: () => api.listEmailConfigs(),
     enabled,
-  );
+  });
+  const items = query.data ?? [];
+  return {
+    ...query,
+    data: { pages: [asListResult(items)], pageParams: [1] },
+    items,
+    meta: asListResult(items).meta,
+    total: items.length,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: async () => query,
+  };
 }
 
 export function useCreateEmailConfigMutation() {
@@ -52,7 +74,6 @@ export function useDeleteEmailConfigMutation() {
     mutationFn: (id: number) => api.deleteEmailConfig(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.emailConfigs.all });
-      // Deleting a config nullifies email_config_id on linked groups (FK nullOnDelete)
       void queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
     },
   });

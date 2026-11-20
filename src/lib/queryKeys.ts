@@ -55,6 +55,21 @@ export const queryKeys = {
     list: (page: number, perPage: number) => ['email-configs', 'list', page, perPage] as const,
     detail: (id: number) => ['email-configs', id] as const,
   },
+  whatsappSenders: {
+    all: ['whatsapp-senders'] as const,
+    list: (page: number, perPage: number) => ['whatsapp-senders', 'list', page, perPage] as const,
+    detail: (id: number) => ['whatsapp-senders', id] as const,
+  },
+  whatsappTemplates: {
+    all: ['whatsapp-templates'] as const,
+    list: (page: number, perPage: number) => ['whatsapp-templates', 'list', page, perPage] as const,
+    detail: (id: number) => ['whatsapp-templates', id] as const,
+  },
+  whatsappDispatchLogs: {
+    all: ['whatsapp-dispatch-logs'] as const,
+    list: (filters: Record<string, string | number | null | undefined>) =>
+      ['whatsapp-dispatch-logs', 'list', filters] as const,
+  },
   plans: {
     all: ['plans'] as const,
     detail: (id: number) => ['plans', id] as const,

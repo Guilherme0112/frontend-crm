@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
+  ArrowLeft,
   Eye,
   Mail,
   MailCheck,
@@ -189,7 +190,14 @@ export function SendingTemplatesPage() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Disparos</p>
+          <Link
+            to="/disparos"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Disparos</span>
+          </Link>
+          <p className="eyebrow mt-2 text-zinc-400 dark:text-zinc-500">Operação</p>
           <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Templates de envio
           </h1>

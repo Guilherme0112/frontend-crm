@@ -41,7 +41,7 @@ export function CrmBoardPage() {
   const { toast } = useToast();
 
   const crmQuery = useCrmQuery(crmId);
-  const stepsQuery = useStepsInfiniteQuery(crmId, 5);
+  const stepsQuery = useStepsInfiniteQuery(crmId);
 
   const createStepMutation = useCreateStepMutation(crmId);
   const reorderStepsMutation = useReorderStepsMutation(crmId);

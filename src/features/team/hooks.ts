@@ -1,16 +1,31 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import type { CreateUserPayload, UpdateUserPayload } from '@/src/lib/types';
 
-const USERS_PER_PAGE = 10;
+function asListResult<T>(items: T[]) {
+  return {
+    data: items,
+    meta: {
+      current_page: 1,
+      per_page: items.length || 1,
+      total: items.length,
+      last_page: 1,
+      from: items.length ? 1 : null,
+      to: items.length ? items.length : null,
+    },
+  };
+}
 
-export function useUsersQuery(page = 1, perPage = USERS_PER_PAGE) {
-  return useQuery({
-    queryKey: queryKeys.users.list(page, perPage),
-    queryFn: () => api.listUsers(page, perPage),
-    placeholderData: keepPreviousData,
+export function useUsersQuery(_page = 1, _perPage = 10) {
+  const query = useQuery({
+    queryKey: queryKeys.users.all,
+    queryFn: () => api.listUsers(),
   });
+  return {
+    ...query,
+    data: query.data ? asListResult(query.data) : undefined,
+  };
 }
 
 export function useCreateUserMutation() {

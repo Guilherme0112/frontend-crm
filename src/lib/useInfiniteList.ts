@@ -1,21 +1,48 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import * as api from './api';
-import type { PaginatedResponse } from './api';
 
-/**
- * Consome uma lista paginada cujo corpo é só { data: [...] }. O `meta` usado
- * aqui é normalizado pelo interceptor do api.ts a partir de page/per_page.
- */
+export interface PaginatedMeta {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+  from: number | null;
+  to: number | null;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginatedMeta;
+}
+
+function normalizePage<T>(result: T[] | PaginatedResponse<T>, page = 1): PaginatedResponse<T> {
+  if (Array.isArray(result)) {
+    const items = result;
+    return {
+      data: items,
+      meta: {
+        current_page: page,
+        per_page: items.length || 1,
+        total: items.length,
+        last_page: 1,
+        from: items.length ? 1 : null,
+        to: items.length ? items.length : null,
+      },
+    };
+  }
+  return result;
+}
+
 export function useInfiniteList<T>(
   queryKey: readonly unknown[],
-  fetchPage: (page: number, perPage: number) => Promise<PaginatedResponse<T>>,
+  fetchPage: (page: number, perPage: number) => Promise<T[] | PaginatedResponse<T>>,
   perPage = 25,
   enabled = true,
 ) {
   const query = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam = 1 }) => fetchPage(pageParam as number, perPage),
+    queryFn: async ({ pageParam = 1 }) =>
+      normalizePage(await fetchPage(pageParam as number, perPage), pageParam as number),
     initialPageParam: 1,
     enabled,
     getNextPageParam: (lastPage) =>
@@ -35,16 +62,9 @@ export function useInfiniteList<T>(
   };
 }
 
-/**
- * Mesma lista, mas puxando todas as páginas até o fim.
- *
- * Para coleções pequenas e fechadas (planos, métodos de pagamento, histórico
- * de assinaturas) em que a tela precisa do conjunto inteiro para montar
- * seletores e derivar estado — a paginação delas é feita no cliente.
- */
 export function useFullList<T>(
   queryKey: readonly unknown[],
-  fetchPage: (page: number, perPage: number) => Promise<PaginatedResponse<T>>,
+  fetchPage: (page: number, perPage: number) => Promise<T[] | PaginatedResponse<T>>,
   perPage = 100,
   enabled = true,
 ) {
@@ -59,5 +79,3 @@ export function useFullList<T>(
 
   return list;
 }
-
-export type { PaginatedResponse };
