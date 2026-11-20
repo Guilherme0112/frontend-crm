@@ -5,7 +5,6 @@ import { KanbanColumn } from './KanbanColumn';
 
 interface KanbanBoardProps {
   steps: Step[];
-  searchQuery: string;
   hasMore: boolean;
   isFetchingNextPage: boolean;
   onLoadMore: () => void;
@@ -23,7 +22,6 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({
   steps,
-  searchQuery,
   hasMore,
   isFetchingNextPage,
   onLoadMore,
@@ -100,7 +98,6 @@ export function KanbanBoard({
         <KanbanColumn
           key={step.id}
           step={step}
-          searchQuery={searchQuery}
           draggingLeadId={draggingLeadId}
           draggingStepId={draggingStepId}
           onDragStart={handleDragStart}

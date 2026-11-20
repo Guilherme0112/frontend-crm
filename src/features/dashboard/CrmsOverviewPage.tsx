@@ -212,7 +212,7 @@ export function CrmsOverviewPage() {
             Todos os CRMs — número de verdade, lado a lado
           </h1>
           <p className="mt-1 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
-            Consolidando {rows.length} {rows.length === 1 ? 'pipeline' : 'pipelines'}: volume de leads, movimentação, funil distribuído e de onde cada um vem.
+            Consolidando {rows.length} {rows.length === 1 ? 'CRM' : 'CRMs'}: volume de leads, movimentação, funil distribuído e de onde cada um vem.
           </p>
         </div>
         <Link
@@ -411,7 +411,7 @@ export function CrmsOverviewPage() {
                 <tfoot>
                   <tr className="border-t border-zinc-950/[0.07] bg-zinc-50 text-[13px] font-semibold dark:border-white/[0.07] dark:bg-white/[0.03]">
                     <td className="whitespace-nowrap px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                      Total · {rows.length} {rows.length === 1 ? 'pipeline' : 'pipelines'}
+                      Total · {rows.length} {rows.length === 1 ? 'CRM' : 'CRMs'}
                     </td>
                     <td className="px-5 py-3 text-right font-mono text-zinc-400 dark:text-zinc-500">—</td>
                     <td className="whitespace-nowrap px-5 py-3 text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-100">

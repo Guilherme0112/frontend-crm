@@ -1,14 +1,28 @@
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { alpha } from '@mui/material/styles';
 import ActionButton from '@/src/components/common/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { ModalActions } from '@/src/components/common/ModalActions';
 import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowRight, BarChart3, FolderKanban, Pencil, Plus, Trash2, Webhook } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  FolderKanban,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Trash2,
+  Webhook,
+} from 'lucide-react';
 import {
   useCreateCrmMutation,
   useCrmsInfiniteQuery,
@@ -30,7 +44,7 @@ import type { Crm } from '@/src/lib/types';
 const PRESET_COLORS = ['#2563eb', '#0d9488', '#d97706', '#dc2626', '#4f46e5', '#0f172a'];
 
 const crmSchema = z.object({
-  name: z.string().trim().min(2, 'Informe o nome do pipeline'),
+  name: z.string().trim().min(2, 'Informe o nome do CRM'),
   description: z.string().optional(),
   color: z
     .string()
@@ -45,6 +59,7 @@ type CrmFormValues = z.infer<typeof crmSchema>;
 
 export function CrmsPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const crmsQuery = useCrmsInfiniteQuery();
   const createMutation = useCreateCrmMutation();
   const updateMutation = useUpdateCrmMutation();
@@ -53,6 +68,8 @@ export function CrmsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCrm, setEditingCrm] = useState<Crm | null>(null);
   const [deletingCrm, setDeletingCrm] = useState<Crm | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [menuCrm, setMenuCrm] = useState<Crm | null>(null);
 
   const {
     register,
@@ -85,6 +102,11 @@ export function CrmsPage() {
     setModalOpen(true);
   };
 
+  const closeMenu = () => {
+    setMenuAnchor(null);
+    setMenuCrm(null);
+  };
+
   const onSubmit = async (values: CrmFormValues) => {
     const payload = {
       name: values.name.trim(),
@@ -95,15 +117,15 @@ export function CrmsPage() {
     try {
       if (editingCrm) {
         await updateMutation.mutateAsync({ id: editingCrm.id, payload });
-        toast.success('Pipeline atualizado');
+        toast.success('CRM atualizado');
       } else {
         await createMutation.mutateAsync(payload);
-        toast.success('Pipeline criado');
+        toast.success('CRM criado');
       }
       setModalOpen(false);
     } catch (error) {
       applyServerErrors(error, setError);
-      toast.error('Erro ao salvar pipeline', getApiErrorMessage(error));
+      toast.error('Erro ao salvar CRM', getApiErrorMessage(error));
     }
   };
 
@@ -111,10 +133,10 @@ export function CrmsPage() {
     if (!deletingCrm) return;
     try {
       await deleteMutation.mutateAsync(deletingCrm.id);
-      toast.success('Pipeline excluído');
+      toast.success('CRM excluído');
       setDeletingCrm(null);
     } catch (error) {
-      toast.error('Erro ao excluir pipeline', getApiErrorMessage(error));
+      toast.error('Erro ao excluir CRM', getApiErrorMessage(error));
     }
   };
 
@@ -127,13 +149,8 @@ export function CrmsPage() {
           <p className="eyebrow text-zinc-400 dark:text-zinc-500">Operação</p>
           <div className="mt-1.5 flex items-center gap-3">
             <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-              Pipelines
+              CRMs
             </h1>
-            {!crmsQuery.isPending && crms.length > 0 && (
-              <span className="rounded-full border border-zinc-950/[0.08] bg-white px-2 py-0.5 font-mono text-[11px] font-medium tabular-nums text-zinc-500 shadow-sm dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400">
-                {crms.length}
-              </span>
-            )}
           </div>
           <p className="mt-1 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
             Gerencie seus funis de atendimento, tokens de integração e quadros Kanban.
@@ -154,14 +171,14 @@ export function CrmsPage() {
         <CardsGridSkeleton count={3} />
       ) : crmsQuery.isError ? (
         <ErrorState
-          title="Erro ao carregar pipelines"
+          title="Erro ao carregar CRMs"
           error={crmsQuery.error}
           onRetry={() => void crmsQuery.refetch()}
         />
       ) : crms.length === 0 ? (
         <EmptyState
           icon={<FolderKanban className="h-5 w-5" />}
-          title="Nenhum pipeline encontrado"
+          title="Nenhum CRM cadastrado"
           description="Crie seu primeiro CRM para configurar etapas personalizadas e acompanhar seus leads."
           action={
             <ActionButton
@@ -180,7 +197,11 @@ export function CrmsPage() {
             return (
             <article
               key={crm.id}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-950/[0.14] hover:shadow-[var(--shadow-pop)] dark:border-white/[0.07] dark:bg-[#17171a] dark:hover:border-white/[0.14]"
+              onClick={(event) => {
+                if ((event.target as Element).closest('button, a')) return;
+                navigate(`/crms/${crm.id}/board`);
+              }}
+              className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-950/[0.14] hover:shadow-[var(--shadow-pop)] dark:border-white/[0.07] dark:bg-[#17171a] dark:hover:border-white/[0.14]"
             >
               {/* Color accent bar */}
               <div
@@ -208,24 +229,28 @@ export function CrmsPage() {
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <TableActionButton
-                      tone="primary"
-                      onClick={() => openEditModal(crm)}
-                      aria-label={`Editar ${crm.name}`}
-                      title="Editar CRM"
-                    >
-                      <Pencil className="h-4 w-4" strokeWidth={1.8} />
-                    </TableActionButton>
-                    <TableActionButton
-                      tone="error"
-                      onClick={() => setDeletingCrm(crm)}
-                      aria-label={`Excluir ${crm.name}`}
-                      title="Excluir CRM"
-                    >
-                      <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                    </TableActionButton>
-                  </div>
+                  <IconButton
+                    size="small"
+                    aria-label={`Ações de ${crm.name}`}
+                    title="Ações"
+                    onClick={(event) => {
+                      setMenuCrm(crm);
+                      setMenuAnchor(event.currentTarget);
+                    }}
+                    sx={{
+                      color: 'text.secondary',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1.5,
+                      '&:hover': {
+                        color: 'primary.main',
+                        borderColor: 'primary.main',
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+                      },
+                    }}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </IconButton>
                 </div>
 
                 <p className="mt-3.5 min-h-[3rem] line-clamp-2 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
@@ -339,28 +364,58 @@ export function CrmsPage() {
             </div>
           </FormField>
 
-          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending
-                ? 'Salvando...'
-                : editingCrm
-                  ? 'Salvar alterações'
-                  : 'Criar CRM'}
-            </Button>
-          </div>
+          <ModalActions
+            onCancel={() => setModalOpen(false)}
+            isPending={createMutation.isPending || updateMutation.isPending}
+            submitLabel={editingCrm ? 'Salvar alterações' : 'Criar CRM'}
+          />
         </form>
       </Modal>
+
+      {/* Menu de ações do card */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={closeMenu}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              minWidth: 180,
+              mt: 0.5,
+              borderRadius: 1.5,
+              boxShadow: 'var(--shadow-pop)',
+            },
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            const current = menuCrm;
+            closeMenu();
+            if (current) openEditModal(current);
+          }}
+        >
+          <ListItemIcon>
+            <Pencil className="h-4 w-4" />
+          </ListItemIcon>
+          Editar
+        </MenuItem>
+        <MenuItem
+          sx={{ color: 'error.main' }}
+          onClick={() => {
+            const current = menuCrm;
+            closeMenu();
+            if (current) setDeletingCrm(current);
+          }}
+        >
+          <ListItemIcon sx={{ color: 'inherit' }}>
+            <Trash2 className="h-4 w-4" />
+          </ListItemIcon>
+          Excluir
+        </MenuItem>
+      </Menu>
 
       <ConfirmDialog
         open={Boolean(deletingCrm)}

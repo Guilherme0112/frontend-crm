@@ -1,10 +1,12 @@
 import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
 import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { ModalActions } from '@/src/components/common/ModalActions';
+import { SearchField } from '@/src/components/common/SearchField';
 import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,6 +46,7 @@ type GroupFormValues = z.infer<typeof groupSchema>;
 
 export function GroupsPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const groupsQuery = useGroupsQuery(page);
   const templatesQuery = useSendingTemplatesQuery(1, 100);
@@ -52,6 +55,7 @@ export function GroupsPage() {
   const updateMutation = useUpdateGroupMutation();
   const deleteMutation = useDeleteGroupMutation();
 
+  const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
@@ -137,6 +141,15 @@ export function GroupsPage() {
   };
 
   const groups = groupsQuery.data?.data ?? [];
+  const filteredGroups = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return groups;
+    return groups.filter(
+      (group) =>
+        group.name.toLowerCase().includes(term) ||
+        (group.description ?? '').toLowerCase().includes(term),
+    );
+  }, [groups, search]);
   const meta = groupsQuery.data?.meta ?? null;
   const total = meta?.total ?? 0;
   const lastPage = meta?.last_page ?? 1;
@@ -169,6 +182,18 @@ export function GroupsPage() {
         </ActionButton>
       </div>
 
+      {!groupsQuery.isPending && !groupsQuery.isError && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-950/[0.06] pb-3 dark:border-white/[0.06]">
+          <SearchField
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar grupo por nome ou descrição..."
+            ariaLabel="Buscar grupo"
+            className="max-w-sm flex-1"
+          />
+        </div>
+      )}
+
       {groupsQuery.isPending ? (
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
           <TableRowsSkeleton rows={4} cols={5} />
@@ -179,11 +204,15 @@ export function GroupsPage() {
           error={groupsQuery.error}
           onRetry={() => void groupsQuery.refetch()}
         />
-      ) : groups.length === 0 ? (
+      ) : filteredGroups.length === 0 ? (
         <EmptyState
           icon={<UsersRound className="h-5 w-5" />}
-          title="Nenhum grupo cadastrado"
-          description="Crie grupos para segmentar seus contatos e vincular templates de envio."
+          title={search ? 'Nenhum grupo encontrado' : 'Nenhum grupo cadastrado'}
+          description={
+            search
+              ? 'Tente outro termo de busca.'
+              : 'Crie grupos para segmentar seus contatos e vincular templates de envio.'
+          }
           action={
             <ActionButton
               type="button"
@@ -208,10 +237,14 @@ export function GroupsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
-              {groups.map((group) => (
+              {filteredGroups.map((group) => (
                 <tr
                   key={group.id}
-                  className="transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
+                  onClick={(event) => {
+                    if ((event.target as Element).closest('button, a')) return;
+                    navigate(`/groups/${group.id}`);
+                  }}
+                  className="cursor-pointer transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
                 >
                   <td className="px-5 py-3.5 font-medium text-zinc-900 dark:text-zinc-100">
                     <Link
@@ -386,26 +419,11 @@ export function GroupsPage() {
               />
             </FormField>
 
-            <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-              <Button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {createMutation.isPending || updateMutation.isPending
-                  ? 'Salvando...'
-                  : editingGroup
-                    ? 'Salvar alterações'
-                    : 'Criar grupo'}
-              </Button>
-            </div>
+            <ModalActions
+              onCancel={() => setModalOpen(false)}
+              isPending={createMutation.isPending || updateMutation.isPending}
+              submitLabel={editingGroup ? 'Salvar alterações' : 'Criar grupo'}
+            />
           </form>
         )}
       </Modal>

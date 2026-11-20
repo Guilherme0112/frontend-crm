@@ -1,18 +1,12 @@
-import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  History,
-  Inbox,
-} from 'lucide-react';
+import { ArrowLeft, History, Inbox } from 'lucide-react';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import { useCrmQuery } from '@/src/features/crm/hooks';
 import { Skeleton } from '@/src/components/common/Skeleton';
+import { Pagination } from '@/src/components/common/Pagination';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { formatDate } from '@/src/lib/format';
@@ -101,6 +95,8 @@ export function CrmAuditPage() {
   const crm = crmQuery.data;
   const data = auditQuery.data;
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.per_page)) : 1;
+  const from = data && data.total > 0 ? (data.page - 1) * data.per_page + 1 : null;
+  const to = data && data.total > 0 ? Math.min(data.page * data.per_page, data.total) : null;
 
   return (
     <div className="space-y-6">
@@ -238,24 +234,16 @@ export function CrmAuditPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between gap-3 border-t border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Página <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{data.page}</span> de {totalPages}
-              </p>
-              <div className="flex items-center gap-1.5">
-                <IconButton size="small" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={data.page <= 1} aria-label="Página anterior">
-                  <ChevronLeft className="h-4 w-4" />
-                </IconButton>
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={data.page >= totalPages || auditQuery.isFetching}
-                  aria-label="Próxima página"
-                  className="rounded-lg border border-zinc-950/[0.1] p-1.5 text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/[0.1] dark:hover:bg-white/[0.05] dark:hover:text-zinc-100"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+              <Pagination
+                page={data.page}
+                lastPage={totalPages}
+                total={data.total}
+                from={from}
+                to={to}
+                onPageChange={setPage}
+                ariaLabel="Paginação da auditoria"
+              />
             </div>
           </>
         )}

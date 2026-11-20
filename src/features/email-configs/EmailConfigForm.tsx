@@ -1,5 +1,5 @@
-import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
+import { ModalActions } from '@/src/components/common/ModalActions';
 import { TextInput } from '@/src/components/common/TextInput';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -200,47 +200,21 @@ export function EmailConfigForm({
         />
       </FormField>
 
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <label
-            htmlFor="ec-password"
-            className="block text-[13px] font-medium text-zinc-700 dark:text-zinc-300"
-          >
-            Senha{isEdit ? '' : ' *'}
-          </label>
-          {isEdit && passwordAlreadySet && !changingPassword && (
-            <ActionButton
-              type="button"
-              size="small"
-              onClick={() => setChangingPassword(true)}
-              startIcon={<Pencil className="h-3 w-3" />}
-            >
-              Alterar senha
-            </ActionButton>
-          )}
-        </div>
-
+      <FormField
+        label="Senha"
+        htmlFor="ec-password"
+        required={!isEdit}
+        error={errors.password?.message}
+        hint={isEdit && changingPassword ? 'Deixe em branco para manter a senha atual.' : undefined}
+      >
         {changingPassword ? (
-          <>
-            <TextInput
-              id="ec-password"
-              limit={255}
-              type="password"
-              autoComplete="new-password"
-              placeholder={isEdit ? 'Nova senha (em branco mantém a atual)' : 'Senha SMTP'}
-              {...register('password')}
-            />
-            {errors.password && (
-              <p role="alert" className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
-                {errors.password.message}
-              </p>
-            )}
-            {isEdit && (
-              <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                Deixe em branco para manter a senha atual.
-              </p>
-            )}
-          </>
+          <TextInput
+            id="ec-password"
+            limit={255}
+            type="password"
+            autoComplete="new-password"
+            {...register('password')}
+          />
         ) : (
           <div
             className="flex h-[38px] items-center justify-between rounded-lg border border-zinc-950/[0.08] bg-zinc-50 px-3.5 dark:border-white/[0.08] dark:bg-white/[0.03]"
@@ -257,7 +231,20 @@ export function EmailConfigForm({
             )}
           </div>
         )}
-      </div>
+
+        {isEdit && passwordAlreadySet && !changingPassword && (
+          <div className="mt-1.5 flex justify-end">
+            <ActionButton
+              type="button"
+              size="small"
+              onClick={() => setChangingPassword(true)}
+              startIcon={<Pencil className="h-3 w-3" />}
+            >
+              Alterar senha
+            </ActionButton>
+          </div>
+        )}
+      </FormField>
 
       <FormField
         label="Email remetente"
@@ -292,22 +279,12 @@ export function EmailConfigForm({
         />
       </FormField>
 
-      <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 sm:col-span-2 dark:border-white/[0.07]">
-        <Button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
-          {isSubmitting ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar configuração'}
-        </Button>
+      <div className="sm:col-span-2">
+        <ModalActions
+          onCancel={onCancel}
+          isPending={isSubmitting}
+          submitLabel={isEdit ? 'Salvar alterações' : 'Criar configuração'}
+        />
       </div>
     </form>
   );

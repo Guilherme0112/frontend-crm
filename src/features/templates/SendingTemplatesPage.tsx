@@ -1,6 +1,8 @@
 import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
 import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { ModalActions } from '@/src/components/common/ModalActions';
+import { SearchField } from '@/src/components/common/SearchField';
 import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
 import { Link } from 'react-router-dom';
@@ -243,33 +245,13 @@ export function SendingTemplatesPage() {
         <section className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-                aria-hidden="true"
-              />
-              <TextInput
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nome, descrição ou conteúdo..."
-                aria-label="Buscar template"
-                className="w-full max-w-sm rounded-lg border border-zinc-950/[0.1] bg-zinc-50 py-2 pl-9 pr-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-100 dark:focus:bg-[#17171a]"
-              />
-              {search && (
-                <Button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                  aria-label="Limpar busca"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <p className="font-mono text-[11px] tabular-nums uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-              {total} {total === 1 ? 'template' : 'templates'}
-            </p>
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar por nome, descrição ou conteúdo..."
+              ariaLabel="Buscar template"
+              className="max-w-sm flex-1"
+            />
           </div>
 
           {/* Rows */}
@@ -282,7 +264,14 @@ export function SendingTemplatesPage() {
               {templates.map((tpl) => {
                 const vars = extractPlaceholders(tpl.body);
                 return (
-                  <li key={tpl.id} className="group flex items-start gap-3 px-5 py-4 transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.03]">
+                  <li
+                    key={tpl.id}
+                    onClick={(event) => {
+                      if ((event.target as Element).closest('button, a')) return;
+                      setPreviewTemplate(tpl);
+                    }}
+                    className="group flex cursor-pointer items-start gap-3 px-5 py-4 transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.03]"
+                  >
                     <span
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/10 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-400/10"
                       aria-hidden="true"
@@ -493,26 +482,11 @@ export function SendingTemplatesPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
-              {createMutation.isPending || updateMutation.isPending
-                ? 'Salvando...'
-                : editingTemplate
-                  ? 'Salvar alterações'
-                  : 'Criar template'}
-            </Button>
-          </div>
+          <ModalActions
+            onCancel={() => setModalOpen(false)}
+            isPending={createMutation.isPending || updateMutation.isPending}
+            submitLabel={editingTemplate ? 'Salvar alterações' : 'Criar template'}
+          />
         </form>
       </Modal>
 

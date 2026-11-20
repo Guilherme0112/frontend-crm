@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Moon, Monitor, Sun } from 'lucide-react';
-import { useTheme } from '@/src/theme/ThemeContext';
+import { CheckCircle2 } from 'lucide-react';
 import { LogoMark } from '@/src/components/common/LogoMark';
 
 const HIGHLIGHTS = [
@@ -15,14 +14,6 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
-  const { theme, setTheme } = useTheme();
-
-  const toggleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
-
   return (
     <div className="flex min-h-screen bg-[#fafaf9] text-zinc-900 dark:bg-[#101012] dark:text-zinc-100">
       {/* Brand panel */}
@@ -75,33 +66,6 @@ export function AuthLayout({ children }: AuthLayoutProps) {
               SaldUp <span className="font-normal text-zinc-400 dark:text-zinc-500">CRM</span>
             </span>
           </Link>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-950/[0.08] bg-white text-zinc-500 shadow-sm transition-colors hover:text-zinc-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-400 dark:hover:text-zinc-100"
-            aria-label={
-              theme === 'light'
-                ? 'Ativar modo escuro'
-                : theme === 'dark'
-                  ? 'Ativar modo sistema'
-                  : 'Ativar modo claro'
-            }
-            title={
-              theme === 'light'
-                ? 'Modo escuro'
-                : theme === 'dark'
-                  ? 'Modo sistema'
-                  : 'Modo claro'
-            }
-          >
-            {theme === 'light' ? (
-              <Moon className="h-4 w-4" />
-            ) : theme === 'dark' ? (
-              <Monitor className="h-4 w-4" />
-            ) : (
-              <Sun className="h-4 w-4" />
-            )}
-          </button>
         </header>
 
         <main className="flex flex-1 items-center justify-center px-4 pb-10 pt-2 sm:px-8">

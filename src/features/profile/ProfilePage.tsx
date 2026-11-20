@@ -1,210 +1,100 @@
-import Button from '@mui/material/Button';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Monitor, Moon, RefreshCw, Sun } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useTheme } from '@/src/theme/ThemeContext';
-import { useToast } from '@/src/components/common/Toast';
-import { formatDateTime, getInitials } from '@/src/lib/format';
+import { getInitials } from '@/src/lib/format';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
-import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { cn } from '@/src/lib/cn';
 
+const THEMES = [
+  { id: 'light', label: 'Claro', icon: Sun },
+  { id: 'dark', label: 'Escuro', icon: Moon },
+  { id: 'system', label: 'Sistema', icon: Monitor },
+] as const;
+
 export function ProfilePage() {
-  const { user, company, refreshSession } = useAuth();
+  const { user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
-  const [refreshing, setRefreshing] = useState(false);
-
-  const THEMES = [
-    { id: 'light', label: 'Claro', icon: Sun },
-    { id: 'dark', label: 'Escuro', icon: Moon },
-    { id: 'system', label: 'Sistema', icon: Monitor },
-  ] as const;
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await refreshSession();
-      toast.success('Dados da sessão atualizados');
-    } catch (error) {
-      toast.error('Falha ao atualizar', getApiErrorMessage(error));
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Meu Perfil
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Dados do usuário autenticado e da empresa vinculada à sessão.
-          </p>
-        </div>
-        <Button variant="outlined" color="inherit" startIcon={<RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />} onClick={() => void handleRefresh()} disabled={refreshing}>
-          Atualizar sessão
-        </Button>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+          Meu Perfil
+        </h1>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          Seus dados e preferências de exibição.
+        </p>
       </div>
 
-      {/* items-start: cada card fica com a altura do próprio conteúdo. Com o
-          stretch padrão do grid, o card do usuário era esticado até a altura
-          da coluna vizinha (tema + empresa) e sobrava um vazio no rodapé. */}
-      <div className="grid items-start gap-6 lg:grid-cols-2 2xl:grid-cols-3">
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div className="flex items-center gap-4 border-b border-zinc-950/[0.07] pb-5 dark:border-white/[0.07]">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-base font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              {getInitials(user?.name)}
-            </div>
-            <div className="min-w-0">
-              <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {user?.name || '—'}
-              </h2>
-              <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
-                {user?.email || '—'}
-              </p>
-            </div>
+      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-base font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+            {getInitials(user?.name)}
           </div>
-
-          <dl className="mt-5 space-y-4 text-sm">
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-zinc-500 dark:text-zinc-400">Status da conta</dt>
-              <dd>
-                <StatusIndicator
-                  tone={user?.is_active ? 'success' : 'neutral'}
-                  label={user?.is_active ? 'Ativo' : 'Inativo'}
-                />
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-zinc-500 dark:text-zinc-400">Telefone</dt>
-              <dd className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                {user?.phone || 'Não informado'}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-zinc-500 dark:text-zinc-400">ID do usuário</dt>
-              <dd className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                #{user?.id ?? '—'}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-zinc-500 dark:text-zinc-400">Cadastro em</dt>
-              <dd className="tabular-nums text-zinc-900 dark:text-zinc-100">
-                {formatDateTime(user?.created_at)}
-              </dd>
-            </div>
-          </dl>
-
-          <div className="mt-6 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Link
-              to="/team"
-              className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-            >
-              Gerenciar usuários da equipe
-            </Link>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Preferências de Tema
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {user?.name || '—'}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Escolha como o Vértice CRM deve ser exibido para você.
+            <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
+              {user?.email || '—'}
             </p>
-
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              {THEMES.map((item) => {
-                const Icon = item.icon;
-                const isActive = theme === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setTheme(item.id)}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-lg border p-3 transition-all',
-                      isActive
-                        ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-300'
-                        : 'border-zinc-950/[0.07] bg-white text-zinc-600 hover:bg-zinc-50 dark:border-white/[0.07] dark:bg-[#17171a] dark:text-zinc-400 dark:hover:bg-white/[0.04]',
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span className="text-xs font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div>
-            <div className="border-b border-zinc-950/[0.07] pb-5 dark:border-white/[0.07]">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {company?.name || 'Empresa'}
-              </h2>
-              <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-                Organização ativa neste workspace
-              </p>
-            </div>
+        <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-sm text-zinc-500 dark:text-zinc-400">Status</dt>
+            <dd>
+              <StatusIndicator
+                tone={user?.is_active ? 'success' : 'neutral'}
+                label={user?.is_active ? 'Ativo' : 'Inativo'}
+              />
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-sm text-zinc-500 dark:text-zinc-400">Telefone</dt>
+            <dd className="font-mono tabular-nums text-sm text-zinc-900 dark:text-zinc-100">
+              {user?.phone || 'Não informado'}
+            </dd>
+          </div>
+        </dl>
 
-            <dl className="mt-5 space-y-4 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-zinc-500 dark:text-zinc-400">Documento (CPF/CNPJ)</dt>
-                <dd className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                  {company?.document_number || 'Não informado'}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-zinc-500 dark:text-zinc-400">Site</dt>
-                <dd className="truncate text-zinc-900 dark:text-zinc-100">
-                  {company?.website ? (
-                    <a
-                      href={company.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      {company.website}
-                    </a>
-                  ) : (
-                    'Não informado'
+        <div className="mt-6 border-t border-zinc-950/[0.07] pt-5 dark:border-white/[0.07]">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Aparência</h2>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {THEMES.map((item) => {
+              const Icon = item.icon;
+              const isActive = theme === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTheme(item.id)}
+                  className={cn(
+                    'flex flex-col items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors',
+                    isActive
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-300'
+                      : 'border-zinc-950/[0.07] text-zinc-600 hover:bg-zinc-50 dark:border-white/[0.07] dark:text-zinc-400 dark:hover:bg-white/[0.04]',
                   )}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-zinc-500 dark:text-zinc-400">Cidade / UF</dt>
-                <dd className="text-zinc-900 dark:text-zinc-100">
-                  {company?.address?.city
-                    ? `${company.address.city}${company.address.state ? ` / ${company.address.state}` : ''}`
-                    : 'Não informado'}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-zinc-500 dark:text-zinc-400">ID da empresa</dt>
-                <dd className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                  #{company?.id ?? '—'}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="mt-6 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-              <Link
-                to="/company"
-                className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-              >
-                Editar dados da empresa
-              </Link>
-            </div>
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
-        </section>
-      </div>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-zinc-950/[0.07] pt-4 text-sm font-medium text-blue-600 dark:border-white/[0.07] dark:text-blue-400">
+          <Link to="/company" className="hover:underline">
+            Editar empresa
+          </Link>
+          <Link to="/team" className="hover:underline">
+            Gerenciar equipe
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

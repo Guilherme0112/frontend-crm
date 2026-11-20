@@ -1,11 +1,12 @@
-import Button from '@mui/material/Button';
 import { TextInput } from '@/src/components/common/TextInput';
+import ActionButton from '@/src/components/common/Button';
+import { ModalActions } from '@/src/components/common/ModalActions';
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, BarChart3, Columns3, History, Plug, Plus, Search } from 'lucide-react';
+import { ArrowLeft, BarChart3, Columns3, History, Plug, Plus } from 'lucide-react';
 import {
   useCreateStepMutation,
   useCrmQuery,
@@ -48,7 +49,6 @@ export function CrmBoardPage() {
   const deleteStepMutation = useDeleteStepMutation(crmId);
   const moveLeadMutation = useMoveLeadStepMutation();
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [stepModalOpen, setStepModalOpen] = useState(false);
   const [editingStep, setEditingStep] = useState<Step | null>(null);
@@ -151,10 +151,10 @@ export function CrmBoardPage() {
           className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Voltar para pipelines</span>
+          <span>Voltar para CRMs</span>
         </Link>
         <ErrorState
-          title="Pipeline não encontrado"
+          title="CRM não encontrado"
           error={crmQuery.error}
           onRetry={() => void crmQuery.refetch()}
         />
@@ -184,7 +184,7 @@ export function CrmBoardPage() {
             className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Todos os pipelines</span>
+            <span>Todos os CRMs</span>
           </Link>
           <div className="mt-1.5 flex items-center gap-2.5">
             <span
@@ -204,21 +204,6 @@ export function CrmBoardPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 sm:w-64 sm:flex-none">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-              aria-hidden="true"
-            />
-            <TextInput
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filtrar por nome ou e-mail..."
-              aria-label="Filtrar leads por nome ou e-mail"
-              className="w-full rounded-lg border border-zinc-950/[0.12] bg-white py-2 pr-3 pl-9 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-100 dark:placeholder:text-zinc-500"
-            />
-          </div>
-
           <Link
             to={`/crms/${crmId}/dashboard`}
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
@@ -243,14 +228,14 @@ export function CrmBoardPage() {
             <span>Integração pública</span>
           </Link>
 
-          <Button
+          <ActionButton
             type="button"
             onClick={openCreateStep}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
+            className="whitespace-nowrap shrink-0"
+            startIcon={<Plus className="h-4 w-4" />}
           >
-            <Plus className="h-4 w-4" />
-            <span>Nova etapa</span>
-          </Button>
+            Nova etapa
+          </ActionButton>
         </div>
       </div>
 
@@ -261,21 +246,19 @@ export function CrmBoardPage() {
           title="Nenhuma etapa configurada"
           description="Adicione as etapas do seu funil (ex.: Novo Lead, Qualificação, Proposta) para começar a organizar leads."
           action={
-            <Button
+            <ActionButton
               type="button"
               onClick={openCreateStep}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              startIcon={<Plus className="h-4 w-4" />}
             >
-              <Plus className="h-4 w-4" />
-              <span>Criar primeira etapa</span>
-            </Button>
+              Criar primeira etapa
+            </ActionButton>
           }
         />
       ) : (
         <div className="space-y-3">
           <KanbanBoard
             steps={steps}
-            searchQuery={searchQuery}
             hasMore={Boolean(stepsQuery.hasNextPage)}
             isFetchingNextPage={stepsQuery.isFetchingNextPage}
             onLoadMore={() => void stepsQuery.fetchNextPage()}
@@ -319,26 +302,11 @@ export function CrmBoardPage() {
             A ordem das etapas é definida arrastando-as no quadro Kanban — sem campo de posição.
           </p>
 
-          <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Button
-              type="button"
-              onClick={() => setStepModalOpen(false)}
-              className="rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={createStepMutation.isPending || updateStepMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {createStepMutation.isPending || updateStepMutation.isPending
-                ? 'Salvando...'
-                : editingStep
-                  ? 'Salvar etapa'
-                  : 'Criar etapa'}
-            </Button>
-          </div>
+          <ModalActions
+            onCancel={() => setStepModalOpen(false)}
+            isPending={createStepMutation.isPending || updateStepMutation.isPending}
+            submitLabel={editingStep ? 'Salvar etapa' : 'Criar etapa'}
+          />
         </form>
       </Modal>
 

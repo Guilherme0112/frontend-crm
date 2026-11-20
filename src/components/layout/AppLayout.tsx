@@ -1,4 +1,3 @@
-import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
@@ -11,20 +10,17 @@ import {
   LogOut,
   MailCheck,
   Menu,
-  Moon,
-  Monitor,
-  Sun,
-  UserCircle,
+  User,
   Users,
   UsersRound,
   X,
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
 import { LogoMark } from '@/src/components/common/LogoMark';
-import { useTheme } from '@/src/theme/ThemeContext';
 import { getInitials } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
 
@@ -57,7 +53,6 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/company', label: 'Empresa', icon: Building2 },
       { to: '/team', label: 'Equipe', icon: Users },
-      { to: '/profile', label: 'Meu Perfil', icon: UserCircle },
     ],
   },
 ];
@@ -88,9 +83,10 @@ function getPageTitle(pathname: string): string {
 export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, company, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const pageTitle = getPageTitle(location.pathname);
 
@@ -111,11 +107,30 @@ export function AppLayout() {
     };
   }, [isCollapsed]);
 
-  const toggleTheme = () => {
-    if (theme === 'light') setTheme('dark');
-    else if (theme === 'dark') setTheme('system');
-    else setTheme('light');
-  };
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [location.pathname]);
 
   const renderSidebarContent = (collapsed: boolean) => (
     <div className="flex h-full flex-col bg-white dark:bg-[#141416]">
@@ -243,53 +258,6 @@ export function AppLayout() {
           </div>
         ))}
       </nav>
-
-      {/* Footer / Profile */}
-      <div
-        className={cn(
-          'border-t',
-          BORDER,
-          collapsed ? 'flex flex-col items-center gap-1.5 p-2' : 'p-3',
-        )}
-      >
-        {collapsed ? (
-          <>
-            <Link
-              to="/profile"
-              title={user?.name || 'Perfil'}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/15 transition-transform hover:scale-[1.04] dark:from-zinc-200 dark:to-zinc-400 dark:text-zinc-900"
-            >
-              {getInitials(user?.name)}
-            </Link>
-            <IconButton size="small" onClick={() => void logout()} title="Sair" aria-label="Sair da conta">
-              <LogOut className="h-4 w-4" />
-            </IconButton>
-          </>
-        ) : (
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-zinc-950/[0.07] bg-zinc-50 p-1.5 dark:border-white/[0.07] dark:bg-white/[0.03]">
-            <Link
-              to="/profile"
-              onClick={() => setMobileOpen(false)}
-              className="flex min-w-0 items-center gap-2.5 rounded-lg p-1 transition-colors hover:bg-zinc-950/[0.04] dark:hover:bg-white/[0.05]"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/15 dark:from-zinc-200 dark:to-zinc-400 dark:text-zinc-900">
-                {getInitials(user?.name)}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
-                  {user?.name || 'Usuário'}
-                </p>
-                <p className="truncate text-[11px] text-zinc-400 dark:text-zinc-500">
-                  {user?.email || ''}
-                </p>
-              </div>
-            </Link>
-            <IconButton size="small" onClick={() => void logout()} title="Sair" aria-label="Sair da conta" className="shrink-0">
-              <LogOut className="h-4 w-4" />
-            </IconButton>
-          </div>
-        )}
-      </div>
     </div>
   );
 
@@ -353,26 +321,68 @@ export function AppLayout() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button variant="contained" color="inherit" onClick={toggleTheme} aria-label={ theme === 'light' ? 'Ativar modo escuro' : theme === 'dark' ? 'Ativar modo sistema' : 'Ativar modo claro' } title={ theme === 'light' ? 'Modo escuro' : theme === 'dark' ? 'Modo sistema' : 'Modo claro' }>
-              {theme === 'light' ? (
-                <Moon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              ) : theme === 'dark' ? (
-                <Monitor className="h-[18px] w-[18px]" strokeWidth={1.8} />
-              ) : (
-                <Sun className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                type="button"
+                onClick={() => setProfileOpen((open) => !open)}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.08] bg-white py-1 pl-1 pr-2 text-[13px] font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
+                aria-label="Abrir menu do perfil"
+                title={user?.name || 'Perfil'}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-zinc-700 to-zinc-900 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/15 dark:from-zinc-200 dark:to-zinc-400 dark:text-zinc-900">
+                  {getInitials(user?.name)}
+                </span>
+                <span className="hidden max-w-28 truncate sm:inline">{user?.name || 'Perfil'}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 text-zinc-400 transition-transform',
+                    profileOpen && 'rotate-180',
+                  )}
+                />
+              </button>
+
+              {profileOpen && (
+                <div
+                  role="menu"
+                  aria-label="Opções do perfil"
+                  className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-zinc-950/[0.08] bg-white p-1.5 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.28)] dark:border-white/10 dark:bg-[#17171a]"
+                >
+                  <div className="border-b border-zinc-950/[0.06] px-2 py-2 dark:border-white/[0.06]">
+                    <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+                      {user?.name || 'Usuário'}
+                    </p>
+                    <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {user?.email || ''}
+                    </p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      to="/profile"
+                      role="menuitem"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-900 dark:text-zinc-200 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                    >
+                      <User className="h-4 w-4" strokeWidth={1.8} />
+                      Meu perfil
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        void logout();
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                    >
+                      <LogOut className="h-4 w-4" strokeWidth={1.8} />
+                      Sair
+                    </button>
+                  </div>
+                </div>
               )}
-            </Button>
-
-            <div aria-hidden="true" className="mx-0.5 h-5 w-px bg-zinc-950/10 dark:bg-white/10" />
-
-            <button
-              type="button"
-              onClick={() => void logout()}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.08] bg-white px-3 py-[7px] text-[13px] font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white whitespace-nowrap shrink-0"
-            >
-              <LogOut className="h-4 w-4" strokeWidth={1.8} />
-              <span className="hidden sm:inline">Sair</span>
-            </button>
+            </div>
           </div>
         </header>
 

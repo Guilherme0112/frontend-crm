@@ -1,4 +1,3 @@
-import IconButton from '@mui/material/IconButton';
 import type { ReactNode } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
@@ -6,6 +5,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { X } from 'lucide-react';
+import { TableActionButton } from './TableActionButton';
 
 interface ModalProps {
   open: boolean;
@@ -57,9 +57,9 @@ export function Modal({
             )}
           </div>
 
-          <IconButton onClick={onClose} size="small" aria-label="Fechar janela" sx={{ mt: -0.5 }}>
+          <TableActionButton onClick={onClose} aria-label="Fechar janela" className="-mt-0.5">
             <X className="h-4 w-4" />
-          </IconButton>
+          </TableActionButton>
         </Stack>
       </DialogTitle>
 

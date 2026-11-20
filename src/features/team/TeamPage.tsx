@@ -1,4 +1,3 @@
-import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { useEffect, useState } from 'react';
@@ -15,6 +14,8 @@ import {
 import { useAuth } from '@/src/auth/AuthContext';
 import { Modal } from '@/src/components/common/Modal';
 import { TableActionButton } from '@/src/components/common/TableActionButton';
+import ActionButton from '@/src/components/common/Button';
+import { ModalActions } from '@/src/components/common/ModalActions';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField } from '@/src/components/common/FormField';
 import { TextInput } from '@/src/components/common/TextInput';
@@ -25,7 +26,7 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
+import { PHONE_REGEX, maskPhone } from '@/src/lib/format';
 import type { User } from '@/src/lib/types';
 
 const createUserSchema = z.object({
@@ -180,9 +181,9 @@ export function TeamPage() {
             Gerencie os usuários vinculados à sua empresa.
           </p>
         </div>
-        <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
+        <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />}>
           Novo membro
-        </Button>
+        </ActionButton>
       </div>
 
       <section className="overflow-hidden rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
@@ -208,9 +209,9 @@ export function TeamPage() {
             title="Nenhum membro encontrado"
             description="Adicione membros para compartilhar o acesso ao CRM."
             action={
-              <Button variant="contained" startIcon={<Plus className="h-4 w-4" />} onClick={openCreate}>
+              <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />}>
                 Novo membro
-              </Button>
+              </ActionButton>
             }
           />
         )}
@@ -224,7 +225,6 @@ export function TeamPage() {
                   <th className="px-5 py-3 font-medium">E-mail</th>
                   <th className="px-5 py-3 font-medium">Telefone</th>
                   <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3 font-medium">Criado em</th>
                   <th className="px-5 py-3 text-right font-medium">Ações</th>
                 </tr>
               </thead>
@@ -246,9 +246,6 @@ export function TeamPage() {
                         tone={user.is_active ? 'success' : 'neutral'}
                         label={user.is_active ? 'Ativo' : 'Inativo'}
                       />
-                    </td>
-                    <td className="px-5 py-3 text-zinc-500 dark:text-zinc-400">
-                      {user.created_at ? formatDateTime(user.created_at) : '—'}
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -360,14 +357,12 @@ export function TeamPage() {
             slotProps={{ typography: { sx: { fontSize: 14 } } }}
           />
 
-          <div className="flex justify-end gap-2 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Button variant="outlined" color="inherit" onClick={() => setModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="contained" disabled={createMutation.isPending || updateMutation.isPending}>
-              {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
+          <ModalActions
+            onCancel={() => setModalOpen(false)}
+            isPending={createMutation.isPending || updateMutation.isPending}
+            pendingLabel="Salvando..."
+            submitLabel="Salvar"
+          />
         </form>
       </Modal>
 

@@ -29,6 +29,8 @@ interface AutocompleteProps {
   onSearch?: (term: string) => void;
   debounceMs?: number;
   loading?: boolean;
+  variant?: 'standard' | 'outlined' | 'filled';
+  size?: 'small' | 'medium';
 }
 
 export function Autocomplete({
@@ -47,6 +49,8 @@ export function Autocomplete({
   onSearch,
   debounceMs = 300,
   loading = false,
+  variant = 'standard',
+  size = 'medium',
 }: AutocompleteProps) {
   const field = useFieldMeta();
 
@@ -109,7 +113,8 @@ export function Autocomplete({
       renderInput={(params) => (
         <TextField
           {...params}
-          variant="standard"
+          variant={variant}
+          size={size}
           label={field.label}
           required={field.required}
           helperText={field.error ?? field.hint}

@@ -1,6 +1,7 @@
-import InputAdornment from '@mui/material/InputAdornment';
 import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 import ActionButton from '@/src/components/common/Button';
+import { SearchField } from '@/src/components/common/SearchField';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -10,7 +11,6 @@ import {
   Loader2,
   Mail,
   MailWarning,
-  Search,
   Square,
   UsersRound,
   Zap,
@@ -36,7 +36,6 @@ import { getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
 import { getInitials } from '@/src/lib/format';
 import { useDebouncedValue } from '@/src/lib/useDebouncedValue';
 import { cn } from '@/src/lib/cn';
-import { TextInput } from '@/src/components/common/TextInput';
 import Checkbox from '@mui/material/Checkbox';
 
 export function GroupPage() {
@@ -340,25 +339,14 @@ export function GroupPage() {
             </ActionButton>
           </div>
 
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <div className="flex-1">
-              <TextInput
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nome ou e-mail..."
-                aria-label="Buscar leads"
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search className="h-4 w-4" aria-hidden="true" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-            </div>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 2 }}>
+            <SearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar por nome ou e-mail..."
+              ariaLabel="Buscar leads"
+              className="flex-1"
+            />
             <Autocomplete
               value={crmFilter === 'all' ? '' : String(crmFilter)}
               onChange={(value) => {
@@ -387,7 +375,7 @@ export function GroupPage() {
               loading={stepsAllQuery.isFetching}
               className="min-w-48"
             />
-          </div>
+          </Stack>
         </div>
 
         {/* Lista */}
@@ -522,14 +510,14 @@ export function GroupPage() {
           <Button variant="outlined" color="inherit" onClick={() => setSendModalOpen(false)}>
             Cancelar
           </Button>
-          <Button variant="contained" onClick={() => void handleSend()} disabled={sendMutation.isPending}>
+          <ActionButton onClick={() => void handleSend()} disabled={sendMutation.isPending}>
             {sendMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <Zap className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             )}
             Confirmar disparo
-          </Button>
+          </ActionButton>
         </div>
       </Modal>
     </div>

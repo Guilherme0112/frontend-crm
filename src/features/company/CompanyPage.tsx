@@ -1,4 +1,4 @@
-import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
 import { useEffect } from 'react';
@@ -45,10 +45,6 @@ const companySchema = z.object({
       .refine((val) => !val || ZIP_REGEX.test(val), {
         message: 'CEP deve estar no formato 00000-000',
       }),
-    street: z.string().optional(),
-    number: z.string().optional(),
-    complement: z.string().optional(),
-    neighborhood: z.string().optional(),
     city: z.string().optional(),
     state: z
       .string()
@@ -57,8 +53,6 @@ const companySchema = z.object({
       .refine((val) => !val || val.length === 2, {
         message: 'UF deve ter 2 letras (ex.: SP)',
       }),
-    country: z.string().optional(),
-    ibge_code: z.string().optional(),
   }),
 });
 
@@ -84,17 +78,7 @@ export function CompanyPage() {
       description: '',
       website: '',
       document_number: '',
-      address: {
-        zip_code: '',
-        street: '',
-        number: '',
-        complement: '',
-        neighborhood: '',
-        city: '',
-        state: '',
-        country: 'Brasil',
-        ibge_code: '',
-      },
+      address: { zip_code: '', city: '', state: '' },
     },
   });
 
@@ -108,14 +92,8 @@ export function CompanyPage() {
         document_number: maskCpfCnpj(c.document_number ?? ''),
         address: {
           zip_code: c.address?.zip_code ?? '',
-          street: c.address?.street ?? '',
-          number: c.address?.number ?? '',
-          complement: c.address?.complement ?? '',
-          neighborhood: c.address?.neighborhood ?? '',
           city: c.address?.city ?? '',
           state: c.address?.state ?? '',
-          country: c.address?.country ?? 'Brasil',
-          ibge_code: c.address?.ibge_code ?? '',
         },
       });
     }
@@ -134,14 +112,9 @@ export function CompanyPage() {
         address: hasAnyAddressField
           ? {
               zip_code: addr.zip_code?.trim() || null,
-              street: addr.street?.trim() || null,
-              number: addr.number?.trim() || null,
-              complement: addr.complement?.trim() || null,
-              neighborhood: addr.neighborhood?.trim() || null,
               city: addr.city?.trim() || null,
               state: addr.state?.trim().toUpperCase() || null,
-              country: addr.country?.trim() || null,
-              ibge_code: addr.ibge_code?.trim() || null,
+              country: 'Brasil',
             }
           : null,
       });
@@ -221,7 +194,7 @@ export function CompanyPage() {
               label="CNPJ / CPF"
               htmlFor="comp-document"
               error={errors.document_number?.message}
-              hint={errors.document_number ? undefined : 'Opcional · máscara automática'}
+              hint={errors.document_number ? undefined : ''}
             >
               <Controller
                 name="document_number"
@@ -299,62 +272,6 @@ export function CompanyPage() {
             </FormField>
 
             <FormField
-              label="Logradouro"
-              htmlFor="addr-street"
-              error={errors.address?.street?.message}
-              className="sm:col-span-3"
-            >
-              <TextInput
-                id="addr-street"
-                type="text"
-                placeholder="Av. Paulista"
-                {...register('address.street')}
-              />
-            </FormField>
-
-            <FormField
-              label="Número"
-              htmlFor="addr-number"
-              error={errors.address?.number?.message}
-              className="sm:col-span-1"
-            >
-              <TextInput
-                id="addr-number"
-                type="text"
-                placeholder="1000"
-                {...register('address.number')}
-              />
-            </FormField>
-
-            <FormField
-              label="Complemento"
-              htmlFor="addr-comp"
-              error={errors.address?.complement?.message}
-              className="sm:col-span-3"
-            >
-              <TextInput
-                id="addr-comp"
-                type="text"
-                placeholder="Sala 12"
-                {...register('address.complement')}
-              />
-            </FormField>
-
-            <FormField
-              label="Bairro"
-              htmlFor="addr-neigh"
-              error={errors.address?.neighborhood?.message}
-              className="sm:col-span-3"
-            >
-              <TextInput
-                id="addr-neigh"
-                type="text"
-                placeholder="Bela Vista"
-                {...register('address.neighborhood')}
-              />
-            </FormField>
-
-            <FormField
               label="Cidade"
               htmlFor="addr-city"
               error={errors.address?.city?.message}
@@ -383,46 +300,16 @@ export function CompanyPage() {
                 {...register('address.state')}
               />
             </FormField>
-
-            <FormField
-              label="País"
-              htmlFor="addr-country"
-              error={errors.address?.country?.message}
-              className="sm:col-span-2"
-            >
-              <TextInput
-                id="addr-country"
-                type="text"
-                placeholder="Brasil"
-                {...register('address.country')}
-              />
-            </FormField>
-
-            <FormField
-              label="Código IBGE"
-              htmlFor="addr-ibge"
-              error={errors.address?.ibge_code?.message}
-              className="sm:col-span-2"
-            >
-              <TextInput
-                id="addr-ibge"
-                type="text"
-                placeholder="3550308"
-                className={`${inputClassName(Boolean(errors.address?.ibge_code))} font-mono tabular-nums`}
-                {...register('address.ibge_code')}
-              />
-            </FormField>
           </div>
         </div>
 
         <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-          <Button
+          <ActionButton
             type="submit"
             disabled={updateMutation.isPending || !isDirty}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-          </Button>
+          </ActionButton>
         </div>
       </form>
     </div>

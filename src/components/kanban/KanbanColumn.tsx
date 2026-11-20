@@ -1,5 +1,20 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react';
-import { Loader2, GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { type FormEvent, useEffect, useRef, useState, type DragEvent } from 'react';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { alpha } from '@mui/material/styles';
+import {
+  GripVertical,
+  Loader2,
+  MoreVertical,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import type { Step } from '@/src/lib/types';
 import { cn } from '@/src/lib/cn';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
@@ -8,6 +23,10 @@ import { useLeadsInfiniteQuery } from '@/src/features/leads/hooks';
 import { useToast } from '@/src/components/common/Toast';
 import ActionButton from '@/src/components/common/Button';
 import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { Modal } from '@/src/components/common/Modal';
+import { ModalActions } from '@/src/components/common/ModalActions';
+import { FormField } from '@/src/components/common/FormField';
+import { TextInput } from '@/src/components/common/TextInput';
 import { KanbanCard } from './KanbanCard';
 import { KanbanInlineLeadForm, type InlineLeadValues } from './KanbanInlineLeadForm';
 
@@ -15,7 +34,6 @@ const PER_PAGE = 10;
 
 interface KanbanColumnProps {
   step: Step;
-  searchQuery: string;
   draggingLeadId: number | null;
   draggingStepId: number | null;
   onDragStart: (e: DragEvent<HTMLDivElement>, leadId: number) => void;
@@ -36,7 +54,6 @@ interface KanbanColumnProps {
 
 export function KanbanColumn({
   step,
-  searchQuery,
   draggingLeadId,
   draggingStepId,
   onDragStart,
@@ -52,10 +69,15 @@ export function KanbanColumn({
   const [isDragOver, setIsDragOver] = useState(false);
   /** Índice do gap onde o composer de novo lead está aberto (0..leads.length) */
   const [addingAt, setAddingAt] = useState<number | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filterForm, setFilterForm] = useState({ name: '' });
+  const [columnFilter, setColumnFilter] = useState('');
   /** Posição de inserção calculada durante o drag (0..leads.length), null fora de arraste */
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const createLeadMutation = useCreateLeadMutation();
-  const leadsQuery = useLeadsInfiniteQuery(step.id, searchQuery || undefined, PER_PAGE);
+  const effectiveSearch = columnFilter.trim();
+  const leadsQuery = useLeadsInfiniteQuery(step.id, effectiveSearch || undefined, PER_PAGE);
   const { toast } = useToast();
   const listRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -124,7 +146,7 @@ export function KanbanColumn({
     draggedLeadId: number,
     index: number | null,
   ): { previousId: number | null; nextId: number | null } => {
-    if (index === null || searchQuery) {
+    if (index === null || effectiveSearch) {
       return { previousId: null, nextId: null };
     }
 
@@ -202,7 +224,7 @@ export function KanbanColumn({
   );
 
   const handleCardDragOver = (index: number) => (e: DragEvent<HTMLDivElement>) => {
-    if (draggingLeadId === null || searchQuery) return;
+    if (draggingLeadId === null || effectiveSearch) return;
     if (e.dataTransfer.types.includes('application/x-step')) return;
 
     e.preventDefault();
@@ -210,6 +232,24 @@ export function KanbanColumn({
     const rect = e.currentTarget.getBoundingClientRect();
     const before = e.clientY < rect.top + rect.height / 2;
     setDropIndex(before ? index : index + 1);
+  };
+
+  const openFilter = () => {
+    setMenuAnchor(null);
+    setFilterForm({ name: '' });
+    setFilterModalOpen(true);
+  };
+
+  const applyFilter = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setColumnFilter(filterForm.name.trim());
+    setFilterModalOpen(false);
+  };
+
+  const clearFilter = () => {
+    setFilterForm({ name: '' });
+    setColumnFilter('');
+    setFilterModalOpen(false);
   };
 
   return (
@@ -227,17 +267,9 @@ export function KanbanColumn({
       {/* Column Header */}
       <div className="flex items-start justify-between gap-2 border-b border-zinc-950/[0.07] px-3.5 py-3 dark:border-white/[0.07]">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate font-display text-[13px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              {step.name}
-            </h3>
-            <span
-              className="rounded-md border border-zinc-950/[0.07] bg-white px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-zinc-500 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-400"
-              aria-label={`${leadsQuery.total ?? leads.length} leads carregados`}
-            >
-              {leadsQuery.total ?? leads.length}
-            </span>
-          </div>
+          <h3 className="truncate font-display text-[13px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {step.name}
+          </h3>
           {step.description && (
             <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
               {step.description}
@@ -272,12 +304,25 @@ export function KanbanColumn({
           >
             <GripVertical className="h-4 w-4" />
           </button>
-          <TableActionButton tone="primary" onClick={() => onEditStep(step)} title="Editar etapa" aria-label={`Editar etapa ${step.name}`}>
-            <Pencil className="h-3.5 w-3.5" />
-          </TableActionButton>
-          <TableActionButton tone="error" onClick={() => onDeleteStep(step)} title="Excluir etapa" aria-label={`Excluir etapa ${step.name}`}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </TableActionButton>
+          <IconButton
+            size="small"
+            title="Ações da etapa"
+            aria-label={`Ações da etapa ${step.name}`}
+            onClick={(event) => setMenuAnchor(event.currentTarget)}
+            sx={{
+              color: 'text.secondary',
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 1.5,
+              '&:hover': {
+                color: 'primary.main',
+                borderColor: 'primary.main',
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+              },
+            }}
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </IconButton>
         </div>
       </div>
 
@@ -306,9 +351,7 @@ export function KanbanColumn({
         {hasMore && (
           <div ref={sentinelRef} className="flex items-center justify-center gap-2 py-2 text-[11px] text-zinc-400 dark:text-zinc-500">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            <span>
-              Carregando mais… {leads.length} de {leadsQuery.total ?? '…'}
-            </span>
+            <span>Carregando mais…</span>
           </div>
         )}
 
@@ -320,7 +363,7 @@ export function KanbanColumn({
 
         {!hasMore && leads.length > PER_PAGE && (
           <p className="py-1 text-center text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-300 dark:text-zinc-600">
-            Fim · {leadsQuery.total ?? leads.length} leads
+            Fim
           </p>
         )}
 
@@ -344,6 +387,94 @@ export function KanbanColumn({
           </ActionButton>
         )}
       </div>
+
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          paper: {
+            sx: {
+              minWidth: 170,
+              mt: 0.5,
+              borderRadius: 1.5,
+              boxShadow: 'var(--shadow-pop)',
+            },
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            onEditStep(step);
+          }}
+        >
+          <ListItemIcon>
+            <Pencil className="h-4 w-4" />
+          </ListItemIcon>
+          Editar
+        </MenuItem>
+        <MenuItem
+          sx={{ color: 'error.main' }}
+          onClick={() => {
+            setMenuAnchor(null);
+            onDeleteStep(step);
+          }}
+        >
+          <ListItemIcon sx={{ color: 'inherit' }}>
+            <Trash2 className="h-4 w-4" />
+          </ListItemIcon>
+          Excluir
+        </MenuItem>
+        <MenuItem onClick={openFilter}>
+          <ListItemIcon>
+            <Search className="h-4 w-4" />
+          </ListItemIcon>
+          Filtrar
+        </MenuItem>
+      </Menu>
+
+      <Modal
+        open={filterModalOpen}
+        onClose={() => setFilterModalOpen(false)}
+        title={`Filtrar leads · ${step.name}`}
+        description="Filtre os leads desta etapa por nome."
+      >
+        <form onSubmit={applyFilter} className="space-y-4">
+          <FormField label="Nome" htmlFor={`stage-filter-name-${step.id}`}>
+            <TextInput
+              id={`stage-filter-name-${step.id}`}
+              limit={255}
+              type="text"
+              placeholder="Ex.: Maria Silva"
+              value={filterForm.name}
+              onChange={(event) =>
+                setFilterForm((current) => ({ ...current, name: event.target.value }))
+              }
+            />
+          </FormField>
+
+          <ModalActions
+            onCancel={() => setFilterModalOpen(false)}
+            submitLabel="Aplicar filtro"
+            extraAction={
+              <Button
+                type="button"
+                variant="text"
+                color="primary"
+                size="small"
+                startIcon={<RotateCcw className="h-4 w-4" />}
+                onClick={clearFilter}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                Limpar filtro
+              </Button>
+            }
+          />
+        </form>
+      </Modal>
     </section>
   );
 }

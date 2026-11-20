@@ -1,4 +1,5 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
@@ -647,9 +648,9 @@ export function BillingPage() {
                   <Button variant="outlined" color="inherit" onClick={closeSubscribeModal}>
                     Cancelar
                   </Button>
-                  <Button variant="contained" onClick={() => void handleConfirmSubscribe()} disabled={createCheckoutMutation.isPending}>
+                  <ActionButton onClick={() => void handleConfirmSubscribe()} disabled={createCheckoutMutation.isPending}>
                     {createCheckoutMutation.isPending ? 'Ativando...' : 'Ativar plano'}
-                  </Button>
+                  </ActionButton>
                 </div>
               </>
             ) : (
@@ -693,13 +694,13 @@ export function BillingPage() {
                   {/* O Brick tem o próprio botão de envio. Este só aparece quando
                       não há cartão a digitar: troca de plano, ou redirect. */}
                   {(isOnPaidPlan || !canUseCardForm) && (
-                    <Button variant="contained" onClick={() => void handleConfirmSubscribe()} disabled={isSubscribePending}>
+                    <ActionButton onClick={() => void handleConfirmSubscribe()} disabled={isSubscribePending}>
                       {isSubscribePending
                         ? 'Processando...'
                         : isOnPaidPlan
                           ? 'Confirmar troca de plano'
                           : 'Ir para o pagamento'}
-                    </Button>
+                    </ActionButton>
                   )}
                 </div>
               </>

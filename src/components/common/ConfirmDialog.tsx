@@ -2,6 +2,7 @@ import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import ActionButton from './Button';
 import { Modal } from './Modal';
 
 interface ConfirmDialogProps {
@@ -47,14 +48,13 @@ export function ConfirmDialog({
             {cancelLabel}
           </Button>
 
-          <Button
-            variant="contained"
-            color={variant === 'danger' ? 'error' : 'primary'}
+          <ActionButton
+            color={variant === 'danger' ? 'error' : undefined}
             onClick={onConfirm}
             disabled={isPending}
           >
             {isPending ? 'Processando...' : confirmLabel}
-          </Button>
+          </ActionButton>
         </Stack>
       </Stack>
     </Modal>

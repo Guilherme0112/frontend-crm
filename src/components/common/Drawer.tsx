@@ -1,10 +1,10 @@
-import IconButton from '@mui/material/IconButton';
 import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import MuiDrawer from '@mui/material/Drawer';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { X } from 'lucide-react';
+import { TableActionButton } from './TableActionButton';
 
 interface DrawerProps {
   open: boolean;
@@ -51,9 +51,9 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
           )}
         </Box>
 
-        <IconButton onClick={onClose} size="small" aria-label="Fechar painel">
+        <TableActionButton onClick={onClose} aria-label="Fechar painel">
           <X className="h-5 w-5" />
-        </IconButton>
+        </TableActionButton>
       </Stack>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>{children}</Box>
