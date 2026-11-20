@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, Loader2, MessageCircle, RefreshCw, XCircle } from 'lucide-react';
 import { useWhatsappDispatchLogsQuery } from './hooks';
 import { useWhatsappSendersInfiniteQuery } from '@/src/features/whatsapp-senders/hooks';
@@ -76,10 +76,10 @@ export function WhatsappDispatchLogsSection({ groupId }: { groupId: number }) {
               Logs de disparo WhatsApp
             </h2>
             <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Auditoria por destinatário (status, tentativas, WAMID e erros). Atualiza automaticamente enquanto houver pendências.
+              Auditoria por destinatÃ¡rio (status, tentativas, WAMID e erros). Atualiza automaticamente enquanto houver pendÃªncias.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {hasPending && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -153,7 +153,7 @@ export function WhatsappDispatchLogsSection({ groupId }: { groupId: number }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        Lead #{log.lead_id ?? '—'} · {log.recipient_phone}
+                        Lead #{log.lead_id ?? 'â€”'} Â· {log.recipient_phone}
                       </p>
                       <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
                         {formatDateTime(log.sent_at ?? log.created_at ?? '')}

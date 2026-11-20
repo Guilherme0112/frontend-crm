@@ -15,7 +15,7 @@ export interface PaginatedResponse<T> {
   meta: PaginatedMeta;
 }
 
-function normalizePage<T>(result: T[] | PaginatedResponse<T>, page = 1): PaginatedResponse<T> {
+function normalizePage<T>(result: T[] | PaginatedResponse<T> | null | undefined, page = 1): PaginatedResponse<T> {
   if (Array.isArray(result)) {
     const items = result;
     return {
@@ -30,7 +30,23 @@ function normalizePage<T>(result: T[] | PaginatedResponse<T>, page = 1): Paginat
       },
     };
   }
-  return result;
+
+  if (result && typeof result === 'object' && Array.isArray((result as PaginatedResponse<T>).data)) {
+    return result as PaginatedResponse<T>;
+  }
+
+  // Defensive fallback for unexpected API shapes (e.g. undefined/null during refactors)
+  return {
+    data: [],
+    meta: {
+      current_page: page,
+      per_page: 1,
+      total: 0,
+      last_page: 1,
+      from: null,
+      to: null,
+    },
+  };
 }
 
 export function useInfiniteList<T>(
@@ -51,8 +67,9 @@ export function useInfiniteList<T>(
         : undefined,
   });
 
-  const items = query.data?.pages.flatMap((page) => page.data) ?? [];
-  const meta = query.data?.pages.at(-1)?.meta ?? null;
+  const pages = (query.data?.pages ?? []).map((p) => normalizePage<T>(p as any));
+  const items = pages.flatMap((page) => page.data ?? []);
+  const meta = pages.at(-1)?.meta ?? null;
 
   return {
     ...query,

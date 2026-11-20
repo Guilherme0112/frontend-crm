@@ -181,7 +181,7 @@ export function CrmAuditPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-[13px]">
+              <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-zinc-950/[0.06] text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:border-white/[0.06] dark:text-zinc-500">
                     <th className="px-5 py-3">Lead</th>

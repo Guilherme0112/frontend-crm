@@ -188,7 +188,7 @@ export function SendingTemplatesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <Link
             to="/disparos"
@@ -206,10 +206,10 @@ export function SendingTemplatesPage() {
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Link
             to="/email-configs"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
           >
             <Mail className="h-4 w-4" strokeWidth={1.8} />
             <span>Configuração de email</span>
@@ -218,6 +218,7 @@ export function SendingTemplatesPage() {
             type="button"
             onClick={openCreateModal}
             className="whitespace-nowrap"
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
             startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
           >
             Novo template

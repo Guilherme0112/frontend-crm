@@ -148,7 +148,7 @@ export function EmailConfigForm({
         />
       </FormField>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Porta" htmlFor="ec-port" required error={errors.port?.message}>
           <TextInput
             id="ec-port"

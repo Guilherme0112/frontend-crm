@@ -144,8 +144,8 @@ export function CrmsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="eyebrow text-zinc-400 dark:text-zinc-500">Operação</p>
           <div className="mt-1.5 flex items-center gap-3">
             <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
@@ -161,6 +161,7 @@ export function CrmsPage() {
           type="button"
           onClick={openCreateModal}
           className="whitespace-nowrap shrink-0"
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
           startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
         >
           Novo CRM

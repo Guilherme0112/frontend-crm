@@ -118,7 +118,9 @@ export function useStepsQuery(crmId: number, enabled = true) {
     queryFn: () => api.listSteps(crmId),
     enabled: enabled && Number.isFinite(crmId) && crmId > 0,
   });
-  const items = query.data ?? [];
+  // Cache antigo da query infinita da tela de integração pode deixar um
+  // objeto { pages, pageParams } nesta mesma chave; nunca tratá-lo como lista.
+  const items = Array.isArray(query.data) ? query.data : [];
   return {
     ...query,
     items,

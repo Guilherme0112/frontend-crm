@@ -134,7 +134,7 @@ export function InvoicesPage() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <table className="w-full border-collapse text-left text-sm">
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-950/[0.07] text-xs font-medium text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
                 <th className="px-5 py-3">Fatura</th>
@@ -173,7 +173,7 @@ export function InvoicesPage() {
                       {inv.paid_at ? formatDateTime(inv.paid_at) : '—'}
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {inv.status === 'open' && (
                           <button
                             type="button"

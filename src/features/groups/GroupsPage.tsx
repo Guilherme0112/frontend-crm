@@ -151,8 +151,8 @@ export function GroupsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="eyebrow text-zinc-400 dark:text-zinc-500">Comunicação</p>
           <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
             Disparos
@@ -162,14 +162,15 @@ export function GroupsPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <Button variant="outlined" color="inherit" onClick={() => setConfigModalOpen(true)}>
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <Button variant="outlined" color="inherit" onClick={() => setConfigModalOpen(true)} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             Configurar
           </Button>
           <ActionButton
             type="button"
             onClick={openCreateModal}
             className="whitespace-nowrap"
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
             startIcon={<Plus className="h-4 w-4" />}
           >
             Novo grupo
@@ -220,7 +221,7 @@ export function GroupsPage() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <table className="w-full border-collapse text-left text-sm">
+          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-950/[0.07] text-xs font-medium text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
                 <th className="px-5 py-3">Nome</th>

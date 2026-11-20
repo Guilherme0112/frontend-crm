@@ -2,10 +2,7 @@ import Button from '@mui/material/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plug, TriangleAlert } from 'lucide-react';
-import { useCrmQuery, useUpdateCrmMutation } from '@/src/features/crm/hooks';
-import { useFullList } from '@/src/lib/useInfiniteList';
-import { queryKeys } from '@/src/lib/queryKeys';
-import * as api from '@/src/lib/api';
+import { useCrmQuery, useStepsQuery, useUpdateCrmMutation } from '@/src/features/crm/hooks';
 import { TokenSection } from './token/TokenSection';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { SnippetsCard } from './snippets/SnippetsCard';
@@ -21,12 +18,10 @@ export function IntegrationPage() {
   const { toast } = useToast();
 
   const crmQuery = useCrmQuery(crmId);
-  const stepsQuery = useFullList(
-    queryKeys.crms.steps(crmId),
-    () => api.listSteps(crmId),
-    100,
-    isValidCrmId,
-  );
+  // Use a mesma query de etapas do resto do app: a lista é simples (sem
+  // paginação) e compartilhar a chave com uma query infinita corrompia o
+  // formato do cache ao navegar do Kanban para cá.
+  const stepsQuery = useStepsQuery(crmId);
   const updateCrmMutation = useUpdateCrmMutation();
 
   const [selectedStepId, setSelectedStepId] = useState<number | null>(null);

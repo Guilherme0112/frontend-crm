@@ -72,8 +72,8 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Olá, {user?.name?.split(' ')[0] || 'bem-vindo'}
           </h1>
@@ -83,7 +83,7 @@ export function DashboardPage() {
         </div>
         <Link
           to="/crms"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 sm:w-auto dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           <span>Abrir CRMs</span>
           <ArrowRight className="h-4 w-4" />
@@ -319,25 +319,25 @@ export function DashboardPage() {
         </section>
 
         {/* CRMs list */}
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div className="flex items-center justify-between border-b border-zinc-950/[0.07] px-5 py-4 dark:border-white/[0.07]">
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <section className="min-w-0 rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.07] px-4 py-4 sm:px-5 dark:border-white/[0.07]">
+            <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
               Seus CRMs
             </h2>
             <Link
               to="/crms"
-              className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+              className="shrink-0 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
             >
               Ver todos
             </Link>
           </div>
           {isLoading ? (
-            <div className="space-y-3 p-5">
+            <div className="space-y-3 p-4 sm:p-5">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
           ) : crms.length === 0 ? (
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <EmptyState
                 icon={<FolderKanban className="h-5 w-5" />}
                 title="Nenhum CRM criado"
@@ -358,9 +358,9 @@ export function DashboardPage() {
                 <li key={crm.id}>
                   <Link
                     to={`/crms/${crm.id}/board`}
-                    className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]" 
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-50 sm:justify-between sm:gap-4 sm:px-5 dark:hover:bg-white/[0.04]"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <span
                         className="h-3 w-3 shrink-0 rounded-sm border border-black/10"
                         style={{ backgroundColor: crm.color || '#2563eb' }}
@@ -377,9 +377,10 @@ export function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 whitespace-nowrap shrink-0">
-                      <span>Abrir Kanban</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      <span className="hidden sm:inline">Abrir Kanban</span>
+                      <ArrowRight className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
+                      <span className="sr-only sm:hidden">Abrir Kanban</span>
                     </span>
                   </Link>
                 </li>

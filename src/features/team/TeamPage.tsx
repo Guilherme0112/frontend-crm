@@ -218,7 +218,7 @@ export function TeamPage() {
 
         {users.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="border-b border-zinc-950/[0.07] bg-[#fafaf9] text-xs uppercase tracking-wide text-zinc-500 dark:border-white/[0.07] dark:bg-[#101012] dark:text-zinc-400">
                 <tr>
                   <th className="px-5 py-3 font-medium">Nome</th>

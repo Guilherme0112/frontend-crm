@@ -133,8 +133,8 @@ export function WhatsappSendersPage() {
 
   return (
     <div className="w-full space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <Link
             to="/disparos"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -150,16 +150,16 @@ export function WhatsappSendersPage() {
             Cadastre os remetentes da Meta Cloud API (Phone Number ID e token) usados nos disparos de WhatsApp para grupos de leads.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
           <Link
             to="/whatsapp-templates"
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
           >
             <FileText className="h-4 w-4" strokeWidth={1.8} />
             <span>Configurar templates</span>
           </Link>
           {!isTrial && (
-            <Button variant="contained" color="primary" onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />}>
+            <Button variant="contained" color="primary" onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Novo remetente
             </Button>
           )}
@@ -188,7 +188,7 @@ export function WhatsappSendersPage() {
       ) : (
         <section className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-full min-w-[640px] text-left text-sm">
               <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-white/[0.03] dark:text-zinc-400">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Nome</th>

@@ -21,7 +21,7 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
       open={open}
       onClose={onClose}
       aria-labelledby="drawer-title"
-      slotProps={{ paper: { sx: { width: '100%', maxWidth: 576 } } }}
+      slotProps={{ paper: { sx: { width: '100%', maxWidth: { xs: '100%', sm: 576 } } } }}
     >
       <Stack
         direction="row"
@@ -29,7 +29,7 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
         sx={{
           alignItems: 'flex-start',
           justifyContent: 'space-between',
-          px: 3,
+          px: { xs: 2, sm: 3 },
           py: 2,
           borderBottom: 1,
           borderColor: 'divider',
@@ -51,12 +51,12 @@ export function Drawer({ open, onClose, title, subtitle, children }: DrawerProps
           )}
         </Box>
 
-        <TableActionButton onClick={onClose} aria-label="Fechar painel">
+        <TableActionButton onClick={onClose} aria-label="Fechar painel" className="shrink-0">
           <X className="h-5 w-5" />
         </TableActionButton>
       </Stack>
 
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 2.5 }}>{children}</Box>
+      <Box sx={{ flex: 1, overflowY: 'auto', px: { xs: 2, sm: 3 }, py: 2.5 }}>{children}</Box>
     </MuiDrawer>
   );
 }

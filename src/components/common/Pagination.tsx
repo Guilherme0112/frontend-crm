@@ -1,4 +1,4 @@
-import MuiPagination from '@mui/material/Pagination';
+﻿import MuiPagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
@@ -25,16 +25,16 @@ export function Pagination({
 
   return (
     <Stack
-      direction="row"
-      spacing={2}
+      direction={{ xs: 'column', sm: 'row' }}
+      spacing={1.5}
       sx={{
-        alignItems: 'center',
+        alignItems: { xs: 'stretch', sm: 'center' },
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         py: 1,
       }}
     >
-      <Typography variant="caption" color="text.secondary">
+      <Typography variant="caption" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'left' } }}>
         {from ?? 0}–{to ?? 0} de {total}
       </Typography>
 
@@ -46,7 +46,9 @@ export function Pagination({
           size="small"
           shape="rounded"
           color="primary"
-          siblingCount={1}
+          siblingCount={0}
+          boundaryCount={1}
+          sx={{ alignSelf: { xs: 'center', sm: 'auto' } }}
           getItemAriaLabel={(type, value) =>
             type === 'page' ? `Página ${value}` : type === 'previous' ? 'Página anterior' : 'Próxima página'
           }

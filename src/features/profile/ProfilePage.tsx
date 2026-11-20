@@ -62,7 +62,7 @@ export function ProfilePage() {
 
         <div className="mt-6 border-t border-zinc-950/[0.07] pt-5 dark:border-white/[0.07]">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Aparência</h2>
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {THEMES.map((item) => {
               const Icon = item.icon;
               const isActive = theme === item.id;
