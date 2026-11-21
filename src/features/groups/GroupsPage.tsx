@@ -10,7 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, Pencil, Plus, Trash2, Users, UsersRound } from 'lucide-react';
+import { ArrowLeft, History, Mail, Pencil, Plus, Settings, Trash2, Users, UsersRound } from 'lucide-react';
 import {
   useCreateGroupMutation,
   useDeleteGroupMutation,
@@ -47,16 +47,17 @@ export function GroupsPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const groupsQuery = useGroupsQuery(page);
-  const templatesQuery = useSendingTemplatesQuery(1, 100);
   const createMutation = useCreateGroupMutation();
   const updateMutation = useUpdateGroupMutation();
   const deleteMutation = useDeleteGroupMutation();
 
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const templatesQuery = useSendingTemplatesQuery(1, 100, '', modalOpen);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
   const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [configView, setConfigView] = useState<'channels' | 'whatsapp'>('channels');
 
   const templates = templatesQuery.data?.data ?? [];
   const templateById = useMemo(() => {
@@ -163,7 +164,7 @@ export function GroupsPage() {
         </div>
 
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <Button variant="outlined" color="inherit" onClick={() => setConfigModalOpen(true)} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+          <Button variant="outlined" color="inherit" onClick={() => { setConfigView('channels'); setConfigModalOpen(true); }} startIcon={<Settings className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
             Configurar
           </Button>
           <ActionButton
@@ -269,6 +270,14 @@ export function GroupsPage() {
                       >
                         <Users className="h-4 w-4" strokeWidth={1.8} />
                       </Link>
+                      <Link
+                        to={`/disparos/${group.id}/historico`}
+                        aria-label={`Histórico de ${group.name}`}
+                        title="Ver histórico"
+                        className="inline-flex items-center justify-center rounded-lg bg-zinc-950/[0.05] p-1.5 text-zinc-500 transition-colors hover:bg-zinc-950/[0.1] hover:text-zinc-900 dark:bg-white/[0.05] dark:text-zinc-400 dark:hover:bg-white/[0.1] dark:hover:text-zinc-100"
+                      >
+                        <History className="h-4 w-4" strokeWidth={1.8} />
+                      </Link>
                       <TableActionButton
                         tone="primary"
                         onClick={() => openEditModal(group)}
@@ -293,15 +302,17 @@ export function GroupsPage() {
       )}
 
       {total > 0 && (
-        <Pagination
-          page={meta?.current_page ?? page}
-          lastPage={lastPage}
-          total={total}
-          from={meta?.from ?? null}
-          to={meta?.to ?? null}
-          onPageChange={setPage}
-          ariaLabel="Paginação de grupos"
-        />
+        <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+          <Pagination
+            page={meta?.current_page ?? page}
+            lastPage={lastPage}
+            total={total}
+            from={meta?.from ?? null}
+            to={meta?.to ?? null}
+            onPageChange={setPage}
+            ariaLabel="Paginação de grupos"
+          />
+        </div>
       )}
 
       <Modal
@@ -397,55 +408,84 @@ export function GroupsPage() {
 
       <Modal
         open={configModalOpen}
-        onClose={() => setConfigModalOpen(false)}
-        title="Configurar disparos"
-        description="Escolha o canal que deseja configurar."
+        onClose={() => { setConfigModalOpen(false); setConfigView('channels'); }}
+        title={configView === 'channels' ? 'Configurar disparos' : 'Configurar WhatsApp'}
+        description={configView === 'channels' ? 'Escolha o canal que deseja configurar.' : 'Selecione o tipo de WhatsApp que deseja configurar.'}
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => {
-              setConfigModalOpen(false);
-              navigate('/email-configs');
-            }}
-            className="flex flex-col items-start gap-3 rounded-xl border border-zinc-950/[0.08] bg-white p-4 text-left transition-colors hover:border-blue-500 hover:bg-blue-50/50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:border-blue-400 dark:hover:bg-blue-950/20"
-          >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
-              <Mail className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">E-mail</span>
-              <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                Configurar remetentes/SMTP e acessar templates de e-mail.
+        {configView === 'channels' ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => {
+                setConfigModalOpen(false);
+                setConfigView('channels');
+                navigate('/email-configs');
+              }}
+              className="flex flex-col items-start gap-3 rounded-xl border border-zinc-950/[0.08] bg-white p-4 text-left transition-colors hover:border-blue-500 hover:bg-blue-50/50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:border-blue-400 dark:hover:bg-blue-950/20"
+            >
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                <Mail className="h-5 w-5" aria-hidden="true" />
               </span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setConfigModalOpen(false);
-              navigate('/whatsapp-senders');
-            }}
-            className="flex flex-col items-start gap-3 rounded-xl border border-zinc-950/[0.08] bg-white p-4 text-left transition-colors hover:border-emerald-500 hover:bg-emerald-50/50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:border-emerald-400 dark:hover:bg-emerald-950/20"
-          >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-5 w-5"
-                aria-hidden="true"
+              <span>
+                <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">E-mail</span>
+                <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
+                  Configurar remetentes/SMTP e acessar templates de e-mail.
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfigView('whatsapp')}
+              className="flex flex-col items-start gap-3 rounded-xl border border-zinc-950/[0.08] bg-white p-4 text-left transition-colors hover:border-emerald-500 hover:bg-emerald-50/50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:border-emerald-400 dark:hover:bg-emerald-950/20"
+            >
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+                  <path d="M20.52 3.48A11.8 11.8 0 0 0 12.06 0C5.53 0 .21 5.32.21 11.85c0 2.09.55 4.13 1.59 5.93L.12 24l6.38-1.67a11.8 11.8 0 0 0 5.56 1.42h.01c6.53 0 11.85-5.32 11.85-11.85 0-3.17-1.23-6.14-3.4-8.42ZM12.07 21.75h-.01a9.82 9.82 0 0 1-5-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.82 9.82 0 0 1-1.51-5.24c0-5.42 4.41-9.83 9.84-9.83 2.63 0 5.1 1.03 6.96 2.89a9.77 9.77 0 0 1 2.88 6.95c0 5.42-4.41 9.83-9.79 9.83Zm5.39-7.36c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35Z" />
+                </svg>
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">WhatsApp</span>
+                <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
+                  Escolher entre WhatsApp oficial ou não oficial.
+                </span>
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <button type="button" onClick={() => setConfigView('channels')} className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+              <ArrowLeft className="h-3.5 w-3.5" /> Voltar
+            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled
+                className="flex cursor-not-allowed flex-col items-start gap-3 rounded-xl border border-zinc-950/[0.08] bg-zinc-50 p-4 text-left opacity-60 dark:border-white/[0.08] dark:bg-white/[0.02]"
               >
-                <path d="M20.52 3.48A11.8 11.8 0 0 0 12.06 0C5.53 0 .21 5.32.21 11.85c0 2.09.55 4.13 1.59 5.93L.12 24l6.38-1.67a11.8 11.8 0 0 0 5.56 1.42h.01c6.53 0 11.85-5.32 11.85-11.85 0-3.17-1.23-6.14-3.4-8.42ZM12.07 21.75h-.01a9.82 9.82 0 0 1-5-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.82 9.82 0 0 1-1.51-5.24c0-5.42 4.41-9.83 9.84-9.83 2.63 0 5.1 1.03 6.96 2.89a9.77 9.77 0 0 1 2.88 6.95c0 5.42-4.41 9.83-9.79 9.83Zm5.39-7.36c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35Z" />
-              </svg>
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">WhatsApp</span>
-              <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">
-                Configurar remetentes e acessar templates de WhatsApp.
-              </span>
-            </span>
-          </button>
-        </div>
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-400 dark:bg-white/[0.06] dark:text-zinc-500">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden="true"><path d="M20.52 3.48A11.8 11.8 0 0 0 12.06 0C5.53 0 .21 5.32.21 11.85c0 2.09.55 4.13 1.59 5.93L.12 24l6.38-1.67a11.8 11.8 0 0 0 5.56 1.42h.01c6.53 0 11.85-5.32 11.85-11.85 0-3.17-1.23-6.14-3.4-8.42ZM12.07 21.75h-.01a9.82 9.82 0 0 1-5-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.82 9.82 0 0 1-1.51-5.24c0-5.42 4.41-9.83 9.84-9.83 2.63 0 5.1 1.03 6.96 2.89a9.77 9.77 0 0 1 2.88 6.95c0 5.42-4.41 9.83-9.79 9.83Zm5.39-7.36c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.64-2.05-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.09 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35Z" /></svg>
+                </span>
+                <span>
+                  <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Oficial (Meta) <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:bg-white/[0.08] dark:text-zinc-400">Bloqueado</span></span>
+                  <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">Remetentes e templates da API oficial do WhatsApp.</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setConfigModalOpen(false); setConfigView('channels'); navigate('/whatsapp-unofficial-instances'); }}
+                className="flex flex-col items-start gap-3 rounded-xl border border-zinc-950/[0.08] bg-white p-4 text-left transition-colors hover:border-zinc-400 hover:bg-zinc-50 dark:border-white/[0.08] dark:bg-[#17171a] dark:hover:border-zinc-500 dark:hover:bg-white/[0.04]"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 dark:bg-white/[0.06] dark:text-zinc-200">
+                  <Settings className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">Não oficial</span>
+                  <span className="mt-0.5 block text-xs text-zinc-500 dark:text-zinc-400">Instâncias e templates do seu microserviço WhatsApp.</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

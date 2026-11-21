@@ -1,23 +1,10 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useToast } from '@/src/components/common/Toast';
 import type { CreateLeadPayload, Lead, UpdateLeadPayload } from '@/src/lib/types';
-
-function asListResult<T>(items: T[]) {
-  return {
-    data: items,
-    meta: {
-      current_page: 1,
-      per_page: items.length || 1,
-      total: items.length,
-      last_page: 1,
-      from: items.length ? 1 : null,
-      to: items.length ? items.length : null,
-    },
-  };
-}
 
 export function useLeadSourceQuery(id: number | null) {
   return useQuery({
@@ -31,26 +18,65 @@ export function useLeadSourceQuery(id: number | null) {
 export function useLeadsInfiniteQuery(
   stepId: number | undefined,
   search?: string,
-  _perPage = 10,
+  perPage = 15,
   crmId?: number,
   filterStepId?: number,
+  enabled = true,
 ) {
   const effectiveStepId = stepId ?? filterStepId;
+  const [page, setPage] = useState(1);
+  const [allItems, setAllItems] = useState<Lead[]>([]);
+  const [meta, setMeta] = useState({ current_page: 1, per_page: perPage, total: 0, last_page: 1, from: null as number | null, to: null as number | null });
+  const key = JSON.stringify([effectiveStepId, search ?? '', crmId ?? 0, perPage, enabled]);
+
+  useEffect(() => {
+    setPage(1);
+    setAllItems([]);
+    setMeta({ current_page: 1, per_page: perPage, total: 0, last_page: 1, from: null, to: null });
+  }, [key, perPage]);
+
   const query = useQuery({
-    queryKey: [...queryKeys.leads.byStep(effectiveStepId), 'all', search ?? '', crmId ?? 0] as const,
-    queryFn: () => api.listLeads(effectiveStepId, search, crmId),
+    queryKey: [...queryKeys.leads.byStep(effectiveStepId), 'infinite', page, perPage, search ?? '', crmId ?? 0] as const,
+    queryFn: () => api.listLeadsPaginated(effectiveStepId, search, crmId, page, perPage),
+    enabled,
+    placeholderData: (prev) => prev,
   });
-  const items = query.data ?? [];
+
+  useEffect(() => {
+    if (!query.data) return;
+    setMeta(query.data.meta);
+    setAllItems((prev) => page === 1 ? query.data!.data : [...prev.filter(i => !query.data!.data.some(n => n.id === i.id)), ...query.data!.data]);
+  }, [query.data, page]);
+
+  const hasNextPage = meta.current_page < meta.last_page;
   return {
     ...query,
-    data: { pages: [asListResult(items)], pageParams: [1] },
-    items,
-    meta: asListResult(items).meta,
-    total: items.length,
-    hasNextPage: false,
-    isFetchingNextPage: false,
-    fetchNextPage: async () => query,
+    items: allItems,
+    meta,
+    total: meta.total,
+    hasNextPage,
+    isFetchingNextPage: query.isFetching && page > 1,
+    fetchNextPage: async () => { if (hasNextPage && !query.isFetching) setPage((p) => p + 1); },
   };
+}
+
+export function useLeadsPaginatedQuery(
+  stepId: number | undefined,
+  search?: string,
+  perPage = 15,
+  crmId?: number,
+  enabled = true,
+  page = 1,
+) {
+  const query = useQuery({
+    queryKey: [...queryKeys.leads.byStep(stepId), 'paginated', page, perPage, search ?? '', crmId ?? 0] as const,
+    queryFn: () => api.listLeadsPaginated(stepId, search, crmId, page, perPage),
+    enabled,
+    placeholderData: (prev) => prev,
+  });
+  const items = query.data?.data ?? [];
+  const meta = query.data?.meta ?? { current_page: page, per_page: perPage, total: 0, last_page: 1, from: null, to: null };
+  return { ...query, items, meta, total: meta.total };
 }
 
 export function useLeadQuery(id: number | null) {

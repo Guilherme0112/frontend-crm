@@ -303,10 +303,11 @@ export function CompanyPage() {
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
+        <div className="flex border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07] sm:justify-end">
           <ActionButton
             type="submit"
             disabled={updateMutation.isPending || !isDirty}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
           </ActionButton>

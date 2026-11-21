@@ -153,15 +153,19 @@ export function WhatsappTemplatesPage() {
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
           >
             <Settings2 className="h-4 w-4" strokeWidth={1.8} />
-            <span>Configurar WhatsApp</span>
+            <span>Remetentes</span>
           </Link>
           {!isTrial && (
-            <Button variant="contained" color="primary" onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <Button variant="contained" color="primary" disabled startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Novo template
             </Button>
           )}
         </div>
       </header>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+        <strong>WhatsApp oficial bloqueado.</strong> Esta área está temporariamente indisponível. Use o WhatsApp não oficial.
+      </div>
 
       {isTrial ? (
         <UpsellIsland />
@@ -177,8 +181,7 @@ export function WhatsappTemplatesPage() {
           title="Nenhum template WhatsApp"
           description="Cadastre um template aprovado na Meta para usá-lo nos disparos de grupos."
           action={
-            <Button variant="contained" color="primary" onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />}>
-              Criar primeiro template
+            <Button variant="contained" color="primary" disabled startIcon={<Plus className="h-4 w-4" />}>Criar primeiro template
             </Button>
           }
         />
@@ -221,7 +224,7 @@ export function WhatsappTemplatesPage() {
               </tbody>
             </table>
           </div>
-          <div className="border-t border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
+          <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
             <Pagination
               page={meta?.current_page ?? 1}
               lastPage={meta?.last_page ?? 1}

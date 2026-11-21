@@ -181,7 +181,7 @@ export function TeamPage() {
             Gerencie os usuários vinculados à sua empresa.
           </p>
         </div>
-        <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />}>
+        <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
           Novo membro
         </ActionButton>
       </div>
@@ -209,7 +209,7 @@ export function TeamPage() {
             title="Nenhum membro encontrado"
             description="Adicione membros para compartilhar o acesso ao CRM."
             action={
-              <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />}>
+              <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                 Novo membro
               </ActionButton>
             }
@@ -270,15 +270,17 @@ export function TeamPage() {
         )}
       </section>
 
-      <Pagination
-        page={page}
-        lastPage={meta?.last_page ?? 1}
-        total={meta?.total ?? 0}
-        from={meta?.from ?? null}
-        to={meta?.to ?? null}
-        onPageChange={setPage}
-        ariaLabel="Paginação da equipe"
-      />
+      <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+        <Pagination
+          page={page}
+          lastPage={meta?.last_page ?? 1}
+          total={meta?.total ?? 0}
+          from={meta?.from ?? null}
+          to={meta?.to ?? null}
+          onPageChange={setPage}
+          ariaLabel="Paginação da equipe"
+        />
+      </div>
 
       <Modal
         open={modalOpen}

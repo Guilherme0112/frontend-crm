@@ -282,15 +282,17 @@ export function EmailConfigsPage() {
       )}
 
       {total > 0 && (
-        <Pagination
-          page={meta?.current_page ?? page}
-          lastPage={lastPage}
-          total={total}
-          from={meta?.from ?? null}
-          to={meta?.to ?? null}
-          onPageChange={setPage}
-          ariaLabel="Paginação de configurações de e-mail"
-        />
+        <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+          <Pagination
+            page={meta?.current_page ?? page}
+            lastPage={lastPage}
+            total={total}
+            from={meta?.from ?? null}
+            to={meta?.to ?? null}
+            onPageChange={setPage}
+            ariaLabel="Paginação de configurações de e-mail"
+          />
+        </div>
       )}
 
       <Modal

@@ -17,10 +17,11 @@ function asListResult<T>(items: T[]) {
   };
 }
 
-export function useEmailConfigsQuery(_page = 1, _perPage = 10) {
+export function useEmailConfigsQuery(_page = 1, _perPage = 10, enabled = true) {
   const query = useQuery({
     queryKey: queryKeys.emailConfigs.all,
     queryFn: () => api.listEmailConfigs(),
+    enabled,
   });
   return {
     ...query,

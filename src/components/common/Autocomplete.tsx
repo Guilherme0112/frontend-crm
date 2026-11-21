@@ -9,6 +9,7 @@ export interface AutocompleteOption {
   value: string;
   label: string;
   description?: string;
+  disabled?: boolean;
 }
 
 interface AutocompleteProps {
@@ -27,6 +28,7 @@ interface AutocompleteProps {
   hasError?: boolean;
   clearable?: boolean;
   onSearch?: (term: string) => void;
+  onOpen?: () => void;
   debounceMs?: number;
   loading?: boolean;
   variant?: 'standard' | 'outlined' | 'filled';
@@ -47,6 +49,7 @@ export function Autocomplete({
   hasError,
   clearable = true,
   onSearch,
+  onOpen,
   debounceMs = 300,
   loading = false,
   variant = 'standard',
@@ -85,7 +88,9 @@ export function Autocomplete({
       disabled={disabled}
       disableClearable={!clearable}
       openOnFocus
+      onOpen={onOpen}
       loading={loading}
+      getOptionDisabled={(option) => Boolean(option.disabled)}
       filterOptions={onSearch ? (x) => x : undefined}
       noOptionsText={loading ? 'Carregando...' : emptyMessage}
       getOptionLabel={(option) => option.label}

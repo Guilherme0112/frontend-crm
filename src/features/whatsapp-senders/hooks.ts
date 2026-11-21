@@ -17,10 +17,11 @@ function asListResult<T>(items: T[]) {
   };
 }
 
-export function useWhatsappSendersQuery(_page = 1, _perPage = 10) {
+export function useWhatsappSendersQuery(_page = 1, _perPage = 10, enabled = true) {
   const query = useQuery({
     queryKey: queryKeys.whatsappSenders.all,
     queryFn: () => api.listWhatsappSenders(),
+    enabled,
   });
   return {
     ...query,

@@ -102,7 +102,7 @@ export function InvoicesPage() {
 
         <Link
           to="/billing"
-          className="inline-flex items-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+          className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
         >
           Gerenciar assinatura
         </Link>
@@ -200,15 +200,17 @@ export function InvoicesPage() {
       )}
 
       {total > 0 && (
-        <Pagination
-          page={meta?.current_page ?? page}
-          lastPage={lastPage}
-          total={total}
-          from={meta?.from ?? null}
-          to={meta?.to ?? null}
-          onPageChange={setPage}
-          ariaLabel="Paginação de faturas"
-        />
+        <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+          <Pagination
+            page={meta?.current_page ?? page}
+            lastPage={lastPage}
+            total={total}
+            from={meta?.from ?? null}
+            to={meta?.to ?? null}
+            onPageChange={setPage}
+            ariaLabel="Paginação de faturas"
+          />
+        </div>
       )}
 
     </div>

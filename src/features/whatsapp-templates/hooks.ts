@@ -17,10 +17,11 @@ function asListResult<T>(items: T[]) {
   };
 }
 
-export function useWhatsappTemplatesQuery(_page = 1, _perPage = 10) {
+export function useWhatsappTemplatesQuery(_page = 1, _perPage = 10, enabled = true) {
   const query = useQuery({
     queryKey: queryKeys.whatsappTemplates.all,
     queryFn: () => api.listWhatsappTemplates(),
+    enabled,
   });
   return {
     ...query,

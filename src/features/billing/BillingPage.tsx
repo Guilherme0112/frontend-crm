@@ -333,7 +333,7 @@ export function BillingPage() {
 
         <Link
           to="/invoices"
-          className="inline-flex items-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+          className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
         >
           Ver faturas
         </Link>
@@ -370,7 +370,7 @@ export function BillingPage() {
           </div>
 
           {activeSubscription && (
-            <Button variant="outlined" color="error" onClick={() => setCancelingSub(activeSubscription)}>
+            <Button variant="outlined" color="error" onClick={() => setCancelingSub(activeSubscription)} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Cancelar assinatura
             </Button>
           )}
@@ -523,15 +523,17 @@ export function BillingPage() {
         )}
 
         {plansPage.total > 0 && (
-          <Pagination
-            page={plansPage.page}
-            lastPage={plansPage.lastPage}
-            total={plansPage.total}
-            from={plansPage.from}
-            to={plansPage.to}
-            onPageChange={plansPage.setPage}
-            ariaLabel="Paginação de planos"
-          />
+          <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+  <Pagination
+              page={plansPage.page}
+              lastPage={plansPage.lastPage}
+              total={plansPage.total}
+              from={plansPage.from}
+              to={plansPage.to}
+              onPageChange={plansPage.setPage}
+              ariaLabel="Paginação de planos"
+            />
+          </div>
         )}
       </section>
 
@@ -577,15 +579,17 @@ export function BillingPage() {
           </div>
 
           {subscriptionsPage.total > 0 && (
-            <Pagination
-              page={subscriptionsPage.page}
-              lastPage={subscriptionsPage.lastPage}
-              total={subscriptionsPage.total}
-              from={subscriptionsPage.from}
-              to={subscriptionsPage.to}
-              onPageChange={subscriptionsPage.setPage}
-              ariaLabel="Paginação do histórico de assinaturas"
-            />
+            <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+  <Pagination
+                page={subscriptionsPage.page}
+                lastPage={subscriptionsPage.lastPage}
+                total={subscriptionsPage.total}
+                from={subscriptionsPage.from}
+                to={subscriptionsPage.to}
+                onPageChange={subscriptionsPage.setPage}
+                ariaLabel="Paginação do histórico de assinaturas"
+              />
+            </div>
           )}
         </section>
       )}

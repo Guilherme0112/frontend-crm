@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+﻿import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import type { CreateGroupPayload, UpdateGroupPayload } from '@/src/lib/types';
@@ -47,6 +47,25 @@ export function useGroupLeadsQuery(groupId: number) {
   });
 }
 
+export function useGroupLeadIdsQuery(groupId: number) {
+  return useQuery({
+    queryKey: queryKeys.groups.leadIds(groupId),
+    queryFn: () => api.getGroupLeadIds(groupId),
+    enabled: Number.isFinite(groupId) && groupId > 0,
+    retry: false,
+  });
+}
+
+export function useGroupLeadsPaginatedQuery(groupId: number, page: number, perPage: number, search: string) {
+  return useQuery({
+    queryKey: queryKeys.groups.leadsPaginated(groupId, page, perPage, search),
+    queryFn: () => api.listGroupLeadsPaginated(groupId, page, perPage, search),
+    enabled: Number.isFinite(groupId) && groupId > 0,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
+
 export function useSyncGroupLeadsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -54,6 +73,7 @@ export function useSyncGroupLeadsMutation() {
       api.syncGroupLeads(id, leadIds),
     onSuccess: (_, { id }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.groups.leads(id) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.groups.leadIds(id) });
     },
   });
 }
@@ -81,44 +101,68 @@ export function useSendGroupWhatsappMutation() {
   return useMutation({
     mutationFn: ({
       groupId,
-      whatsappSenderId,
-      whatsappTemplateId,
+      payload,
     }: {
       groupId: number;
-      whatsappSenderId: number;
-      whatsappTemplateId: number;
-    }) =>
-      api.sendGroupWhatsapp(groupId, {
-        whatsapp_sender_id: whatsappSenderId,
-        whatsapp_template_id: whatsappTemplateId,
-      }),
+      payload:
+        | { provider?: 'official'; whatsapp_sender_id: number; whatsapp_template_id: number }
+        | { provider: 'unofficial'; whatsapp_unofficial_instance_id: number; whatsapp_unofficial_template_id: number };
+    }) => api.sendGroupWhatsapp(groupId, payload),
     onSuccess: (_, { groupId }) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.whatsappDispatchLogs.all });
       void queryClient.invalidateQueries({ queryKey: ['whatsapp-dispatch-logs', 'group', groupId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.whatsappUnofficialDispatchLogs.all });
     },
   });
 }
 
-export function useWhatsappDispatchLogsQuery(filters: WhatsappDispatchLogFilters, enabled = true) {
+export function useWhatsappDispatchLogsQuery(filters: WhatsappDispatchLogFilters, page = 1, perPage = 15, enabled = true) {
   const normalized = {
     group_id: filters.group_id ?? null,
     lead_id: filters.lead_id ?? null,
     status: filters.status ?? null,
+    page,
+    perPage,
   };
+
   return useQuery({
     queryKey: queryKeys.whatsappDispatchLogs.list(normalized),
-    queryFn: () => api.listWhatsappDispatchLogs(filters),
+    queryFn: () => api.listWhatsappDispatchLogs({ ...filters, page, per_page: perPage }),
     enabled,
-    refetchInterval: (query) =>
-      (query.state.data ?? []).some((log) => log.status === 'pending') ? 3000 : false,
+    placeholderData: keepPreviousData,
+    refetchInterval: 7000,
   });
 }
 
-export function useGroupSendsQuery(groupId: number, page = 1, perPage = 10) {
+export function useWhatsappUnofficialDispatchLogsQuery(
+  filters: { group_id?: number; lead_id?: number; status?: string; instance_id?: number },
+  page = 1,
+  perPage = 15,
+  enabled = true,
+) {
+  const normalized = {
+    group_id: filters.group_id ?? null,
+    lead_id: filters.lead_id ?? null,
+    status: filters.status ?? null,
+    instance_id: filters.instance_id ?? null,
+    page,
+    perPage,
+  };
+
+  return useQuery({
+    queryKey: queryKeys.whatsappUnofficialDispatchLogs.list(normalized),
+    queryFn: () => api.listWhatsappUnofficialDispatchLogs({ ...filters, page, per_page: perPage }),
+    enabled,
+    placeholderData: keepPreviousData,
+    refetchInterval: 7000,
+  });
+}
+
+export function useGroupSendsQuery(groupId: number, page = 1, perPage = 10, enabled = true) {
   return useQuery({
     queryKey: queryKeys.groups.sendsList(groupId, page, perPage),
     queryFn: () => api.listGroupSends(groupId, page, perPage),
-    enabled: Number.isFinite(groupId) && groupId > 0,
+    enabled: enabled && Number.isFinite(groupId) && groupId > 0,
     refetchInterval: (query) =>
       query.state.data?.items.some((send) => send.status === 'processing') ? 3000 : false,
   });

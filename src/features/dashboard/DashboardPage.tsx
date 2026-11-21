@@ -83,7 +83,7 @@ export function DashboardPage() {
         </div>
         <Link
           to="/crms"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap shrink-0 sm:w-auto dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 sm:w-auto sm:shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
         >
           <span>Abrir CRMs</span>
           <ArrowRight className="h-4 w-4" />
@@ -154,25 +154,25 @@ export function DashboardPage() {
       {/* Two-column operational overview */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Últimos 5 leads */}
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div className="flex items-center justify-between gap-4 border-b border-zinc-950/[0.07] px-5 py-4 dark:border-white/[0.07]">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-zinc-400" />
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <section className="min-w-0 rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.07] px-4 py-4 sm:px-5 dark:border-white/[0.07]">
+            <div className="flex min-w-0 items-center gap-2">
+              <Users className="h-4 w-4 shrink-0 text-zinc-400" />
+              <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
                 Últimos leads
               </h2>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
               Últimos 5
             </span>
           </div>
           {isLoading ? (
-            <div className="space-y-3 p-5">
+            <div className="space-y-3 p-4 sm:p-5">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
           ) : recentLeads.length === 0 ? (
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <EmptyState
                 icon={<Users className="h-5 w-5" />}
                 title="Nenhum lead cadastrado"
@@ -187,21 +187,21 @@ export function DashboardPage() {
                   <li key={lead.id}>
                     <Link
                       to={`/leads/${lead.id}`}
-                      className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
+                      className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-50 sm:px-5 dark:hover:bg-white/[0.04]"
                     >
                       <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.08]"
+                        className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.08]"
                         style={{ backgroundColor: `${color}1f`, color }}
                         aria-hidden="true"
                       >
                         {initialsOf(lead.name)}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-3">
+                        <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                           <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                             {lead.name}
                           </p>
-                          <span className="shrink-0 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                          <span className="font-mono text-[10px] tabular-nums text-zinc-400 sm:shrink-0 dark:text-zinc-500">
                             {formatDateTime(lead.created_at)}
                           </span>
                         </div>
@@ -210,15 +210,11 @@ export function DashboardPage() {
                         </p>
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                           <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-zinc-950/[0.08] bg-zinc-50 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-300">
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ backgroundColor: color }}
-                              aria-hidden="true"
-                            />
+                            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
                             <span className="truncate">{lead.crm_name}</span>
                           </span>
-                          <span className="inline-flex items-center rounded-md bg-violet-50 px-2 py-0.5 font-mono text-[10px] font-medium text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
-                            {lead.step_name}
+                          <span className="inline-flex max-w-full items-center rounded-md bg-violet-50 px-2 py-0.5 font-mono text-[10px] font-medium text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
+                            <span className="truncate">{lead.step_name}</span>
                           </span>
                         </div>
                       </div>
@@ -230,26 +226,26 @@ export function DashboardPage() {
           )}
         </section>
 
-        {/* Auditoria — últimas 5 movimentações */}
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div className="flex items-center justify-between gap-4 border-b border-zinc-950/[0.07] px-5 py-4 dark:border-white/[0.07]">
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-zinc-400" />
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        {/* Auditoria - últimas 5 movimentações */}
+        <section className="min-w-0 rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.07] px-4 py-4 sm:px-5 dark:border-white/[0.07]">
+            <div className="flex min-w-0 items-center gap-2">
+              <History className="h-4 w-4 shrink-0 text-zinc-400" />
+              <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
                 Auditoria
               </h2>
             </div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
               Últimas 5
             </span>
           </div>
           {isLoading ? (
-            <div className="space-y-3 p-5">
+            <div className="space-y-3 p-4 sm:p-5">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
           ) : recentAudit.length === 0 ? (
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <EmptyState
                 icon={<History className="h-5 w-5" />}
                 title="Nenhuma movimentação registrada"
@@ -265,46 +261,37 @@ export function DashboardPage() {
                   <li key={change.id}>
                     <Link
                       to={`/leads/${change.lead_id}`}
-                      className="block px-5 py-3.5 transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.04]"
+                      className="block px-4 py-3.5 transition-colors hover:bg-zinc-50 sm:px-5 dark:hover:bg-white/[0.04]"
                     >
-                      <div className="flex items-baseline justify-between gap-3">
+                      <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
                         <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                           {change.lead_name ?? 'Lead removido'}
                         </p>
-                        <span className="shrink-0 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-400 sm:shrink-0 dark:text-zinc-500">
                           {formatDateTime(change.created_at)}
                         </span>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <span className="inline-flex max-w-full items-center rounded-md border border-dashed border-zinc-950/[0.15] px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:border-white/[0.12] dark:text-zinc-400">
-                          {change.from_step_name ?? '—'}
+                          <span className="max-w-[8rem] truncate sm:max-w-none">{change.from_step_name ?? '—'}</span>
                         </span>
                         <ArrowRight className="h-3 w-3 shrink-0 text-zinc-400" aria-hidden="true" />
                         <span className="inline-flex max-w-full items-center rounded-md bg-zinc-900 px-2 py-0.5 text-[11px] font-medium text-white dark:bg-zinc-100 dark:text-zinc-900">
-                          {change.to_step_name ?? '—'}
+                          <span className="max-w-[8rem] truncate sm:max-w-none">{change.to_step_name ?? '—'}</span>
                         </span>
-                        <span
-                          className={cn(
-                            'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold',
-                            sourceMeta.className,
-                          )}
-                        >
+                        <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold', sourceMeta.className)}>
                           {sourceMeta.label}
                         </span>
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">
                         {change.crm_name && (
-                          <span className="inline-flex items-center gap-1.5 font-medium">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: color }}
-                              aria-hidden="true"
-                            />
-                            {change.crm_name}
+                          <span className="inline-flex max-w-full items-center gap-1.5 font-medium">
+                            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+                            <span className="truncate">{change.crm_name}</span>
                           </span>
                         )}
                         {change.changed_by_name && (
-                          <span>
+                          <span className="truncate">
                             {change.crm_name && <span aria-hidden="true">· </span>}
                             por {change.changed_by_name}
                           </span>
@@ -390,34 +377,28 @@ export function DashboardPage() {
         </section>
 
         {/* Recent invoices */}
-        <section className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div className="flex items-center justify-between border-b border-zinc-950/[0.07] px-5 py-4 dark:border-white/[0.07]">
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+        <section className="min-w-0 rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
+          <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.07] px-4 py-4 sm:px-5 dark:border-white/[0.07]">
+            <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
               Faturas recentes
             </h2>
-            <Link
-              to="/invoices"
-              className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
-            >
+            <Link to="/invoices" className="shrink-0 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">
               Ver todas
             </Link>
           </div>
           {isLoading ? (
-            <div className="space-y-3 p-5">
+            <div className="space-y-3 p-4 sm:p-5">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
           ) : invoices.length === 0 ? (
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <EmptyState
                 icon={<FileText className="h-5 w-5" />}
                 title="Nenhuma fatura emitida"
                 description="Ao contratar um plano em Faturamento, a primeira fatura aparecerá aqui."
                 action={
-                  <Link
-                    to="/billing"
-                    className="inline-flex items-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-                  >
+                  <Link to="/billing" className="inline-flex items-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]">
                     Ver planos disponíveis
                   </Link>
                 }
@@ -428,10 +409,7 @@ export function DashboardPage() {
               {invoices.map((invoice) => {
                 const statusMeta = getInvoiceStatusMeta(invoice.status);
                 return (
-                  <li
-                    key={invoice.id}
-                    className="flex items-center justify-between gap-4 px-5 py-3.5"
-                  >
+                  <li key={invoice.id} className="flex flex-col items-start gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
                     <div className="min-w-0">
                       <p className="font-mono text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                         {formatCurrency(invoice.amount, invoice.currency)}

@@ -38,23 +38,21 @@ export function Pagination({
         {from ?? 0}–{to ?? 0} de {total}
       </Typography>
 
-      {lastPage > 1 && (
-        <MuiPagination
-          page={page}
-          count={lastPage}
-          onChange={(_, value) => onPageChange(value)}
-          size="small"
-          shape="rounded"
-          color="primary"
-          siblingCount={0}
-          boundaryCount={1}
-          sx={{ alignSelf: { xs: 'center', sm: 'auto' } }}
-          getItemAriaLabel={(type, value) =>
-            type === 'page' ? `Página ${value}` : type === 'previous' ? 'Página anterior' : 'Próxima página'
-          }
-          aria-label={ariaLabel}
-        />
-      )}
+      <MuiPagination
+        page={page}
+        count={Math.max(1, lastPage)}
+        onChange={(_, value) => onPageChange(value)}
+        size="small"
+        shape="rounded"
+        color="primary"
+        siblingCount={0}
+        boundaryCount={1}
+        sx={{ alignSelf: { xs: 'center', sm: 'auto' } }}
+        getItemAriaLabel={(type, value) =>
+          type === 'page' ? `Página ${value}` : type === 'previous' ? 'Página anterior' : 'Próxima página'
+        }
+        aria-label={ariaLabel}
+      />
     </Stack>
   );
 }

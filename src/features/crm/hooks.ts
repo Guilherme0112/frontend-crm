@@ -23,10 +23,11 @@ function asListResult<T>(items: T[]) {
   };
 }
 
-export function useCrmsInfiniteQuery() {
+export function useCrmsInfiniteQuery(enabled = true) {
   const query = useQuery({
     queryKey: queryKeys.crms.all,
     queryFn: () => api.listCrms(),
+    enabled,
   });
   const items = query.data ?? [];
   return {
@@ -130,12 +131,13 @@ export function useStepsQuery(crmId: number, enabled = true) {
   };
 }
 
-export function useAllStepsQuery(crmId?: number, search?: string, limit = 10) {
+export function useAllStepsQuery(crmId?: number, search?: string, limit = 10, enabled = true) {
   return useQuery({
     queryKey: queryKeys.crms.stepsAll(crmId, search),
     queryFn: () => api.listStepsAll(crmId, search, limit),
     staleTime: 5 * 60 * 1000,
     placeholderData: (prev) => prev,
+    enabled,
   });
 }
 

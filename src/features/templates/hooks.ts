@@ -17,10 +17,11 @@ function asListResult<T>(items: T[]) {
   };
 }
 
-export function useSendingTemplatesQuery(_page = 1, _perPage = 10, search = '') {
+export function useSendingTemplatesQuery(_page = 1, _perPage = 10, search = '', enabled = true) {
   const query = useQuery({
     queryKey: [...queryKeys.templates.all, search] as const,
     queryFn: () => api.listSendingTemplates(search || undefined),
+    enabled,
   });
   return {
     ...query,

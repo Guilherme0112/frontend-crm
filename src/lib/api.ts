@@ -48,11 +48,18 @@ import type {
   UpdateUserPayload,
   UpdateWhatsappSenderInput,
   UpdateWhatsappTemplateInput,
+  UpdateWhatsappUnofficialInstanceInput,
+  UpdateWhatsappUnofficialTemplateInput,
   User,
   WhatsappDispatchLog,
   WhatsappDispatchResult,
   WhatsappSender,
   WhatsappTemplate,
+  WhatsappUnofficialDispatchLog,
+  WhatsappUnofficialInstance,
+  WhatsappUnofficialTemplate,
+  CreateWhatsappUnofficialInstanceInput,
+  CreateWhatsappUnofficialTemplateInput,
 } from './types';
 
 export const AUTH_TOKEN_KEY = 'crm_token';
@@ -281,6 +288,21 @@ export async function listLeads(
   return res.data.data;
 }
 
+export async function listLeadsPaginated(
+  stepId?: number,
+  search?: string,
+  crmId?: number,
+  page = 1,
+  perPage = 15,
+): Promise<{ data: Lead[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }> {
+  const params: Record<string, string | number> = { page, per_page: perPage };
+  if (stepId !== undefined) params.step_id = stepId;
+  if (search) params.search = search;
+  if (crmId !== undefined) params.crm_id = crmId;
+  const res = await apiClient.get<{ data: Lead[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }>('/leads', { params });
+  return res.data;
+}
+
 export async function getLead(id: number): Promise<Lead> {
   const res = await apiClient.get<ApiResponse<Lead>>(`/leads/${id}`);
   return res.data.data;
@@ -373,6 +395,26 @@ export async function deleteGroup(id: number): Promise<void> {
 export async function getGroupLeads(id: number): Promise<Lead[]> {
   const res = await apiClient.get<ApiResponse<Lead[]>>(`/groups/${id}/leads`);
   return res.data.data;
+}
+
+export async function getGroupLeadIds(id: number): Promise<number[]> {
+  const res = await apiClient.get<ApiResponse<number[]>>(`/groups/${id}/leads`, { params: { ids_only: 1 } });
+  return res.data.data;
+}
+
+export async function listGroupLeadsPaginated(
+  id: number,
+  page = 1,
+  perPage = 10,
+  search = '',
+): Promise<{ data: Lead[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }> {
+  const res = await apiClient.get<{ data: Lead[] | { data: Lead[] }; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }>(
+    `/groups/${id}/leads`,
+    { params: { page, per_page: perPage, ...(search ? { search } : {}) } },
+  );
+  const body = res.data;
+  const data = Array.isArray(body.data) ? body.data : (body.data as any)?.data ?? [];
+  return { data, meta: body.meta };
 }
 
 export async function getLeadStepChanges(
@@ -655,9 +697,17 @@ export async function deleteWhatsappTemplate(id: number): Promise<void> {
 }
 
 // --- WhatsApp Dispatch ---
+export type SendGroupWhatsappPayload =
+  | { provider?: 'official'; whatsapp_sender_id: number; whatsapp_template_id: number }
+  | {
+      provider: 'unofficial';
+      whatsapp_unofficial_instance_id: number;
+      whatsapp_unofficial_template_id: number;
+    };
+
 export async function sendGroupWhatsapp(
   groupId: number,
-  payload: { whatsapp_sender_id: number; whatsapp_template_id: number },
+  payload: SendGroupWhatsappPayload,
 ): Promise<WhatsappDispatchResult> {
   const res = await apiClient.post<ApiResponse<WhatsappDispatchResult>>(
     `/groups/${groupId}/send-whatsapp`,
@@ -673,10 +723,86 @@ export interface WhatsappDispatchLogFilters {
 }
 
 export async function listWhatsappDispatchLogs(
-  filters: WhatsappDispatchLogFilters = {},
-): Promise<WhatsappDispatchLog[]> {
-  const res = await apiClient.get<ApiResponse<WhatsappDispatchLog[]>>('/whatsapp-dispatch-logs', {
+  filters: WhatsappDispatchLogFilters & { page?: number; per_page?: number } = {},
+): Promise<{ data: WhatsappDispatchLog[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }> {
+  const res = await apiClient.get<{ data: WhatsappDispatchLog[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }>('/whatsapp-dispatch-logs', {
     params: filters,
   });
+  return res.data;
+}
+
+
+// --- WhatsApp Unofficial Instances ---
+export async function listWhatsappUnofficialInstances(): Promise<WhatsappUnofficialInstance[]> {
+  const res = await apiClient.get<ApiResponse<WhatsappUnofficialInstance[]>>('/whatsapp-unofficial-instances');
   return res.data.data;
 }
+
+export async function createWhatsappUnofficialInstance(
+  payload: CreateWhatsappUnofficialInstanceInput,
+): Promise<WhatsappUnofficialInstance> {
+  const res = await apiClient.post<ApiResponse<WhatsappUnofficialInstance>>('/whatsapp-unofficial-instances', payload);
+  return res.data.data;
+}
+
+export async function updateWhatsappUnofficialInstance(
+  id: number,
+  payload: UpdateWhatsappUnofficialInstanceInput,
+): Promise<WhatsappUnofficialInstance> {
+  const res = await apiClient.put<ApiResponse<WhatsappUnofficialInstance>>(`/whatsapp-unofficial-instances/${id}`, payload);
+  return res.data.data;
+}
+
+export async function deleteWhatsappUnofficialInstance(id: number): Promise<void> {
+  await apiClient.delete(`/whatsapp-unofficial-instances/${id}`);
+}
+
+export async function connectWhatsappUnofficialInstance(id: number): Promise<{ data: WhatsappUnofficialInstance; meta: { qr_code?: string | null; pairing_code?: string | null; message?: string | null } }> {
+  const res = await apiClient.post<ApiResponse<WhatsappUnofficialInstance> & { meta?: { qr_code?: string | null; pairing_code?: string | null; message?: string | null } }>(`/whatsapp-unofficial-instances/${id}/connect`);
+  return { data: res.data.data, meta: res.data.meta ?? {} };
+}
+
+export async function getWhatsappUnofficialInstanceStatus(id: number): Promise<WhatsappUnofficialInstance> {
+  const res = await apiClient.get<ApiResponse<WhatsappUnofficialInstance>>(`/whatsapp-unofficial-instances/${id}/status`);
+  return res.data.data;
+}
+
+export async function disconnectWhatsappUnofficialInstance(id: number): Promise<WhatsappUnofficialInstance> {
+  const res = await apiClient.post<ApiResponse<WhatsappUnofficialInstance>>(`/whatsapp-unofficial-instances/${id}/disconnect`);
+  return res.data.data;
+}
+
+// --- WhatsApp Unofficial Templates ---
+export async function listWhatsappUnofficialTemplates(): Promise<WhatsappUnofficialTemplate[]> {
+  const res = await apiClient.get<ApiResponse<WhatsappUnofficialTemplate[]>>('/whatsapp-unofficial-templates');
+  return res.data.data;
+}
+
+export async function createWhatsappUnofficialTemplate(
+  payload: CreateWhatsappUnofficialTemplateInput,
+): Promise<WhatsappUnofficialTemplate> {
+  const res = await apiClient.post<ApiResponse<WhatsappUnofficialTemplate>>('/whatsapp-unofficial-templates', payload);
+  return res.data.data;
+}
+
+export async function updateWhatsappUnofficialTemplate(
+  id: number,
+  payload: UpdateWhatsappUnofficialTemplateInput,
+): Promise<WhatsappUnofficialTemplate> {
+  const res = await apiClient.put<ApiResponse<WhatsappUnofficialTemplate>>(`/whatsapp-unofficial-templates/${id}`, payload);
+  return res.data.data;
+}
+
+export async function deleteWhatsappUnofficialTemplate(id: number): Promise<void> {
+  await apiClient.delete(`/whatsapp-unofficial-templates/${id}`);
+}
+
+export async function listWhatsappUnofficialDispatchLogs(
+  filters: { group_id?: number; lead_id?: number; status?: string; instance_id?: number; page?: number; per_page?: number } = {},
+): Promise<{ data: WhatsappUnofficialDispatchLog[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }> {
+  const res = await apiClient.get<{ data: WhatsappUnofficialDispatchLog[]; meta: { current_page: number; per_page: number; total: number; last_page: number; from: number | null; to: number | null } }>('/whatsapp-unofficial-dispatch-logs', {
+    params: filters,
+  });
+  return res.data;
+}
+

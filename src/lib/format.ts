@@ -64,7 +64,12 @@ export function onlyDigits(value: string): string {
 }
 
 export function maskPhone(value: string): string {
-  const digits = onlyDigits(value).slice(0, 11);
+  let digits = onlyDigits(value);
+  // Remove DDI 55 se presente (ex.: 5511999999999 -> 11999999999)
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    digits = digits.slice(2);
+  }
+  digits = digits.slice(0, 11);
   if (digits.length === 0) return '';
   if (digits.length <= 2) return `(${digits}`;
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
@@ -72,6 +77,15 @@ export function maskPhone(value: string): string {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   }
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+}
+
+export function normalizeWhatsappPhone(value: string): string {
+  let digits = onlyDigits(value);
+  if (!digits) return '';
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) return digits;
+  if (digits.length === 10 || digits.length === 11) return '55' + digits;
+  return digits;
 }
 
 export function maskZipCode(value: string): string {

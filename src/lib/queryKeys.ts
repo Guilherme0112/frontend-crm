@@ -44,6 +44,8 @@ export const queryKeys = {
     list: (page: number, perPage: number) => ['groups', 'list', page, perPage] as const,
     detail: (id: number) => ['groups', id] as const,
     leads: (id: number) => ['groups', id, 'leads'] as const,
+    leadIds: (id: number) => ['groups', id, 'lead-ids'] as const,
+    leadsPaginated: (id: number, page: number, perPage: number, search: string) => ['groups', id, 'leads', 'paginated', page, perPage, search] as const,
     sends: (id: number) => ['groups', id, 'sends'] as const,
     sendsList: (id: number, page: number, perPage: number) =>
       ['groups', id, 'sends', 'list', page, perPage] as const,
@@ -69,6 +71,19 @@ export const queryKeys = {
     all: ['whatsapp-dispatch-logs'] as const,
     list: (filters: Record<string, string | number | null | undefined>) =>
       ['whatsapp-dispatch-logs', 'list', filters] as const,
+  },
+  whatsappUnofficialInstances: {
+    all: ['whatsapp-unofficial-instances'] as const,
+    detail: (id: number) => ['whatsapp-unofficial-instances', id] as const,
+  },
+  whatsappUnofficialTemplates: {
+    all: ['whatsapp-unofficial-templates'] as const,
+    detail: (id: number) => ['whatsapp-unofficial-templates', id] as const,
+  },
+  whatsappUnofficialDispatchLogs: {
+    all: ['whatsapp-unofficial-dispatch-logs'] as const,
+    list: (filters: Record<string, string | number | null | undefined>) =>
+      ['whatsapp-unofficial-dispatch-logs', 'list', filters] as const,
   },
   plans: {
     all: ['plans'] as const,

@@ -698,4 +698,77 @@ export interface WhatsappDispatchResult {
   queued: number;
   failed: number;
   logs: number[];
+  provider?: 'official' | 'unofficial';
+}
+
+export interface WhatsappUnofficialInstance {
+  id: number;
+  name: string;
+  provider: string;
+  base_url: string;
+  instance_key: string;
+  phone_number?: string | null;
+  status: string;
+  last_status_checked_at?: string | null;
+  is_active: boolean;
+  has_api_key: boolean;
+  settings?: Record<string, unknown> | null;
+  created_by?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateWhatsappUnofficialInstanceInput {
+  name: string;
+  provider?: string;
+  base_url?: string | null;
+  api_key?: string | null;
+  instance_key: string;
+  phone_number?: string | null;
+  is_active?: boolean;
+  settings?: Record<string, unknown> | null;
+}
+
+export type UpdateWhatsappUnofficialInstanceInput = Partial<Omit<CreateWhatsappUnofficialInstanceInput, 'api_key'>> & {
+  api_key?: string;
+};
+
+export interface WhatsappUnofficialTemplate {
+  id: number;
+  name: string;
+  body: string;
+  variable_mapping: Record<string, unknown> | null;
+  is_active: boolean;
+  created_by?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateWhatsappUnofficialTemplateInput {
+  name: string;
+  body: string;
+  variable_mapping?: Record<string, unknown> | null;
+  is_active?: boolean;
+}
+
+export type UpdateWhatsappUnofficialTemplateInput = Partial<CreateWhatsappUnofficialTemplateInput>;
+
+export interface WhatsappUnofficialDispatchLog {
+  id: number;
+  company_id: number;
+  group_id: number | null;
+  lead_id: number | null;
+  whatsapp_unofficial_instance_id: number;
+  whatsapp_unofficial_template_id: number | null;
+  recipient_phone: string;
+  message_body?: string | null;
+  status: WhatsappDispatchStatus | 'skipped';
+  external_message_id: string | null;
+  error_code?: string | null;
+  error_message: string | null;
+  attempts: number;
+  sent_at: string | null;
+  created_by?: number | null;
+  created_at?: string;
+  updated_at?: string;
 }

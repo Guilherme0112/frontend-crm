@@ -3,9 +3,14 @@ import { CheckCircle2, Clock3, Loader2, MessageCircle, RefreshCw, XCircle } from
 import { useWhatsappDispatchLogsQuery } from './hooks';
 import { useWhatsappSendersInfiniteQuery } from '@/src/features/whatsapp-senders/hooks';
 import { useWhatsappTemplatesInfiniteQuery } from '@/src/features/whatsapp-templates/hooks';
+import { Pagination } from '@/src/components/common/Pagination';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { EmptyState } from '@/src/components/common/EmptyState';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import { formatDateTime } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
 import type { WhatsappDispatchStatus } from '@/src/lib/types';
@@ -36,15 +41,18 @@ function statusMeta(status: WhatsappDispatchStatus) {
   }
 }
 
-export function WhatsappDispatchLogsSection({ groupId }: { groupId: number }) {
+export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, resolveNames = true }: { groupId: number; defaultExpanded?: boolean; resolveNames?: boolean }) {
   const [status, setStatus] = useState<WhatsappDispatchStatus | 'all'>('all');
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 15;
 
   const logsQuery = useWhatsappDispatchLogsQuery({
     group_id: groupId,
     status: status === 'all' ? undefined : status,
-  });
-  const sendersQuery = useWhatsappSendersInfiniteQuery(100, true);
-  const templatesQuery = useWhatsappTemplatesInfiniteQuery(100, true);
+  }, page, PER_PAGE, expanded);
+  const sendersQuery = useWhatsappSendersInfiniteQuery(100, expanded && resolveNames);
+  const templatesQuery = useWhatsappTemplatesInfiniteQuery(100, expanded && resolveNames);
 
   const senderNameById = useMemo(() => {
     const map = new Map<number, string>();
@@ -58,7 +66,8 @@ export function WhatsappDispatchLogsSection({ groupId }: { groupId: number }) {
     return map;
   }, [templatesQuery.items]);
 
-  const logs = logsQuery.data ?? [];
+  const logs = logsQuery.data?.data ?? [];
+  const meta = logsQuery.data?.meta;
   const hasPending = logs.some((l) => l.status === 'pending');
 
   return (
@@ -79,40 +88,28 @@ export function WhatsappDispatchLogsSection({ groupId }: { groupId: number }) {
               Auditoria por destinatÃ¡rio (status, tentativas, WAMID e erros). Atualiza automaticamente enquanto houver pendÃªncias.
             </p>
           </div>
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             {hasPending && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Processando
               </span>
             )}
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as WhatsappDispatchStatus | 'all');
-              }}
-              className="rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              aria-label="Filtrar status dos logs WhatsApp"
-            >
-              <option value="all">Todos os status</option>
-              <option value="pending">Pendente</option>
-              <option value="sent">Enviado</option>
-              <option value="failed">Falhou</option>
-            </select>
-            <button
-              type="button"
-              onClick={() => void logsQuery.refetch()}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-white/[0.04] dark:hover:text-zinc-200"
-              title="Atualizar logs"
-              aria-label="Atualizar logs"
-            >
-              <RefreshCw className={cn('h-4 w-4', logsQuery.isFetching && 'animate-spin')} />
-            </button>
+            <TextField select size="small" value={status} onChange={(e) => { setStatus(e.target.value as WhatsappDispatchStatus | 'all'); setPage(1); }} aria-label="Filtrar status dos logs WhatsApp" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
+              <MenuItem value="all">Todos os status</MenuItem>
+              <MenuItem value="pending">Pendente</MenuItem>
+              <MenuItem value="sent">Enviado</MenuItem>
+              <MenuItem value="failed">Falhou</MenuItem>
+            </TextField>
+            <IconButton onClick={() => void logsQuery.refetch()} title="Atualizar logs" aria-label="Atualizar logs" size="medium" sx={{ width: { xs: '100%', sm: 'auto' }, border: { xs: '1px solid', sm: 'none' }, borderColor: 'divider', borderRadius: 2 }}><RefreshCw className={cn('h-4 w-4', logsQuery.isFetching && 'animate-spin')} /></IconButton>
+            <Button variant="outlined" color="inherit" size="medium" onClick={() => setExpanded((v) => !v)} sx={{ textTransform: 'none', fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}>{expanded ? 'Ocultar' : 'Mostrar logs'}</Button>
           </div>
         </div>
       </div>
 
-      {logsQuery.isPending ? (
+      {!expanded ? (
+        <div className="px-5 py-4 text-sm text-zinc-500 dark:text-zinc-400">Clique em "Mostrar logs" para carregar os disparos quando necessário.</div>
+      ) : logsQuery.isPending ? (
         <div className="space-y-3 p-5">
           <Skeleton className="h-14 w-full" />
           <Skeleton className="h-14 w-full" />
@@ -182,6 +179,18 @@ export function WhatsappDispatchLogsSection({ groupId }: { groupId: number }) {
               </li>
             );
           })}
+        <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
+          <Pagination
+            page={page}
+            lastPage={meta?.last_page ?? 1}
+            total={meta?.total ?? 0}
+            from={meta?.from ?? null}
+            to={meta?.to ?? null}
+            onPageChange={setPage}
+            ariaLabel="Paginação de logs WhatsApp"
+          />
+        </div>
+
         </ul>
       )}
     </section>

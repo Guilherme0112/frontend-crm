@@ -15,6 +15,8 @@ import { Pagination } from '@/src/components/common/Pagination';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { EmptyState } from '@/src/components/common/EmptyState';
+import Button from '@mui/material/Button';
+import ButtonBase from '@mui/material/ButtonBase';
 import { formatDateTime } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
 import type { GroupSendStatus, GroupRecipientStatus } from '@/src/lib/types';
@@ -66,10 +68,11 @@ function recipientMeta(status: GroupRecipientStatus): { label: string; className
   }
 }
 
-export function GroupSendSection({ groupId }: { groupId: number }) {
+export function GroupSendSection({ groupId, defaultExpanded = false }: { groupId: number; defaultExpanded?: boolean }) {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const sendsQuery = useGroupSendsQuery(groupId, page, PER_PAGE);
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const sendsQuery = useGroupSendsQuery(groupId, page, PER_PAGE, expanded);
   const recipientsQuery = useGroupSendRecipientsQuery(groupId, expandedId, 1, RECIPIENTS_PER_PAGE);
 
   const sends = sendsQuery.data?.items ?? [];
@@ -83,18 +86,25 @@ export function GroupSendSection({ groupId }: { groupId: number }) {
       className="rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
     >
       <div className="border-b border-zinc-950/[0.06] px-5 py-4 dark:border-white/[0.06]">
-        <h2
-          id="sends-section-title"
-          className="font-display text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
-        >
-          Histórico de disparos
-        </h2>
-        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          Quem recebeu, quem falhou e por quê. Atualiza sozinho enquanto um disparo está em andamento.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2
+              id="sends-section-title"
+              className="font-display text-[15px] font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
+            >
+              Histórico de disparos
+            </h2>
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+              Quem recebeu, quem falhou e por quê.
+            </p>
+          </div>
+          <Button variant="outlined" color="inherit" size="medium" onClick={() => setExpanded((v) => !v)} sx={{ textTransform: 'none', fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}>{expanded ? 'Ocultar' : 'Mostrar histórico'}</Button>
+        </div>
       </div>
 
-      {sendsQuery.isPending ? (
+      {!expanded ? (
+        <div className="px-5 py-4 text-sm text-zinc-500 dark:text-zinc-400">Clique em "Mostrar histórico" para carregar os disparos quando necessário.</div>
+      ) : sendsQuery.isPending ? (
         <div className="space-y-3 p-5">
           <Skeleton className="h-14 w-full" />
           <Skeleton className="h-14 w-full" />
@@ -125,13 +135,13 @@ export function GroupSendSection({ groupId }: { groupId: number }) {
               const recipientsTotal = recipientsQuery.data?.total ?? 0;
 
               return (
-                <li key={send.id}>
-                  <button
+                <li key={send.id} className="px-4 py-2">
+                  <ButtonBase
                     type="button"
                     onClick={() => setExpandedId(expanded ? null : send.id)}
                     aria-expanded={expanded}
                     aria-controls={`send-${send.id}-details`}
-                    className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-white/[0.03]"
+                    className="flex w-full items-center gap-4 px-4 py-4 text-left transition-colors sm:px-8 hover:bg-zinc-50 dark:hover:bg-white/[0.03]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/15 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-400/15">
                       {send.status === 'processing' ? (
@@ -184,12 +194,12 @@ export function GroupSendSection({ groupId }: { groupId: number }) {
                       )}
                       aria-hidden="true"
                     />
-                  </button>
+                  </ButtonBase>
 
                   {expanded && (
                     <div
                       id={`send-${send.id}-details`}
-                      className="border-t border-zinc-950/[0.05] bg-zinc-50/60 px-5 py-4 dark:border-white/[0.05] dark:bg-white/[0.02]"
+                      className="mt-3 rounded-xl border border-zinc-950/[0.07] bg-zinc-50 p-4 dark:border-white/[0.07] dark:bg-[#17171a]"
                     >
                       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                         Destinatários {recipientsTotal > 0 && <span className="font-mono normal-case tracking-normal">· {recipientsTotal}</span>}
@@ -212,7 +222,7 @@ export function GroupSendSection({ groupId }: { groupId: number }) {
                               return (
                                 <li
                                   key={recipient.id}
-                                  className="flex items-start gap-3 px-4 py-2.5"
+                                  className="flex items-start gap-3 px-4 py-3 sm:px-6"
                                 >
                                   <span
                                     className={cn(
@@ -261,7 +271,7 @@ export function GroupSendSection({ groupId }: { groupId: number }) {
             })}
           </ul>
 
-          <div className="border-t border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
+          <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
             <Pagination
               page={page}
               lastPage={lastPage}
