@@ -7,8 +7,11 @@ interface CardPaymentFormProps {
   /** Valor da assinatura, exibido pelo formulário do Mercado Pago. */
   amount: number;
   payerEmail?: string;
-  /** Recebe só o token: dados do cartão nunca saem do iframe do gateway. */
-  onToken: (cardTokenId: string) => void;
+  /**
+   * Recebe só o token: dados do cartão nunca saem do iframe do gateway.
+   * A promise devolvida mantém o loading do Brick até o backend responder.
+   */
+  onToken: (cardTokenId: string) => void | Promise<unknown>;
   /** Chamado quando o SDK não carrega — quem usa cai no redirect. */
   onUnavailable: () => void;
   disabled?: boolean;
@@ -34,10 +37,12 @@ export function CardPaymentForm({
   const [brickError, setBrickError] = useState<string | null>(null);
   const onTokenRef = useRef(onToken);
   onTokenRef.current = onToken;
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
 
   useEffect(() => {
-    if (failed) onUnavailable();
-  }, [failed, onUnavailable]);
+    if (failed) onUnavailableRef.current();
+  }, [failed]);
 
   useEffect(() => {
     if (!sdk) return;
@@ -60,10 +65,11 @@ export function CardPaymentForm({
         callbacks: {
           onReady: () => setBrickError(null),
           onSubmit: (formData: { token?: string }) => {
-            if (formData.token) onTokenRef.current(formData.token);
+            // O Brick espera uma promise para encerrar o estado de carregamento:
+            // devolvemos a da chamada ao backend, não uma já resolvida.
+            if (!formData.token) return Promise.resolve();
 
-            // O Brick espera uma promise para encerrar o estado de carregamento.
-            return Promise.resolve();
+            return Promise.resolve(onTokenRef.current(formData.token));
           },
           onError: () =>
             setBrickError('Não foi possível validar o cartão. Confira os dados e tente novamente.'),
@@ -77,7 +83,7 @@ export function CardPaymentForm({
         }
       })
       .catch(() => {
-        if (active) onUnavailable();
+        if (active) onUnavailableRef.current();
       });
 
     return () => {
@@ -85,7 +91,8 @@ export function CardPaymentForm({
       controller?.unmount();
     };
     // amount entra na dependência: mudou o plano, o Brick é remontado.
-  }, [sdk, containerId, amount, payerEmail, onUnavailable]);
+    // onUnavailable fica no ref para um callback inline não desmontar o Brick.
+  }, [sdk, containerId, amount, payerEmail]);
 
   if (failed) {
     return (

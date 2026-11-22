@@ -1,5 +1,5 @@
 import Button from '@mui/material/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Mail, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react';
@@ -265,14 +265,22 @@ export function EmailConfigsPage() {
                     {formatDate(config.created_at)}
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <TableActionButton tone="primary" onClick={() => openEditModal(config)} aria-label={`Editar ${config.name}`}>
-                        <Pencil className="h-4 w-4" />
-                      </TableActionButton>
-                      <TableActionButton tone="error" onClick={() => setDeletingConfig(config)} aria-label={`Excluir ${config.name}`}>
-                        <Trash2 className="h-4 w-4" />
-                      </TableActionButton>
-                    </div>
+                    <TableActionsMenu
+                      label={`Ações de ${config.name}`}
+                      actions={[
+                        {
+                          label: 'Editar',
+                          icon: <Pencil className="h-4 w-4" />,
+                          onClick: () => openEditModal(config),
+                        },
+                        {
+                          label: 'Excluir',
+                          icon: <Trash2 className="h-4 w-4" />,
+                          tone: 'danger',
+                          onClick: () => setDeletingConfig(config),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

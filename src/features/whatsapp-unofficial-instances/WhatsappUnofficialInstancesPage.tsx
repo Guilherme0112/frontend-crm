@@ -1,5 +1,5 @@
 import Button from '@mui/material/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Link2, PlugZap, RefreshCw, Trash2, Unplug, Plus, Pencil, QrCode } from 'lucide-react';
@@ -51,15 +51,15 @@ function InstanceForm({ initial, onSubmit, onCancel, submitting }: { initial?: W
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void onSubmit(v); }}>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Nome" htmlFor="wui-name" required floatingLabel={false} dense>
-          <input id="wui-name" className={inputClassName()} value={v.name} onChange={(e) => set('name', e.target.value)} required placeholder="Ex.: WhatsApp principal" />
+          <input id="wui-name" maxLength={255} className={inputClassName()} value={v.name} onChange={(e) => set('name', e.target.value)} required placeholder="Ex.: WhatsApp principal" />
         </FormField>
         <FormField label="Instance Key" htmlFor="wui-key" required floatingLabel={false} dense>
-          <input id="wui-key" className={inputClassName()} value={v.instance_key} onChange={(e) => set('instance_key', e.target.value)} required placeholder="Ex.: crm-principal" />
+          <input id="wui-key" maxLength={255} className={inputClassName()} value={v.instance_key} onChange={(e) => set('instance_key', e.target.value)} required placeholder="Ex.: crm-principal" />
         </FormField>
       </div>
 
       <FormField label="Telefone (opcional)" htmlFor="wui-phone" floatingLabel={false} dense hint="Número conectado à instância, se aplicável.">
-        <input id="wui-phone" className={inputClassName()} value={v.phone_number} onChange={(e) => set('phone_number', e.target.value)} placeholder="Ex.: 5511999999999" />
+        <input id="wui-phone" maxLength={30} className={inputClassName()} value={v.phone_number} onChange={(e) => set('phone_number', e.target.value)} placeholder="Ex.: 5511999999999" />
       </FormField>
 
       <label className="inline-flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -164,14 +164,38 @@ export function WhatsappUnofficialInstancesPage() {
                         <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${st.cls}`}>{st.label}</span>
                       </td>
                       <td className="px-5 py-4 text-zinc-700 dark:text-zinc-300">{item.is_active ? 'Sim' : 'Não'}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-1.5">
-                          <TableActionButton title="Atualizar status" aria-label={`Atualizar status ${item.name}`} tone="neutral" onClick={() => { void statusM.mutateAsync(item.id).then(() => toast.success('Status atualizado')).catch((e) => toast.error('Erro ao atualizar status', getApiErrorMessage(e))); }}><RefreshCw className="h-4 w-4" /></TableActionButton>
-                          <TableActionButton title="Conectar / QR Code" aria-label={`Conectar ${item.name}`} tone="neutral" onClick={() => void handleConnect(item)}><QrCode className="h-4 w-4" /></TableActionButton>
-                          <TableActionButton title="Desconectar" aria-label={`Desconectar ${item.name}`} tone="neutral" onClick={() => void handleDisconnect(item)}><Unplug className="h-4 w-4" /></TableActionButton>
-                          <TableActionButton title="Editar" aria-label={`Editar ${item.name}`} tone="neutral" onClick={() => setEditTarget(item)}><Pencil className="h-4 w-4" /></TableActionButton>
-                          <TableActionButton title="Excluir" aria-label={`Excluir ${item.name}`} tone="error" onClick={() => setDeleteTarget(item)}><Trash2 className="h-4 w-4" /></TableActionButton>
-                        </div>
+                      <td className="px-5 py-4 text-right">
+                        <TableActionsMenu
+                          label={`Ações de ${item.name}`}
+                          actions={[
+                            {
+                              label: 'Atualizar status',
+                              icon: <RefreshCw className="h-4 w-4" />,
+                              onClick: () => { void statusM.mutateAsync(item.id).then(() => toast.success('Status atualizado')).catch((e) => toast.error('Erro ao atualizar status', getApiErrorMessage(e))); },
+                            },
+                            {
+                              label: 'Conectar / QR Code',
+                              icon: <QrCode className="h-4 w-4" />,
+                              onClick: () => void handleConnect(item),
+                            },
+                            {
+                              label: 'Desconectar',
+                              icon: <Unplug className="h-4 w-4" />,
+                              onClick: () => void handleDisconnect(item),
+                            },
+                            {
+                              label: 'Editar',
+                              icon: <Pencil className="h-4 w-4" />,
+                              onClick: () => setEditTarget(item),
+                            },
+                            {
+                              label: 'Excluir',
+                              icon: <Trash2 className="h-4 w-4" />,
+                              tone: 'danger',
+                              onClick: () => setDeleteTarget(item),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );

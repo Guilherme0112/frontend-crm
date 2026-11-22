@@ -85,7 +85,7 @@ export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, 
               Logs de disparo WhatsApp
             </h2>
             <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Auditoria por destinatÃ¡rio (status, tentativas, WAMID e erros). Atualiza automaticamente enquanto houver pendÃªncias.
+              Auditoria por destinatário (status, tentativas, WAMID e erros). Atualiza automaticamente enquanto houver pendências.
             </p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
@@ -150,7 +150,7 @@ export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        Lead #{log.lead_id ?? 'â€”'} Â· {log.recipient_phone}
+                        Lead #{log.lead_id ?? '—'} · {log.recipient_phone}
                       </p>
                       <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
                         {formatDateTime(log.sent_at ?? log.created_at ?? '')}

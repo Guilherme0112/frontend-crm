@@ -1,4 +1,3 @@
-import Button from '@mui/material/Button';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Eye, FileText } from 'lucide-react';
@@ -6,6 +5,7 @@ import { useInvoicesQuery, usePayInvoiceMutation } from './hooks';
 import * as api from '@/src/lib/api';
 import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import {
@@ -143,7 +143,7 @@ export function InvoicesPage() {
                 <th className="px-5 py-3">Vencimento</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Pago em</th>
-                <th className="px-5 py-3 text-right">Ação</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-950/[0.07] dark:divide-white/[0.07]">
@@ -173,23 +173,25 @@ export function InvoicesPage() {
                       {inv.paid_at ? formatDateTime(inv.paid_at) : '—'}
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {inv.status === 'open' && (
-                          <button
-                            type="button"
-                            onClick={() => void handlePay(inv.id)}
-                            disabled={payingId === inv.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 whitespace-nowrap"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            <span>{payingId === inv.id ? 'Pagando...' : 'Marcar como paga'}</span>
-                          </button>
-                        )}
-
-                        <Button variant="outlined" color="inherit" startIcon={<Eye className="h-3.5 w-3.5" />} onClick={() => void handleViewPdf(inv.id)} disabled={downloadingId === inv.id} className="whitespace-nowrap">
-                          {downloadingId === inv.id ? 'Gerando...' : 'Ver recibo'}
-                        </Button>
-                      </div>
+                      <TableActionsMenu
+                        label={`Ações da fatura #${inv.id}`}
+                        actions={[
+                          ...(inv.status === 'open'
+                            ? [{
+                                label: payingId === inv.id ? 'Pagando...' : 'Marcar como paga',
+                                icon: <CheckCircle2 className="h-4 w-4" />,
+                                disabled: payingId === inv.id,
+                                onClick: () => void handlePay(inv.id),
+                              }]
+                            : []),
+                          {
+                            label: downloadingId === inv.id ? 'Gerando...' : 'Ver recibo',
+                            icon: <Eye className="h-4 w-4" />,
+                            disabled: downloadingId === inv.id,
+                            onClick: () => void handleViewPdf(inv.id),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 );

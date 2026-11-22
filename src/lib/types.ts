@@ -486,6 +486,8 @@ export interface Plan {
   currency: string;
   interval: PlanInterval;
   is_active: boolean;
+  /** Planos internos (ex.: suporte) não aparecem na vitrine nem no checkout. */
+  is_internal?: boolean;
   created_at?: string;
 }
 
@@ -520,7 +522,6 @@ export type BillingMethod = 'card';
 export interface Subscription {
   id: number;
   plan_id: number;
-  payment_method_id?: number | null;
   status: SubscriptionStatus;
   billing_method?: BillingMethod;
   starts_at: string;

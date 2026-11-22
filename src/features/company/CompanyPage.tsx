@@ -294,7 +294,7 @@ export function CompanyPage() {
               <TextInput
                 id="addr-state"
                 type="text"
-                maxLength={2}
+                limit={2}
                 placeholder="SP"
                 className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
                 {...register('address.state')}

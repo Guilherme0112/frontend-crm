@@ -1,5 +1,5 @@
 import Button from '@mui/material/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Pencil, PlugZap, Plus, Trash2 } from 'lucide-react';
@@ -23,7 +23,7 @@ function TemplateForm({ initial, onSubmit, onCancel, submitting }: { initial?: W
   return (
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void onSubmit(v); }}>
       <FormField label="Nome do template" htmlFor="wut-name" required floatingLabel={false} dense>
-        <input id="wut-name" className={inputClassName()} value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} required placeholder="Ex.: Boas-vindas" />
+        <input id="wut-name" maxLength={255} className={inputClassName()} value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} required placeholder="Ex.: Boas-vindas" />
       </FormField>
       <FormField label="Corpo da mensagem" htmlFor="wut-body" required floatingLabel={false} dense hint="Variáveis suportadas: {{name}}, {{email}}, {{phone}}.">
         <textarea id="wut-body" className={inputClassName() + ' min-h-[140px] resize-y'} value={v.body} onChange={(e) => setV({ ...v, body: e.target.value })} required placeholder="Olá {{name}}, tudo bem?" />
@@ -85,7 +85,24 @@ export function WhatsappUnofficialTemplatesPage() {
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${item.is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/20' : 'bg-zinc-100 text-zinc-700 ring-zinc-500/20 dark:bg-white/[0.06] dark:text-zinc-300 dark:ring-white/[0.1]'}`}>{item.is_active ? 'Ativo' : 'Inativo'}</span>
                     </td>
-                    <td className="px-5 py-4"><div className="flex justify-end gap-1.5"><TableActionButton title="Editar" aria-label={`Editar ${item.name}`} tone="neutral" onClick={() => setEditTarget(item)}><Pencil className="h-4 w-4" /></TableActionButton><TableActionButton title="Excluir" aria-label={`Excluir ${item.name}`} tone="error" onClick={() => setDeleteTarget(item)}><Trash2 className="h-4 w-4" /></TableActionButton></div></td>
+                    <td className="px-5 py-4 text-right">
+                      <TableActionsMenu
+                        label={`Ações de ${item.name}`}
+                        actions={[
+                          {
+                            label: 'Editar',
+                            icon: <Pencil className="h-4 w-4" />,
+                            onClick: () => setEditTarget(item),
+                          },
+                          {
+                            label: 'Excluir',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            tone: 'danger',
+                            onClick: () => setDeleteTarget(item),
+                          },
+                        ]}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

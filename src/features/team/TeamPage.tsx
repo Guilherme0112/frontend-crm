@@ -13,7 +13,7 @@ import {
 } from './hooks';
 import { useAuth } from '@/src/auth/AuthContext';
 import { Modal } from '@/src/components/common/Modal';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import ActionButton from '@/src/components/common/Button';
 import { ModalActions } from '@/src/components/common/ModalActions';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
@@ -247,20 +247,24 @@ export function TeamPage() {
                         label={user.is_active ? 'Ativo' : 'Inativo'}
                       />
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <TableActionButton tone="primary" aria-label="Editar" onClick={() => openEdit(user)}>
-                          <Pencil className="h-4 w-4" />
-                        </TableActionButton>
-                        <TableActionButton
-                          tone="error"
-                          aria-label="Excluir"
-                          disabled={currentUser?.id === user.id}
-                          onClick={() => setDeletingUser(user)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </TableActionButton>
-                      </div>
+                    <td className="px-5 py-3 text-right">
+                      <TableActionsMenu
+                        label={`Ações de ${user.name}`}
+                        actions={[
+                          {
+                            label: 'Editar',
+                            icon: <Pencil className="h-4 w-4" />,
+                            onClick: () => openEdit(user),
+                          },
+                          {
+                            label: 'Excluir',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            tone: 'danger',
+                            disabled: currentUser?.id === user.id,
+                            onClick: () => setDeletingUser(user),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

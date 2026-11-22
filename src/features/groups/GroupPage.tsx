@@ -11,6 +11,7 @@ import { Modal } from '@/src/components/common/Modal';
 import { Pagination } from '@/src/components/common/Pagination';
 import { SearchField } from '@/src/components/common/SearchField';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useToast } from '@/src/components/common/Toast';
 import { useAllStepsQuery, useCrmsInfiniteQuery } from '@/src/features/crm/hooks';
 import { useLeadsPaginatedQuery } from '@/src/features/leads/hooks';
@@ -315,8 +316,8 @@ export function GroupPage() {
 
       {sendingBasicForbidden && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-200">
-          Disparo disponível a partir do plano <strong>Support</strong>.{' '}
-          <Link to="/billing/plans" className="font-semibold underline underline-offset-2">Ver planos</Link>
+          Disparo disponível a partir do plano <strong>Basic</strong>.{' '}
+          <Link to="/billing" className="font-semibold underline underline-offset-2">Ver planos</Link>
         </div>
       )}
 
@@ -387,15 +388,17 @@ export function GroupPage() {
                       <span className="block truncate text-xs text-zinc-400 dark:text-zinc-500">{lead.step_name || ''}</span>
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setRemoveTarget({ id: lead.id, name: lead.name })}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 dark:hover:text-red-400"
-                        aria-label={`Remover ${lead.name}`}
-                        title="Remover do grupo"
-                      >
-                        <Trash2 className="h-4 w-4" strokeWidth={1.8} />
-                      </button>
+                      <TableActionsMenu
+                        label={`Ações de ${lead.name}`}
+                        actions={[
+                          {
+                            label: 'Remover do grupo',
+                            icon: <Trash2 className="h-4 w-4" strokeWidth={1.8} />,
+                            tone: 'danger',
+                            onClick: () => setRemoveTarget({ id: lead.id, name: lead.name }),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

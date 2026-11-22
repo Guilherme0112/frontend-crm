@@ -1,5 +1,5 @@
 import Button from '@mui/material/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Pencil, Plus, Settings2, Trash2 } from 'lucide-react';
@@ -209,15 +209,23 @@ export function WhatsappTemplatesPage() {
                         {tpl.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-2">
-                        <TableActionButton title="Editar" aria-label={`Editar ${tpl.name}`} tone="neutral" onClick={() => setEditTarget(tpl)}>
-                          <Pencil className="h-4 w-4" />
-                        </TableActionButton>
-                        <TableActionButton title="Excluir" aria-label={`Excluir ${tpl.name}`} tone="error" onClick={() => setDeleteTarget(tpl)}>
-                          <Trash2 className="h-4 w-4" />
-                        </TableActionButton>
-                      </div>
+                    <td className="px-5 py-3 text-right">
+                      <TableActionsMenu
+                        label={`Ações de ${tpl.name}`}
+                        actions={[
+                          {
+                            label: 'Editar',
+                            icon: <Pencil className="h-4 w-4" />,
+                            onClick: () => setEditTarget(tpl),
+                          },
+                          {
+                            label: 'Excluir',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            tone: 'danger',
+                            onClick: () => setDeleteTarget(tpl),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

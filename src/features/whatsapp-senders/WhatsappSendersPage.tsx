@@ -1,5 +1,5 @@
 import Button from '@mui/material/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, MessageCircle, Pencil, Plus, Trash2 } from 'lucide-react';
@@ -212,15 +212,23 @@ export function WhatsappSendersPage() {
                         {sender.is_active ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-2">
-                        <TableActionButton title="Editar" aria-label={`Editar ${sender.name}`} tone="neutral" onClick={() => setEditTarget(sender)}>
-                          <Pencil className="h-4 w-4" />
-                        </TableActionButton>
-                        <TableActionButton title="Excluir" aria-label={`Excluir ${sender.name}`} tone="error" onClick={() => setDeleteTarget(sender)}>
-                          <Trash2 className="h-4 w-4" />
-                        </TableActionButton>
-                      </div>
+                    <td className="px-5 py-3 text-right">
+                      <TableActionsMenu
+                        label={`Ações de ${sender.name}`}
+                        actions={[
+                          {
+                            label: 'Editar',
+                            icon: <Pencil className="h-4 w-4" />,
+                            onClick: () => setEditTarget(sender),
+                          },
+                          {
+                            label: 'Excluir',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            tone: 'danger',
+                            onClick: () => setDeleteTarget(sender),
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

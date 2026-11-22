@@ -1,6 +1,6 @@
 import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { ModalActions } from '@/src/components/common/ModalActions';
 import { SearchField } from '@/src/components/common/SearchField';
 import { TextInput } from '@/src/components/common/TextInput';
@@ -319,31 +319,28 @@ export function SendingTemplatesPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <TableActionButton
-                        tone="neutral"
-                        onClick={() => setPreviewTemplate(tpl)}
-                        title="Pré-visualizar"
-                        aria-label={`Pré-visualizar ${tpl.name}`}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </TableActionButton>
-                      <TableActionButton
-                        tone="primary"
-                        onClick={() => openEditModal(tpl)}
-                        title="Editar"
-                        aria-label={`Editar ${tpl.name}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </TableActionButton>
-                      <TableActionButton
-                        tone="error"
-                        onClick={() => setDeletingTemplate(tpl)}
-                        title="Excluir"
-                        aria-label={`Excluir ${tpl.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </TableActionButton>
+                    <div className="shrink-0">
+                      <TableActionsMenu
+                        label={`Ações de ${tpl.name}`}
+                        actions={[
+                          {
+                            label: 'Pré-visualizar',
+                            icon: <Eye className="h-4 w-4" />,
+                            onClick: () => setPreviewTemplate(tpl),
+                          },
+                          {
+                            label: 'Editar',
+                            icon: <Pencil className="h-4 w-4" />,
+                            onClick: () => openEditModal(tpl),
+                          },
+                          {
+                            label: 'Excluir',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            tone: 'danger',
+                            onClick: () => setDeletingTemplate(tpl),
+                          },
+                        ]}
+                      />
                     </div>
                   </li>
                 );

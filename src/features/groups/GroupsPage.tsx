@@ -1,6 +1,6 @@
 import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
-import { TableActionButton } from '@/src/components/common/TableActionButton';
+import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { ModalActions } from '@/src/components/common/ModalActions';
 import { SearchField } from '@/src/components/common/SearchField';
 import { TextInput } from '@/src/components/common/TextInput';
@@ -261,38 +261,32 @@ export function GroupsPage() {
                     {formatDate(group.created_at)}
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <Link
-                        to={`/disparos/${group.id}`}
-                        aria-label={`Gerenciar leads de ${group.name}`}
-                        title="Gerenciar leads do grupo"
-                        className="inline-flex items-center justify-center rounded-lg bg-zinc-950/[0.05] p-1.5 text-zinc-500 transition-colors hover:bg-zinc-950/[0.1] hover:text-zinc-900 dark:bg-white/[0.05] dark:text-zinc-400 dark:hover:bg-white/[0.1] dark:hover:text-zinc-100"
-                      >
-                        <Users className="h-4 w-4" strokeWidth={1.8} />
-                      </Link>
-                      <Link
-                        to={`/disparos/${group.id}/historico`}
-                        aria-label={`Histórico de ${group.name}`}
-                        title="Ver histórico"
-                        className="inline-flex items-center justify-center rounded-lg bg-zinc-950/[0.05] p-1.5 text-zinc-500 transition-colors hover:bg-zinc-950/[0.1] hover:text-zinc-900 dark:bg-white/[0.05] dark:text-zinc-400 dark:hover:bg-white/[0.1] dark:hover:text-zinc-100"
-                      >
-                        <History className="h-4 w-4" strokeWidth={1.8} />
-                      </Link>
-                      <TableActionButton
-                        tone="primary"
-                        onClick={() => openEditModal(group)}
-                        aria-label={`Editar ${group.name}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </TableActionButton>
-                      <TableActionButton
-                        tone="error"
-                        onClick={() => setDeletingGroup(group)}
-                        aria-label={`Excluir ${group.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </TableActionButton>
-                    </div>
+                    <TableActionsMenu
+                      label={`Ações de ${group.name}`}
+                      actions={[
+                        {
+                          label: 'Gerenciar leads',
+                          icon: <Users className="h-4 w-4" strokeWidth={1.8} />,
+                          onClick: () => navigate(`/disparos/${group.id}`),
+                        },
+                        {
+                          label: 'Ver histórico',
+                          icon: <History className="h-4 w-4" strokeWidth={1.8} />,
+                          onClick: () => navigate(`/disparos/${group.id}/historico`),
+                        },
+                        {
+                          label: 'Editar',
+                          icon: <Pencil className="h-4 w-4" />,
+                          onClick: () => openEditModal(group),
+                        },
+                        {
+                          label: 'Excluir',
+                          icon: <Trash2 className="h-4 w-4" />,
+                          tone: 'danger',
+                          onClick: () => setDeletingGroup(group),
+                        },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

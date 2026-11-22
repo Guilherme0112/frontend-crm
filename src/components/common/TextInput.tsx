@@ -5,12 +5,12 @@ import { useFieldMeta } from './FormField';
 
 export type TextInputProps = Omit<TextFieldProps, 'error' | 'variant'> & {
   hasError?: boolean;
-  /** Limite de caracteres. Padrão: 100. */
+  /** Limite de caracteres. Padrão: 255 (mesmo limite usado pelo backend nos campos de texto). */
   limit?: number;
 };
 
 export const TextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextInputProps>(
-  function TextInput({ hasError, label, helperText, required, onChange, slotProps, limit = 100, ...props }, ref) {
+  function TextInput({ hasError, label, helperText, required, onChange, slotProps, limit = 255, ...props }, ref) {
     const field = useFieldMeta();
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
     const [filled, setFilled] = useState(false);

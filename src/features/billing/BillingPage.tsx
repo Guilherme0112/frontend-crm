@@ -1,6 +1,6 @@
 import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { CardPaymentForm } from './CardPaymentForm';
@@ -64,6 +64,10 @@ export function BillingPage() {
   const isSubscribePending = createCheckoutMutation.isPending || changePlanMutation.isPending;
   const cancelSubMutation = useCancelSubscriptionMutation();
 
+  // Callback estável: uma função inline faria o CardPaymentForm desmontar o
+  // Brick (e perder os dados digitados) a cada mudança de estado do modal.
+  const handleCardFormUnavailable = useCallback(() => setCardFormUnavailable(true), []);
+
   const [selectedPlanToSubscribe, setSelectedPlanToSubscribe] = useState<Plan | null>(null);
   const [subscribeConflictMsg, setSubscribeConflictMsg] = useState<string | null>(null);
   const [cancelingSub, setCancelingSub] = useState<Subscription | null>(null);
@@ -81,8 +85,17 @@ export function BillingPage() {
   // ?preapproval_id=...&status=... — ao voltar, reconcilia a assinatura
   // automaticamente (equivale ao botão "Sincronizar") e limpa a URL.
   const preapprovalId = searchParams.get('preapproval_id');
+  const reconciledRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!preapprovalId) {
+    if (!preapprovalId || reconciledRef.current === preapprovalId) {
+      return;
+    }
+
+    // O retorno do Checkout Pro é um reload completo: a lista de assinaturas
+    // ainda não chegou no primeiro render. Esperar evita limpar a URL e perder
+    // a reconciliação exatamente no caminho do redirect.
+    if (subscriptionsQuery.isPending) {
       return;
     }
 
@@ -91,17 +104,20 @@ export function BillingPage() {
     );
 
     const finish = () => {
-      searchParams.delete('preapproval_id');
-      searchParams.delete('status');
-      setSearchParams(searchParams, { replace: true });
+      const params = new URLSearchParams(searchParams);
+      params.delete('preapproval_id');
+      params.delete('status');
+      setSearchParams(params, { replace: true });
     };
 
     if (!pending) {
+      reconciledRef.current = preapprovalId;
       finish();
 
       return;
     }
 
+    reconciledRef.current = preapprovalId;
     const wasSwap = Boolean(pending.replaces_subscription_id);
 
     syncSubMutation
@@ -127,13 +143,16 @@ export function BillingPage() {
       })
       .finally(finish);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preapprovalId]);
+  }, [preapprovalId, subscriptionsQuery.isPending, subscriptions]);
 
   // Recortes exibidos, paginados no cliente.
   // A grade mostra só o que dá para contratar. Os inativos continuam vindo da
   // API porque o histórico de assinaturas precisa deles para resolver o nome
   // do plano — apenas não cabem na vitrine.
-  const catalog = useMemo(() => plans.filter((p) => p.is_active), [plans]);
+  const catalog = useMemo(
+    () => plans.filter((p) => p.is_active && !p.is_internal),
+    [plans],
+  );
   const plansPage = useClientPagination(catalog, 6);
   const subscriptionsPage = useClientPagination(subscriptions, 10);
 
@@ -174,6 +193,7 @@ export function BillingPage() {
     activeSubscription?.status === 'active' && currentPlan !== null && !isTrialPlan(currentPlan);
 
   const openSubscribeModal = (plan: Plan) => {
+    if (!plan.slug || plan.is_internal) return;
     setSubscribeConflictMsg(null);
     setSelectedPlanToSubscribe(plan);
   };
@@ -190,8 +210,8 @@ export function BillingPage() {
    * nasce ativa — sem sair do app. Sem token, cai no Checkout Pro por redirect
    * (SDK fora do ar, ou plano de cortesia que não tem o que cobrar).
    */
-  const handleConfirmSubscribe = async (cardTokenId?: string) => {
-    if (!selectedPlanToSubscribe?.slug) return;
+  const handleConfirmSubscribe = async (cardTokenId?: string): Promise<boolean> => {
+    if (!selectedPlanToSubscribe?.slug) return false;
     setSubscribeConflictMsg(null);
 
     try {
@@ -216,7 +236,7 @@ export function BillingPage() {
         );
         closeSubscribeModal();
 
-        return;
+        return true;
       }
 
       // Pendente: o pagamento precisa ser concluído no Mercado Pago.
@@ -224,7 +244,7 @@ export function BillingPage() {
         toast.info('Redirecionando para o Mercado Pago...');
         window.location.href = session.init_point;
 
-        return;
+        return true;
       }
 
       toast.info(
@@ -232,6 +252,8 @@ export function BillingPage() {
         'Assim que o Mercado Pago confirmar, a assinatura será ativada.',
       );
       closeSubscribeModal();
+
+      return true;
     } catch (error) {
       const status = getApiStatus(error);
       const apiMsg = getApiErrorMessage(error);
@@ -252,6 +274,10 @@ export function BillingPage() {
       } else {
         toast.error('Erro ao contratar plano', apiMsg);
       }
+
+      // Resolve com false em vez de rejeitar: o Brick usa esta promise para
+      // encerrar o loading, e o erro já está visível no modal.
+      return false;
     }
   };
 
@@ -327,7 +353,7 @@ export function BillingPage() {
             Planos e Assinatura
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Gerencie seu plano contratado, métodos de pagamento e histórico de assinaturas.
+            Gerencie seu plano contratado, o histórico de assinaturas e suas faturas.
           </p>
         </div>
 
@@ -453,7 +479,7 @@ export function BillingPage() {
 
         {isLoading ? (
           <CardsGridSkeleton count={3} />
-        ) : plans.length === 0 ? (
+        ) : catalog.length === 0 ? (
           <EmptyState
             title="Nenhum plano disponível"
             description="Não há planos cadastrados no servidor no momento."
@@ -674,8 +700,8 @@ export function BillingPage() {
                   <CardPaymentForm
                     publicKey={publicKey}
                     amount={selectedPlanToSubscribe.price}
-                    onToken={(cardTokenId) => void handleConfirmSubscribe(cardTokenId)}
-                    onUnavailable={() => setCardFormUnavailable(true)}
+                    onToken={handleConfirmSubscribe}
+                    onUnavailable={handleCardFormUnavailable}
                     disabled={isSubscribePending}
                   />
                 )}

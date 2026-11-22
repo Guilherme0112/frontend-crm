@@ -31,9 +31,9 @@ export function GroupHistoryPage() {
         </div>
       </div>
 
-      <GroupSendSection groupId={groupId} defaultExpanded />
-      <WhatsappDispatchLogsSection groupId={groupId} defaultExpanded resolveNames={false} />
-      <WhatsappUnofficialDispatchLogsSection groupId={groupId} defaultExpanded resolveNames={false} />
+      <GroupSendSection groupId={groupId} />
+      <WhatsappDispatchLogsSection groupId={groupId} resolveNames={false} />
+      <WhatsappUnofficialDispatchLogsSection groupId={groupId} resolveNames={false} />
     </div>
   );
 }
