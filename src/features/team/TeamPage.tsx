@@ -26,7 +26,7 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { PHONE_REGEX, maskPhone } from '@/src/lib/format';
+import { PHONE_MAX_LENGTH, PHONE_REGEX, maskPhone } from '@/src/lib/format';
 import type { User } from '@/src/lib/types';
 
 const createUserSchema = z.object({
@@ -38,7 +38,7 @@ const createUserSchema = z.object({
     .trim()
     .optional()
     .refine((val) => !val || PHONE_REGEX.test(val), {
-      message: 'Use o formato (00) 00000-0000',
+      message: 'Use o formato +55 (00) 00000-0000',
     }),
   is_active: z.boolean(),
 });
@@ -57,7 +57,7 @@ const editUserSchema = z.object({
     .trim()
     .optional()
     .refine((val) => !val || PHONE_REGEX.test(val), {
-      message: 'Use o formato (00) 00000-0000',
+      message: 'Use o formato +55 (00) 00000-0000',
     }),
   is_active: z.boolean(),
 });
@@ -345,8 +345,8 @@ export function TeamPage() {
                   <TextInput
                     id="team-phone"
                     type="tel"
-                    limit={15}
-                    placeholder="(11) 98765-4321"
+                    limit={PHONE_MAX_LENGTH}
+                    placeholder="+55 (11) 98765-4321"
                     hasError={Boolean(errors.phone)}
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskPhone(e.target.value))}

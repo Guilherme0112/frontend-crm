@@ -13,7 +13,7 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
+import { PHONE_MAX_LENGTH, PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
 import {
   useDeleteLeadMutation,
   useLeadQuery,
@@ -31,7 +31,7 @@ const leadDetailSchema = z.object({
     .trim()
     .optional()
     .refine((val) => !val || PHONE_REGEX.test(val), {
-      message: 'Use o formato (00) 00000-0000',
+      message: 'Use o formato +55 (00) 00000-0000',
     }),
   website: z
     .string()
@@ -253,9 +253,9 @@ export function LeadDetailPage() {
                 render={({ field }) => (
                   <TextInput
                     id="lead-phone"
-                    limit={15}
+                    limit={PHONE_MAX_LENGTH}
                     type="tel"
-                    placeholder="(11) 98765-4321"
+                    placeholder="+55 (11) 98765-4321"
                     value={field.value || ''}
                     onChange={(e) => field.onChange(maskPhone(e.target.value))}
                     onBlur={field.onBlur}

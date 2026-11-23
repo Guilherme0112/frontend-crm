@@ -29,7 +29,7 @@ const BODY_EXAMPLE = `{
 const FIELD_RULES: Array<{ field: string; rule: string; required?: boolean }> = [
   { field: 'name', rule: 'Texto, até 255 caracteres', required: true },
   { field: 'email', rule: 'E-mail válido, até 255 caracteres', required: true },
-  { field: 'phone', rule: 'Opcional — formato (11) 91234-5678 ou (11) 1234-5678' },
+  { field: 'phone', rule: 'Opcional — (11) 91234-5678 ou +55 (11) 91234-5678; o DDI 55 é aplicado se vier sem' },
   { field: 'website', rule: 'Opcional — texto, até 255 caracteres' },
   { field: 'description', rule: 'Opcional — texto livre' },
   { field: 'utm_source', rule: 'Opcional — até 255 caracteres' },
@@ -395,9 +395,11 @@ export function SnippetsCard({ crm, enabled }: SnippetsCardProps) {
               <span className="font-semibold">4. Valide antes de enviar.</span> O script abaixo
               espelha a API: exige <code className="font-mono text-[11px]">name</code> e{' '}
               <code className="font-mono text-[11px]">email</code>, aceita{' '}
-              <code className="font-mono text-[11px]">phone</code> apenas como{' '}
-              <span className="font-mono text-[11px]">(11) 91234-5678</span> (DDD com 4 ou 5
-              dígitos) e aplica os limites de tamanho da tabela acima. Sucesso é{' '}
+              <code className="font-mono text-[11px]">phone</code> como{' '}
+              <span className="font-mono text-[11px]">(11) 91234-5678</span> ou{' '}
+              <span className="font-mono text-[11px]">+55 (11) 91234-5678</span> (DDD com 4 ou 5
+              dígitos; sem DDI, o 55 é aplicado ao salvar) e aplica os limites de tamanho da
+              tabela acima. Sucesso é{' '}
               <span className="font-mono text-[11px]">204</span>, sem corpo na resposta;{' '}
               <span className="font-mono text-[11px]">422</span> indica campo inválido e{' '}
               <span className="font-mono text-[11px]">429</span>, limite de 30 envios/minuto.

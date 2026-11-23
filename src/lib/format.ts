@@ -1,4 +1,5 @@
-export const PHONE_REGEX = /^\(\d{2}\)\s?\d{4,5}-\d{4}$/;
+/** `+55 (11) 98765-4321` — o DDI é obrigatório. */
+export const PHONE_REGEX = /^\+\d{2} \(\d{2}\) \d{4,5}-\d{4}$/;
 export const ZIP_REGEX = /^\d{5}-?\d{3}$/;
 export const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -63,20 +64,40 @@ export function onlyDigits(value: string): string {
   return value.replace(/\D/g, '');
 }
 
+/** `+55 (11) 98765-4321` tem 19 caracteres — é o maxLength dos inputs de telefone. */
+export const PHONE_MAX_LENGTH = 19;
+
+/**
+ * Formata para `+55 (11) 98765-4321`.
+ *
+ * **O DDI é digitado manualmente**: nada é injetado. Os 2 primeiros dígitos são
+ * sempre o DDI, os 2 seguintes o DDD e o resto o número — 13 dígitos ao todo
+ * (12 para fixo). Quem esquecer o DDI não passa no `PHONE_REGEX` e vê o erro,
+ * em vez de ter um 55 posto por conta própria.
+ *
+ * Trabalha só com os dígitos e reconstrói o formato do zero, então reaplicar a
+ * máscara sobre o próprio resultado é estável — é isso que a torna segura no
+ * `onChange`, onde ela recebe de volta o valor que acabou de emitir.
+ */
 export function maskPhone(value: string): string {
   let digits = onlyDigits(value);
-  // Remove DDI 55 se presente (ex.: 5511999999999 -> 11999999999)
-  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
-    digits = digits.slice(2);
-  }
-  digits = digits.slice(0, 11);
+  // Prefixo de discagem internacional (00 55 11 ...).
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  // 2 (DDI) + 2 (DDD) + 9 (número) = 13.
+  digits = digits.slice(0, 13);
   if (digits.length === 0) return '';
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+
+  const ddi = digits.slice(0, 2);
+  if (digits.length <= 2) return `+${ddi}`;
+
+  const rest = digits.slice(2);
+  const prefix = `+${ddi} `;
+  if (rest.length <= 2) return `${prefix}(${rest}`;
+  if (rest.length <= 6) return `${prefix}(${rest.slice(0, 2)}) ${rest.slice(2)}`;
+  if (rest.length <= 10) {
+    return `${prefix}(${rest.slice(0, 2)}) ${rest.slice(2, 6)}-${rest.slice(6)}`;
   }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  return `${prefix}(${rest.slice(0, 2)}) ${rest.slice(2, 7)}-${rest.slice(7, 11)}`;
 }
 
 export function normalizeWhatsappPhone(value: string): string {

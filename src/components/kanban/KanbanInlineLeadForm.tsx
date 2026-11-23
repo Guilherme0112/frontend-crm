@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
-import { PHONE_REGEX, maskPhone } from '@/src/lib/format';
+import { PHONE_MAX_LENGTH, PHONE_REGEX, maskPhone } from '@/src/lib/format';
 import { TextInput } from '@/src/components/common/TextInput';
 
 const inlineLeadSchema = z.object({
@@ -15,7 +15,7 @@ const inlineLeadSchema = z.object({
     .trim()
     .optional()
     .refine((val) => !val || PHONE_REGEX.test(val), {
-      message: 'Formato (00) 00000-0000',
+      message: 'Formato +55 (00) 00000-0000',
     }),
 });
 
@@ -94,7 +94,7 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
             <TextInput
               type="tel"
               placeholder="Telefone (opcional)"
-              limit={15}
+              limit={PHONE_MAX_LENGTH}
               size="small"
               hasError={Boolean(errors.phone)}
               value={field.value || ''}
