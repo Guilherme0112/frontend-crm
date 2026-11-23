@@ -7,7 +7,7 @@ import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, History, Mail, Pencil, Plus, Settings, Trash2, Users, UsersRound } from 'lucide-react';
@@ -17,9 +17,7 @@ import {
   useGroupsQuery,
   useUpdateGroupMutation,
 } from './hooks';
-import { useSendingTemplatesQuery } from '@/src/features/templates/hooks';
 import { Modal } from '@/src/components/common/Modal';
-import { Autocomplete } from '@/src/components/common/Autocomplete';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField } from '@/src/components/common/FormField';
 import { Pagination } from '@/src/components/common/Pagination';
@@ -34,10 +32,6 @@ import type { Group } from '@/src/lib/types';
 const groupSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do grupo'),
   description: z.string().optional(),
-  template_id: z
-    .number({ message: 'Selecione um template de envio' })
-    .int()
-    .min(1, 'Selecione um template de envio'),
 });
 
 type GroupFormValues = z.infer<typeof groupSchema>;
@@ -53,38 +47,25 @@ export function GroupsPage() {
 
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const templatesQuery = useSendingTemplatesQuery(1, 100, '', modalOpen);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [configView, setConfigView] = useState<'channels' | 'whatsapp'>('channels');
 
-  const templates = templatesQuery.data?.data ?? [];
-  const templateById = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const tpl of templates) map.set(tpl.id, tpl.name);
-    return map;
-  }, [templates]);
-
   const {
     register,
     handleSubmit,
     reset,
-    control,
     setError,
     formState: { errors },
   } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
-    defaultValues: { name: '', description: '', template_id: 0 },
+    defaultValues: { name: '', description: '' },
   });
 
   const openCreateModal = () => {
     setEditingGroup(null);
-    reset({
-      name: '',
-      description: '',
-      template_id: templates[0]?.id ?? 0,
-    });
+    reset({ name: '', description: '' });
     setModalOpen(true);
   };
 
@@ -93,7 +74,6 @@ export function GroupsPage() {
     reset({
       name: group.name,
       description: group.description ?? '',
-      template_id: group.template_id,
     });
     setModalOpen(true);
   };
@@ -102,7 +82,6 @@ export function GroupsPage() {
     const payload = {
       name: values.name.trim(),
       description: values.description?.trim() || null,
-      template_id: values.template_id,
     };
     try {
       if (editingGroup) {
@@ -193,7 +172,7 @@ export function GroupsPage() {
 
       {groupsQuery.isPending ? (
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <TableRowsSkeleton rows={4} cols={5} />
+          <TableRowsSkeleton rows={4} cols={4} />
         </div>
       ) : groupsQuery.isError ? (
         <ErrorState
@@ -208,7 +187,7 @@ export function GroupsPage() {
           description={
             search
               ? 'Tente outro termo de busca.'
-              : 'Crie grupos para segmentar seus contatos e vincular templates de envio.'
+              : 'Crie grupos para segmentar seus contatos e disparar campanhas em massa.'
           }
           action={
             <ActionButton
@@ -222,12 +201,11 @@ export function GroupsPage() {
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[560px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-950/[0.07] text-xs font-medium text-zinc-500 dark:border-white/[0.07] dark:text-zinc-400">
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Descrição</th>
-                <th className="px-5 py-3">Template vinculado</th>
                 <th className="px-5 py-3">Criado em</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
@@ -253,9 +231,6 @@ export function GroupsPage() {
                   </td>
                   <td className="max-w-xs truncate px-5 py-3.5 text-zinc-600 dark:text-zinc-400">
                     {group.description || '—'}
-                  </td>
-                  <td className="px-5 py-3.5 text-zinc-700 dark:text-zinc-300">
-                    {templateById.get(group.template_id) ?? `Template #${group.template_id}`}
                   </td>
                   <td className="px-5 py-3.5 font-mono text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
                     {formatDate(group.created_at)}
@@ -313,81 +288,35 @@ export function GroupsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingGroup ? 'Editar grupo' : 'Novo grupo'}
-        description="Associe um template de envio ativo a este grupo."
+        description="Dê um nome ao grupo. O template e o canal são escolhidos na hora do disparo."
       >
-        {templates.length === 0 ? (
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
-              Você ainda não possui templates de envio cadastrados. Crie um template primeiro para poder vinculá-lo a um grupo.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-zinc-950/[0.12] px-4 py-2 text-sm font-medium text-zinc-700 dark:border-white/[0.12] dark:text-zinc-200"
-              >
-                Fechar
-              </Button>
-              <Link
-                to="/sending-templates"
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Ir para Templates
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-            <FormField label="Nome" htmlFor="group-name" required error={errors.name?.message}>
-              <TextInput
-                id="group-name"
-                limit={255}
-                type="text"
-                placeholder="Ex.: Clientes Enterprise"
-                {...register('name')}
-              />
-            </FormField>
-
-            <FormField
-              label="Template de envio"
-              htmlFor="group-template"
-              required
-              error={errors.template_id?.message}
-            >
-              <Controller
-                name="template_id"
-                control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    id="group-template"
-                    value={field.value > 0 ? String(field.value) : ''}
-                    onChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
-                    placeholder="Selecione um template de envio..."
-                    emptyMessage="Nenhum template encontrado"
-                    hasError={Boolean(errors.template_id)}
-                    options={templates.map((tpl) => ({ value: String(tpl.id), label: tpl.name }))}
-                  />
-                )}
-              />
-            </FormField>
-
-            <FormField label="Descrição" htmlFor="group-desc" error={errors.description?.message}>
-              <TextArea
-                id="group-desc"
-                limit={5000}
-                rows={3}
-                placeholder="Opcional"
-                {...register('description')}
-              />
-            </FormField>
-
-            <ModalActions
-              onCancel={() => setModalOpen(false)}
-              isPending={createMutation.isPending || updateMutation.isPending}
-              submitLabel={editingGroup ? 'Salvar alterações' : 'Criar grupo'}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <FormField label="Nome" htmlFor="group-name" required error={errors.name?.message}>
+            <TextInput
+              id="group-name"
+              limit={255}
+              type="text"
+              placeholder="Ex.: Clientes Enterprise"
+              {...register('name')}
             />
-          </form>
-        )}
+          </FormField>
+
+          <FormField label="Descrição" htmlFor="group-desc" error={errors.description?.message}>
+            <TextArea
+              id="group-desc"
+              limit={5000}
+              rows={3}
+              placeholder="Opcional"
+              {...register('description')}
+            />
+          </FormField>
+
+          <ModalActions
+            onCancel={() => setModalOpen(false)}
+            isPending={createMutation.isPending || updateMutation.isPending}
+            submitLabel={editingGroup ? 'Salvar alterações' : 'Criar grupo'}
+          />
+        </form>
       </Modal>
 
       <ConfirmDialog

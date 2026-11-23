@@ -214,7 +214,7 @@ export interface Group {
   id: number;
   name: string;
   description?: string | null;
-  template_id: number;
+  template_id?: number | null;
   email_config_id?: number | null;
   created_by: number;
   created_at?: string;
@@ -224,14 +224,14 @@ export interface Group {
 export interface CreateGroupPayload {
   name: string;
   description?: string | null;
-  template_id: number;
+  template_id?: number | null;
   email_config_id?: number | null;
 }
 
 export interface UpdateGroupPayload {
   name?: string;
   description?: string | null;
-  template_id?: number;
+  template_id?: number | null;
   email_config_id?: number | null;
 }
 
