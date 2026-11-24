@@ -1,10 +1,21 @@
 ﻿import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useToast } from '@/src/components/common/Toast';
 import type { CreateLeadPayload, Lead, UpdateLeadPayload } from '@/src/lib/types';
+
+/**
+ * O total por etapa (`leads_value_total_cents`) é servido pelo endpoint de etapas,
+ * não pelo de leads. Sem invalidar `['crms', *, 'steps']`, o cabeçalho da coluna
+ * segue mostrando o total antigo depois de criar, editar, mover ou excluir lead.
+ */
+function invalidateStepTotals(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] === 'crms' && query.queryKey[2] === 'steps',
+  });
+}
 
 export function useLeadSourceQuery(id: number | null) {
   return useQuery({
@@ -103,6 +114,7 @@ export function useCreateLeadMutation() {
     mutationFn: (payload: CreateLeadPayload) => api.createLead(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
+      invalidateStepTotals(queryClient);
     },
   });
 }
@@ -114,6 +126,7 @@ export function useDeleteLeadMutation() {
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: queryKeys.leads.detail(id) });
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
+      invalidateStepTotals(queryClient);
     },
   });
 }
@@ -140,6 +153,7 @@ export function useMoveLeadStepMutation() {
     onSettled: (_data, _error, { leadId }) => {
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.leads.detail(leadId) });
+      invalidateStepTotals(queryClient);
     },
   });
 }
@@ -153,6 +167,7 @@ export function useUpdateLeadMutation() {
       queryClient.setQueryData(queryKeys.leads.detail(id), updated);
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
       void queryClient.invalidateQueries({ queryKey: ['leads', id, 'source'] });
+      invalidateStepTotals(queryClient);
     },
   });
 }

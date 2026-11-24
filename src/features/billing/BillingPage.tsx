@@ -2,7 +2,7 @@ import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Check, Users, X } from 'lucide-react';
 import { CardPaymentForm } from './CardPaymentForm';
 import {
   useBillingConfigQuery,
@@ -15,6 +15,7 @@ import {
   useSubscriptionsFullQuery,
   useSyncSubscriptionMutation,
 } from './hooks';
+import { useUsersQuery } from '@/src/features/team/hooks';
 import { Pagination } from '@/src/components/common/Pagination';
 import { useClientPagination } from '@/src/lib/useClientPagination';
 import { Modal } from '@/src/components/common/Modal';
@@ -31,6 +32,7 @@ import { getApiErrorMessage, getApiStatus } from '@/src/lib/formErrors';
 import { formatCurrency, formatDate } from '@/src/lib/format';
 import type {
   Plan,
+  PlanLimits,
   Subscription,
 } from '@/src/lib/types';
 
@@ -45,6 +47,59 @@ function isFreePlan(plan: Plan): boolean {
 /** O Trial é concedido no cadastro; contratá-lo de novo renovaria o teste. */
 function isTrialPlan(plan: Plan): boolean {
   return plan.slug === 'trial';
+}
+
+/**
+ * `null` = ilimitado. `0` não aparece na vitrine: é plano bloqueado, e nenhum
+ * plano contratável chega aqui com zero.
+ *
+ * O rótulo de ilimitado vem pronto porque a concordância muda por substantivo
+ * ("pipelines ilimitadas", "leads ilimitados").
+ */
+function describeQuota(
+  max: number | null,
+  unlimited: string,
+  singular: string,
+  plural: string,
+): string {
+  if (max === null) return unlimited;
+
+  return `Até ${max} ${max === 1 ? singular : plural}`;
+}
+
+/** `included: false` é o que o plano *não* entrega — risco em vez de check. */
+interface PlanFeature {
+  label: string;
+  included: boolean;
+}
+
+/**
+ * O que o cartão do plano promete. Sai todo dos limites servidos pela API, para
+ * a vitrine não jurar um teto diferente do que o backend aplica no 403.
+ */
+function planFeatures(limits: PlanLimits): PlanFeature[] {
+  return [
+    {
+      label: describeQuota(limits.max_crms, 'Pipelines ilimitadas', 'pipeline', 'pipelines'),
+      included: true,
+    },
+    {
+      label: describeQuota(limits.max_leads, 'Leads ilimitados', 'lead', 'leads'),
+      included: true,
+    },
+    {
+      // O teto de usuários é o único que o plano pago também tem — por isso é
+      // sempre um número, nunca "ilimitado".
+      label: describeQuota(limits.max_users, 'Usuários ilimitados', 'usuário', 'usuários'),
+      included: true,
+    },
+    {
+      label: limits.sending_enabled
+        ? 'Disparos de WhatsApp e e-mail'
+        : 'Disparos de WhatsApp e e-mail bloqueados',
+      included: limits.sending_enabled,
+    },
+  ];
 }
 
 export function BillingPage() {
@@ -189,6 +244,16 @@ export function BillingPage() {
 
   // Um plano pago de pé é o que transforma "Assinar" em "Trocar".
   const currentPlan = activeSubscription ? planById.get(activeSubscription.plan_id) ?? null : null;
+
+  // Quantos usuários a empresa já tem, para mostrar a vaga restante. Mesma
+  // query key da tela de Equipe: quando ela já carregou, isto sai do cache.
+  // `GET /users` não exige permissão, então vale para qualquer usuário logado.
+  const usersQuery = useUsersQuery();
+  const userCount = usersQuery.data?.data.length ?? null;
+  // `undefined` (plano sem o campo) e `null` (ilimitado) significam "sem teto a
+  // mostrar"; só um número vira contador.
+  const userQuota = currentPlan?.limits?.max_users ?? null;
+  const teamIsFull = userQuota !== null && userCount !== null && userCount >= userQuota;
   const isOnPaidPlan =
     activeSubscription?.status === 'active' && currentPlan !== null && !isTrialPlan(currentPlan);
 
@@ -387,6 +452,27 @@ export function BillingPage() {
                   Iniciada em {formatDate(activeSubscription.starts_at)}
                   {activeSubscription.ends_at && ` · Válida até ${formatDate(activeSubscription.ends_at)}`}
                 </p>
+
+                {/* O teto de usuários é o único limite que o plano pago também
+                    tem: quem for convidar a equipe precisa ver a vaga acabar
+                    aqui, não num 403 no meio do cadastro. */}
+                {userQuota !== null && (
+                  <p
+                    className={
+                      teamIsFull
+                        ? 'flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400'
+                        : 'flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400'
+                    }
+                  >
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    <span className="tabular-nums">
+                      {userCount === null
+                        ? `Até ${userQuota} ${userQuota === 1 ? 'usuário' : 'usuários'}`
+                        : `Equipe: ${userCount} de ${userQuota} ${userQuota === 1 ? 'usuário' : 'usuários'}`}
+                    </span>
+                    {teamIsFull && <span>· limite atingido</span>}
+                  </p>
+                )}
               </div>
             ) : (
               <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">
@@ -513,6 +599,24 @@ export function BillingPage() {
                     <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
                       {plan.description || 'Plano completo para operação comercial multi-tenant.'}
                     </p>
+
+                    {plan.limits && (
+                      <ul className="mt-4 space-y-1.5">
+                        {planFeatures(plan.limits).map((feature) => (
+                          <li
+                            key={feature.label}
+                            className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400"
+                          >
+                            {feature.included ? (
+                              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                            ) : (
+                              <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            )}
+                            <span>{feature.label}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   <div className="mt-6 border-t border-zinc-950/[0.05] pt-4 dark:border-white/[0.07]">
@@ -653,6 +757,43 @@ export function BillingPage() {
                 {formatCurrency(selectedPlanToSubscribe.price, selectedPlanToSubscribe.currency)}
               </p>
             </div>
+
+            {selectedPlanToSubscribe.limits && (
+              <ul className="space-y-1.5">
+                {planFeatures(selectedPlanToSubscribe.limits).map((feature) => (
+                  <li
+                    key={feature.label}
+                    className="flex items-start gap-2 text-xs text-zinc-600 dark:text-zinc-400"
+                  >
+                    {feature.included ? (
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                    )}
+                    <span>{feature.label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Trocar para um plano com menos vagas do que a equipe ocupada não
+                remove ninguém — mas trava o próximo convite. Melhor dizer antes
+                de cobrar o cartão. */}
+            {selectedPlanToSubscribe.limits?.max_users != null &&
+              userCount !== null &&
+              userCount > selectedPlanToSubscribe.limits.max_users && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Sua empresa tem {userCount} usuários e este plano permite{' '}
+                    {selectedPlanToSubscribe.limits.max_users}. Ninguém é removido, mas você não
+                    poderá adicionar novos usuários até ficar dentro do limite.
+                  </span>
+                </div>
+              )}
 
             {isFreePlan(selectedPlanToSubscribe) ? (
               <>

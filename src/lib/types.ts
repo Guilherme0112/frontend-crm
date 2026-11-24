@@ -130,6 +130,9 @@ export interface Step {
   name: string;
   description?: string | null;
   position: number;
+  /** Soma dos valores dos leads da etapa, em centavos. */
+  leads_value_total_cents: number;
+  currency?: string;
   created_by: number;
   created_at?: string;
   updated_at?: string;
@@ -159,6 +162,12 @@ export interface Lead {
   crm_id?: number | null;
   crm_name?: string | null;
   description?: string | null;
+  /** Valor do lead em centavos. `null` != 0: sem valor, fica fora da soma da etapa. */
+  value_cents?: number | null;
+  currency?: string;
+  address_id?: number | null;
+  /** Só vem preenchido em `show`/`update`; nas listagens é `null` (evita N+1). */
+  address?: Address | null;
   created_by: number;
   created_at?: string;
   updated_at?: string;
@@ -171,6 +180,7 @@ export interface CreateLeadPayload {
   website?: string | null;
   step_id: number;
   description?: string | null;
+  value_cents?: number | null;
 }
 
 export interface UpdateLeadPayload {
@@ -180,6 +190,9 @@ export interface UpdateLeadPayload {
   website?: string | null;
   step_id?: number;
   description?: string | null;
+  value_cents?: number | null;
+  /** O endereço só existe no update — não faz parte do cadastro principal. */
+  address?: Address | null;
   utm_source?: string | null;
   utm_medium?: string | null;
   utm_campaign?: string | null;
@@ -478,6 +491,20 @@ export type UpdateEmailConfigInput = Partial<Omit<CreateEmailConfigInput, 'passw
 
 export type PlanInterval = 'monthly' | 'yearly';
 
+/**
+ * O que o plano inclui, servido pelo backend (`PlanFeatureGate::planAllowance`).
+ *
+ * `null` é ilimitado — e é diferente de `0`, que seria "nada liberado". Vem da
+ * API de propósito: repetir os números aqui faria a vitrine prometer um limite
+ * que o backend já não aplica mais.
+ */
+export interface PlanLimits {
+  max_leads: number | null;
+  max_crms: number | null;
+  max_users: number | null;
+  sending_enabled: boolean;
+}
+
 export interface Plan {
   id: number;
   name: string;
@@ -490,6 +517,8 @@ export interface Plan {
   is_active: boolean;
   /** Planos internos (ex.: suporte) não aparecem na vitrine nem no checkout. */
   is_internal?: boolean;
+  /** Ausente em respostas antigas em cache: a vitrine trata como desconhecido. */
+  limits?: PlanLimits;
   created_at?: string;
 }
 

@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
-import { PHONE_MAX_LENGTH, PHONE_REGEX, maskPhone } from '@/src/lib/format';
+import { PHONE_MAX_LENGTH, PHONE_REGEX, maskCurrency, maskPhone } from '@/src/lib/format';
 import { TextInput } from '@/src/components/common/TextInput';
 
 const inlineLeadSchema = z.object({
@@ -17,6 +17,7 @@ const inlineLeadSchema = z.object({
     .refine((val) => !val || PHONE_REGEX.test(val), {
       message: 'Formato +55 (00) 00000-0000',
     }),
+  value: z.string().optional(),
 });
 
 export type InlineLeadValues = z.infer<typeof inlineLeadSchema>;
@@ -39,7 +40,7 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
     formState: { errors },
   } = useForm<InlineLeadValues>({
     resolver: zodResolver(inlineLeadSchema),
-    defaultValues: { name: '', email: '', phone: '' },
+    defaultValues: { name: '', email: '', phone: '', value: '' },
   });
 
   return (
@@ -105,6 +106,29 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
         />
         {errors.phone && (
           <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{errors.phone.message}</p>
+        )}
+      </div>
+
+      <div>
+        <Controller
+          control={control}
+          name="value"
+          render={({ field }) => (
+            <TextInput
+              type="text"
+              inputMode="numeric"
+              placeholder="Valor (opcional)"
+              limit={20}
+              size="small"
+              hasError={Boolean(errors.value)}
+              value={field.value || ''}
+              onChange={(e) => field.onChange(maskCurrency(e.target.value))}
+              onBlur={field.onBlur}
+            />
+          )}
+        />
+        {errors.value && (
+          <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{errors.value.message}</p>
         )}
       </div>
 

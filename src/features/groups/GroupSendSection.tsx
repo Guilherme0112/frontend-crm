@@ -152,8 +152,10 @@ export function GroupSendSection({ groupId, defaultExpanded = false }: { groupId
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline justify-between gap-3">
-                        <span className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+                      <span className="flex min-w-0 items-baseline justify-between gap-3">
+                        {/* Sem min-w-0 o truncate não encolhe (item flex nasce
+                            com min-width:auto) e o assunto empurra a linha. */}
+                        <span className="min-w-0 truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
                           {send.subject}
                         </span>
                         <span className="shrink-0 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">

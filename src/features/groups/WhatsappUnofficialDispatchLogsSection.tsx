@@ -85,6 +85,7 @@ export function WhatsappUnofficialDispatchLogsSection({ groupId, defaultExpanded
       ) : logs.length === 0 ? (
         <div className="p-5"><EmptyState icon={<MessageCircle className="h-5 w-5" />} title="Nenhum log não oficial" description="Dispare pelo provedor não oficial para registrar envios aqui." /></div>
       ) : (
+        <>
         <ul className="divide-y divide-zinc-950/[0.05] dark:divide-white/[0.05]">
           {logs.map((log) => {
             const meta = statusMeta(log.status);
@@ -94,23 +95,28 @@ export function WhatsappUnofficialDispatchLogsSection({ groupId, defaultExpanded
                 <div className="flex items-start gap-3">
                   <span className={cn('mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border', meta.className)}><Icon className="h-4 w-4" /></span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{log.recipient_phone || '—'}</span>
                       <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold', meta.className)}>{meta.label}</span>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500 dark:text-zinc-400">
                       <span>Instância: {instanceNameById.get(log.whatsapp_unofficial_instance_id) ?? `#${log.whatsapp_unofficial_instance_id}`}</span>
                       <span>Template: {log.whatsapp_unofficial_template_id ? (templateNameById.get(log.whatsapp_unofficial_template_id) ?? `#${log.whatsapp_unofficial_template_id}`) : '—'}</span>
                       <span>Tentativas: {log.attempts}</span>
                       {log.sent_at ? <span>Enviado: {formatDateTime(log.sent_at)}</span> : null}
-                      {log.external_message_id ? <span className="font-mono">ID: {log.external_message_id}</span> : null}
+                      {/* Token longo sem espaço: sem break-all o min-content
+                          dele empurra a página inteira no celular. */}
+                      {log.external_message_id ? <span className="min-w-0 break-all font-mono" title={log.external_message_id}>ID: {log.external_message_id}</span> : null}
                     </div>
-                    {log.error_message ? <p className="mt-1 text-[11px] text-red-600 dark:text-red-400">{log.error_message}</p> : null}
+                    {log.error_message ? <p className="mt-1 break-words text-[11px] text-red-600 dark:text-red-400">{log.error_message}</p> : null}
                   </div>
                 </div>
               </li>
             );
           })}
+        </ul>
+
+        {/* Ficava dentro do <ul>: só <li> é filho válido de uma lista. */}
         <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
           <Pagination
             page={page}
@@ -122,8 +128,7 @@ export function WhatsappUnofficialDispatchLogsSection({ groupId, defaultExpanded
             ariaLabel="Paginação de logs WhatsApp não oficial"
           />
         </div>
-
-        </ul>
+        </>
       )}
     </section>
   );

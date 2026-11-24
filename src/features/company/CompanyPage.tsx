@@ -12,7 +12,13 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { ZIP_REGEX, maskZipCode, maskCpfCnpj } from '@/src/lib/format';
+import { maskZipCode, maskCpfCnpj } from '@/src/lib/format';
+import {
+  addressSchema,
+  addressToFormValues,
+  addressToPayload,
+  emptyAddressValues,
+} from '@/src/lib/address';
 
 const companySchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome da empresa'),
@@ -37,23 +43,7 @@ const companySchema = z.object({
       },
       { message: 'Informe 11 dígitos (CPF) ou 14 dígitos (CNPJ)' },
     ),
-  address: z.object({
-    zip_code: z
-      .string()
-      .trim()
-      .optional()
-      .refine((val) => !val || ZIP_REGEX.test(val), {
-        message: 'CEP deve estar no formato 00000-000',
-      }),
-    city: z.string().optional(),
-    state: z
-      .string()
-      .trim()
-      .optional()
-      .refine((val) => !val || val.length === 2, {
-        message: 'UF deve ter 2 letras (ex.: SP)',
-      }),
-  }),
+  address: addressSchema,
 });
 
 type CompanyFormValues = z.infer<typeof companySchema>;
@@ -78,7 +68,7 @@ export function CompanyPage() {
       description: '',
       website: '',
       document_number: '',
-      address: { zip_code: '', city: '', state: '' },
+      address: emptyAddressValues,
     },
   });
 
@@ -90,33 +80,21 @@ export function CompanyPage() {
         description: c.description ?? '',
         website: c.website ?? '',
         document_number: maskCpfCnpj(c.document_number ?? ''),
-        address: {
-          zip_code: c.address?.zip_code ?? '',
-          city: c.address?.city ?? '',
-          state: c.address?.state ?? '',
-        },
+        address: addressToFormValues(c.address),
       });
     }
   }, [companyQuery.data, reset]);
 
   const onSubmit = async (values: CompanyFormValues) => {
-    const addr = values.address;
-    const hasAnyAddressField = Object.values(addr).some((v) => Boolean(v && v.trim()));
-
     try {
       await updateMutation.mutateAsync({
         name: values.name.trim(),
         description: values.description?.trim() || null,
         website: values.website?.trim() || null,
         document_number: values.document_number ? values.document_number.replace(/\D/g, '') : null,
-        address: hasAnyAddressField
-          ? {
-              zip_code: addr.zip_code?.trim() || null,
-              city: addr.city?.trim() || null,
-              state: addr.state?.trim().toUpperCase() || null,
-              country: 'Brasil',
-            }
-          : null,
+        // Objeto completo, sempre: o backend substitui o registro inteiro, então
+        // mandar só o que foi preenchido apagaria as demais colunas.
+        address: addressToPayload(values.address),
       });
       await refreshSession();
       toast.success('Dados da empresa atualizados');
@@ -272,6 +250,66 @@ export function CompanyPage() {
             </FormField>
 
             <FormField
+              label="Logradouro"
+              htmlFor="addr-street"
+              error={errors.address?.street?.message}
+              className="sm:col-span-4"
+            >
+              <TextInput
+                id="addr-street"
+                type="text"
+                limit={255}
+                placeholder="Av. Paulista"
+                {...register('address.street')}
+              />
+            </FormField>
+
+            <FormField
+              label="Número"
+              htmlFor="addr-number"
+              error={errors.address?.number?.message}
+              className="sm:col-span-2"
+            >
+              <TextInput
+                id="addr-number"
+                type="text"
+                limit={20}
+                placeholder="1000"
+                {...register('address.number')}
+              />
+            </FormField>
+
+            <FormField
+              label="Complemento"
+              htmlFor="addr-complement"
+              error={errors.address?.complement?.message}
+              className="sm:col-span-2"
+            >
+              <TextInput
+                id="addr-complement"
+                type="text"
+                limit={255}
+                placeholder="Sala 12"
+                {...register('address.complement')}
+              />
+            </FormField>
+
+            <FormField
+              label="Bairro"
+              htmlFor="addr-neighborhood"
+              error={errors.address?.neighborhood?.message}
+              className="sm:col-span-4"
+            >
+              <TextInput
+                id="addr-neighborhood"
+                type="text"
+                limit={255}
+                placeholder="Bela Vista"
+                {...register('address.neighborhood')}
+              />
+            </FormField>
+
+            <FormField
               label="Cidade"
               htmlFor="addr-city"
               error={errors.address?.city?.message}
@@ -280,6 +318,7 @@ export function CompanyPage() {
               <TextInput
                 id="addr-city"
                 type="text"
+                limit={255}
                 placeholder="São Paulo"
                 {...register('address.city')}
               />
@@ -298,6 +337,21 @@ export function CompanyPage() {
                 placeholder="SP"
                 className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
                 {...register('address.state')}
+              />
+            </FormField>
+
+            <FormField
+              label="País"
+              htmlFor="addr-country"
+              error={errors.address?.country?.message}
+              className="sm:col-span-2"
+            >
+              <TextInput
+                id="addr-country"
+                type="text"
+                limit={100}
+                placeholder="Brasil"
+                {...register('address.country')}
               />
             </FormField>
           </div>

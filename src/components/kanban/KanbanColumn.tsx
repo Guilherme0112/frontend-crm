@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { Step } from '@/src/lib/types';
 import { cn } from '@/src/lib/cn';
+import { currencyToCents, formatCents } from '@/src/lib/format';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useCreateLeadMutation } from '@/src/features/leads/hooks';
 import { useLeadsInfiniteQuery } from '@/src/features/leads/hooks';
@@ -172,6 +173,7 @@ export function KanbanColumn({
         email: values.email.trim(),
         phone: values.phone?.trim() || null,
         step_id: step.id,
+        value_cents: currencyToCents(values.value ?? ''),
       });
       toast.success('Lead adicionado à etapa');
       setAddingAt(null);
@@ -275,6 +277,13 @@ export function KanbanColumn({
               {step.description}
             </p>
           )}
+          {/* Total vem do próprio Step (GET /crms/{id}/steps) — sem request extra. */}
+          <p
+            className="mt-1 truncate text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400"
+            title="Soma dos valores dos leads desta etapa"
+          >
+            {formatCents(step.leads_value_total_cents, step.currency)}
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">

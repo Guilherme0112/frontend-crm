@@ -131,6 +131,7 @@ export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, 
           />
         </div>
       ) : (
+        <>
         <ul className="divide-y divide-zinc-950/[0.05] dark:divide-white/[0.05]">
           {logs.map((log) => {
             const meta = statusMeta(log.status);
@@ -148,23 +149,30 @@ export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, 
                     <Icon className={cn('h-4 w-4', log.status === 'pending' && 'animate-pulse')} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                      {/* `truncate` sozinho não encolhe: item flex nasce com
+                          min-width:auto e o nowrap vira piso de largura. Sem o
+                          min-w-0 a linha empurra a página no celular. */}
+                      <p className="min-w-0 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                         Lead #{log.lead_id ?? '—'} · {log.recipient_phone}
                       </p>
                       <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
                         {formatDateTime(log.sent_at ?? log.created_at ?? '')}
                       </span>
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500 dark:text-zinc-400">
                       <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold', meta.className)}>
                         {meta.label}
                       </span>
                       <span>Remetente: <span className="font-medium text-zinc-700 dark:text-zinc-200">{senderNameById.get(log.whatsapp_sender_id) ?? `#${log.whatsapp_sender_id}`}</span></span>
                       <span>Template: <span className="font-medium text-zinc-700 dark:text-zinc-200">{templateNameById.get(log.whatsapp_template_id) ?? `#${log.whatsapp_template_id}`}</span></span>
                       <span>Tentativas: <span className="font-mono">{log.attempts}</span></span>
+                      {/* O WAMID é um token de ~60 caracteres sem espaço nem
+                          hífen: o min-content dele é a string inteira. Precisa
+                          de `break-all` (e não `break-words`, que por spec não
+                          reduz o min-content) para caber num celular. */}
                       {log.wamid && (
-                        <span className="font-mono text-[10px]" title={log.wamid}>
+                        <span className="min-w-0 break-all font-mono text-[10px]" title={log.wamid}>
                           WAMID: {log.wamid}
                         </span>
                       )}
@@ -179,6 +187,10 @@ export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, 
               </li>
             );
           })}
+        </ul>
+
+        {/* Ficava dentro do <ul>: só <li> é filho válido de uma lista, e o
+            divide-y da lista acabava desenhando borda em cima da paginação. */}
         <div className="border-t border-zinc-950/[0.06] px-5 py-2 dark:border-white/[0.06]">
           <Pagination
             page={page}
@@ -190,8 +202,7 @@ export function WhatsappDispatchLogsSection({ groupId, defaultExpanded = false, 
             ariaLabel="Paginação de logs WhatsApp"
           />
         </div>
-
-        </ul>
+        </>
       )}
     </section>
   );

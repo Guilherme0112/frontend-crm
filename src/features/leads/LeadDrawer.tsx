@@ -17,7 +17,14 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
-import { PHONE_MAX_LENGTH, PHONE_REGEX, formatDateTime, maskPhone } from '@/src/lib/format';
+import {
+  PHONE_MAX_LENGTH,
+  PHONE_REGEX,
+  currencyToCents,
+  formatDateTime,
+  maskCurrency,
+  maskPhone,
+} from '@/src/lib/format';
 import type { Lead, Step } from '@/src/lib/types';
 import { useDeleteLeadMutation, useLeadQuery, useUpdateLeadMutation } from './hooks';
 
@@ -39,6 +46,7 @@ const leadSchema = z.object({
       message: 'Informe uma URL iniciando com http:// ou https://',
     }),
   step_id: z.number({ message: 'Selecione uma etapa' }).int().min(1, 'Selecione uma etapa'),
+  value: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -127,6 +135,7 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
       phone: '',
       website: '',
       step_id: steps[0]?.id ?? 1,
+      value: '',
       description: '',
     },
   });
@@ -139,6 +148,10 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
         phone: leadQuery.data.phone ?? '',
         website: leadQuery.data.website ?? '',
         step_id: leadQuery.data.step_id,
+        value:
+          leadQuery.data.value_cents !== null && leadQuery.data.value_cents !== undefined
+            ? maskCurrency(String(leadQuery.data.value_cents))
+            : '',
         description: leadQuery.data.description ?? '',
       });
     }
@@ -155,6 +168,8 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
           phone: values.phone?.trim() || null,
           website: values.website?.trim() || null,
           step_id: values.step_id,
+          // Campo vazio manda null (remove o valor), não 0.
+          value_cents: currencyToCents(values.value ?? ''),
           description: values.description?.trim() || null,
         },
       });
@@ -269,6 +284,26 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                   />
                 </FormField>
               </div>
+
+              <FormField label="Valor" htmlFor="drawer-lead-value" error={errors.value?.message} dense>
+                <Controller
+                  control={control}
+                  name="value"
+                  render={({ field }) => (
+                    <TextInput
+                      id="drawer-lead-value"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0,00"
+                      limit={20}
+                      hasError={Boolean(errors.value)}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(maskCurrency(e.target.value))}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+              </FormField>
             </section>
 
             <section className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.06] bg-[#fafaf9]/70 p-4 dark:border-white/[0.06] dark:bg-white/[0.02]">

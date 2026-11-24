@@ -14,6 +14,36 @@ export function formatCurrency(value: number, currency = 'BRL'): string {
   }
 }
 
+/**
+ * O backend trafega dinheiro em centavos inteiros (`value_cents`,
+ * `leads_value_total_cents`) justamente para não ter float no fio. A conversão
+ * para reais acontece só aqui, na borda de apresentação.
+ */
+export function formatCents(cents: number | null | undefined, currency = 'BRL'): string {
+  if (cents === null || cents === undefined || !Number.isFinite(cents)) return '—';
+  return formatCurrency(cents / 100, currency);
+}
+
+/**
+ * Máscara de digitação de valor: trabalha só com os dígitos e reconstrói o
+ * formato do zero, então é idempotente ao ser reaplicada sobre o próprio
+ * resultado no `onChange` — mesma regra do `maskPhone`.
+ */
+export function maskCurrency(value: string): string {
+  const digits = onlyDigits(value).slice(0, 13);
+  if (!digits) return '';
+  return (Number(digits) / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/** Converte o texto mascarado de volta para centavos. Vazio vira `null`, não `0`. */
+export function currencyToCents(value: string): number | null {
+  const digits = onlyDigits(value);
+  return digits ? Number(digits) : null;
+}
+
 export function formatDuration(totalSeconds: number | null | undefined): string {
   if (totalSeconds === null || totalSeconds === undefined || !Number.isFinite(totalSeconds)) {
     return '—';
