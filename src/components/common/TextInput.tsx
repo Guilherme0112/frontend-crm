@@ -1,19 +1,25 @@
 import { forwardRef, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import TextField, { type TextFieldProps } from '@mui/material/TextField';
+import { Eye, EyeOff } from 'lucide-react';
 import { useFieldMeta } from './FormField';
 
 export type TextInputProps = Omit<TextFieldProps, 'error' | 'variant'> & {
   hasError?: boolean;
   /** Limite de caracteres. Padrão: 255 (mesmo limite usado pelo backend nos campos de texto). */
   limit?: number;
+  /** Adiciona o botão de mostrar/ocultar o valor (campos de senha e tokens). */
+  passwordToggle?: boolean;
 };
 
 export const TextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextInputProps>(
-  function TextInput({ hasError, label, helperText, required, onChange, slotProps, limit = 255, ...props }, ref) {
+  function TextInput({ hasError, label, helperText, required, onChange, slotProps, limit = 255, passwordToggle = false, ...props }, ref) {
     const field = useFieldMeta();
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
     const [filled, setFilled] = useState(false);
+    const [visible, setVisible] = useState(false);
 
     // O react-hook-form preenche inputs não controlados pelo DOM, no reset(), depois da
     // montagem. O MUI só inspeciona o DOM na montagem, então o label continuaria grande,
@@ -49,6 +55,7 @@ export const TextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Text
         variant="standard"
         fullWidth
         {...props}
+        type={passwordToggle ? (visible ? 'text' : 'password') : props.type}
         label={label ?? field.label}
         required={required ?? field.required}
         helperText={resolvedHelper}
@@ -57,6 +64,28 @@ export const TextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Text
         error={Boolean(resolvedError)}
         slotProps={{
           ...slotProps,
+          input: {
+            ...(slotProps?.input as object | undefined),
+            ...(passwordToggle
+              ? {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        type="button"
+                        size="small"
+                        edge="end"
+                        aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
+                        aria-pressed={visible}
+                        onClick={() => setVisible((current) => !current)}
+                        sx={{ mr: -1 }}
+                      >
+                        {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }
+              : {}),
+          },
           htmlInput: {
             ...(slotProps?.htmlInput as object | undefined),
             maxLength: limit,

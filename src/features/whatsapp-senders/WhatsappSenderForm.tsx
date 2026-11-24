@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { FormField } from '@/src/components/common/FormField';
 import { ModalActions } from '@/src/components/common/ModalActions';
 import { TextInput } from '@/src/components/common/TextInput';
@@ -108,10 +108,12 @@ export function WhatsappSenderForm({ initial, onSubmit, onCancel, submitting }: 
       >
         <TextInput
           id="wa-sender-token"
-          type="password"
+          passwordToggle
           limit={500}
           value={values.access_token}
-          onChange={(e) => setValues((v) => ({ ...v, access_token: e.target.value }))}
+          onChange={(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+            setValues((v) => ({ ...v, access_token: e.target.value }))
+          }
           placeholder={isEdit ? '•••••••• (inalterado)' : 'Token da Meta Cloud API'}
           autoComplete="new-password"
         />

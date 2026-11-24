@@ -13,7 +13,7 @@ interface ModalActionsProps {
   extraAction?: ReactNode;
 }
 
-/** Rodapé padrão das modais: cancelar secundário + ação principal azul. */
+/** Rodapé padrão das modais: cancelar secundário + ação principal com gradiente SaldUp. */
 export function ModalActions({
   onCancel,
   submitLabel,

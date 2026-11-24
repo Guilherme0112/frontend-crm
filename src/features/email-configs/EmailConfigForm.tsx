@@ -210,8 +210,8 @@ export function EmailConfigForm({
         {changingPassword ? (
           <TextInput
             id="ec-password"
+            passwordToggle
             limit={255}
-            type="password"
             autoComplete="new-password"
             {...register('password')}
           />

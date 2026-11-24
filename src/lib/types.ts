@@ -83,6 +83,7 @@ export interface CreateUserPayload {
   name: string;
   email: string;
   password: string;
+  password_confirmation: string;
   phone?: string | null;
   is_active?: boolean;
   address?: Address | null;
@@ -92,6 +93,7 @@ export interface UpdateUserPayload {
   name?: string;
   email?: string;
   password?: string;
+  password_confirmation?: string;
   phone?: string | null;
   is_active?: boolean;
   address?: Address | null;

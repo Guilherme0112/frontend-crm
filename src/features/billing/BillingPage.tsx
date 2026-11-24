@@ -529,7 +529,7 @@ export function BillingPage() {
                         className={
                           isCurrent
                             ? 'w-full cursor-default rounded-lg border border-zinc-950/[0.12] bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-500 dark:border-white/[0.12] dark:bg-white/[0.05] dark:text-zinc-400'
-                            : 'w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50'
+                            : 'btn-saldup w-full rounded-lg px-4 py-2 text-sm font-medium'
                         }
                       >
                         {isCurrent

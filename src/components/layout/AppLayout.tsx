@@ -17,11 +17,15 @@ import {
   ChevronRight,
   ChevronsUpDown,
   ChevronDown,
+  Monitor,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
 import { LogoMark } from '@/src/components/common/LogoMark';
 import { getInitials } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
+import { useTheme } from '@/src/theme/ThemeContext';
 
 interface NavItem {
   to: string;
@@ -57,6 +61,12 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
 
 const BORDER = 'border-zinc-950/[0.07] dark:border-white/[0.07]';
 
+const THEME_OPTIONS = [
+  { value: 'light', label: 'Claro', icon: Sun },
+  { value: 'dark', label: 'Escuro', icon: Moon },
+  { value: 'system', label: 'Sistema', icon: Monitor },
+] as const;
+
 function getPageTitle(pathname: string): string {
   if (pathname === '/') return 'Visão Geral';
   if (pathname === '/crms') return 'CRMs';
@@ -87,6 +97,7 @@ export function AppLayout() {
   const sidebarRef = useRef<HTMLElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, company, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const pageTitle = getPageTitle(location.pathname);
 
@@ -331,7 +342,7 @@ export function AppLayout() {
                 aria-label="Abrir menu do perfil"
                 title={user?.name || 'Perfil'}
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-zinc-700 to-zinc-900 text-[11px] font-semibold text-white ring-1 ring-inset ring-white/15 dark:from-zinc-200 dark:to-zinc-400 dark:text-zinc-900">
+                <span className="saldup-gradient-bg flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-semibold ring-1 ring-inset ring-white/20">
                   {getInitials(user?.name)}
                 </span>
                 <span className="hidden max-w-28 truncate sm:inline">{user?.name || 'Perfil'}</span>
@@ -349,20 +360,65 @@ export function AppLayout() {
                   aria-label="Opções do perfil"
                   className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-zinc-950/[0.08] bg-white p-1.5 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.28)] dark:border-white/10 dark:bg-[#17171a]"
                 >
-                  <div className="border-b border-zinc-950/[0.06] px-2 py-2 dark:border-white/[0.06]">
-                    <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
-                      {user?.name || 'Usuário'}
-                    </p>
-                    <p className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-                      {user?.email || ''}
-                    </p>
+                  <span aria-hidden="true" className="saldup-gradient-bg absolute inset-x-3 top-0 h-0.5 rounded-full" />
+                  <div className="flex items-center gap-2.5 border-b border-zinc-950/[0.06] px-2 py-2.5 dark:border-white/[0.06]">
+                    <span className="saldup-gradient-bg flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold ring-1 ring-inset ring-white/20">
+                      {getInitials(user?.name)}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-semibold text-zinc-900 dark:text-zinc-100">
+                        {user?.name || 'Usuário'}
+                      </span>
+                      <span className="block truncate text-[11px] text-zinc-500 dark:text-zinc-400">
+                        {user?.email || ''}
+                      </span>
+                    </span>
                   </div>
-                  <div className="py-1">
+                  <div className="border-b border-zinc-950/[0.06] px-2 pb-2.5 pt-2 dark:border-white/[0.06]">
+                       <div className="mb-1.5 flex items-center justify-between px-1">
+                         <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                           Aparência
+                         </span>
+                         <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                           {THEME_OPTIONS.find((option) => option.value === theme)?.label}
+                         </span>
+                       </div>
+                       <div
+                         role="group"
+                         aria-label="Tema do aplicativo"
+                         className="grid grid-cols-3 gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-white/[0.05]"
+                       >
+                         {THEME_OPTIONS.map((option) => {
+                           const Icon = option.icon;
+                           const selected = theme === option.value;
+
+                           return (
+                             <button
+                               key={option.value}
+                               type="button"
+                               role="menuitemradio"
+                               aria-checked={selected}
+                               onClick={() => setTheme(option.value)}
+                               className={cn(
+                                 'flex flex-col items-center gap-1 rounded-md px-1 py-1.5 text-[10px] font-medium transition-colors',
+                                 selected
+                                   ? 'bg-white text-zinc-900 shadow-sm dark:bg-white/10 dark:text-white'
+                                   : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+                               )}
+                             >
+                               <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                               {option.label}
+                             </button>
+                           );
+                         })}
+                       </div>
+                     </div>
+                     <div className="py-1">
                     <Link
                       to="/profile"
                       role="menuitem"
                       onClick={() => setProfileOpen(false)}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-950/[0.05] hover:text-zinc-900 dark:text-zinc-200 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-[13px] font-medium text-zinc-700 transition-colors hover:bg-blue-50 hover:text-blue-800 dark:text-zinc-200 dark:hover:bg-blue-500/10 dark:hover:text-white"
                     >
                       <User className="h-4 w-4" strokeWidth={1.8} />
                       Meu perfil

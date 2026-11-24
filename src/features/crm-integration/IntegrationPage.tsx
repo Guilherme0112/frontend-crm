@@ -226,7 +226,7 @@ export function IntegrationPage() {
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
             O backend rejeita etapas de outro CRM automaticamente.
           </p>
-          <Button variant="contained" color="inherit" onClick={() => void handleSaveStep()} disabled={!isDirty || updateCrmMutation.isPending} className="shrink-0">
+          <Button variant="contained" onClick={() => void handleSaveStep()} disabled={!isDirty || updateCrmMutation.isPending} className="shrink-0">
             {updateCrmMutation.isPending && (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             )}

@@ -83,7 +83,7 @@ export function DashboardPage() {
         </div>
         <Link
           to="/crms"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 sm:w-auto sm:shrink-0 dark:bg-blue-600 dark:hover:bg-blue-500"
+          className="btn-saldup inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium sm:w-auto sm:shrink-0"
         >
           <span>Abrir CRMs</span>
           <ArrowRight className="h-4 w-4" />
@@ -332,7 +332,7 @@ export function DashboardPage() {
                 action={
                   <Link
                     to="/crms"
-                    className="inline-flex items-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                    className="btn-saldup inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium"
                   >
                     Criar CRM
                   </Link>

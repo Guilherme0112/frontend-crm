@@ -239,7 +239,7 @@ export function RegisterPage() {
               >
                 <TextInput
                   id="password"
-                  type="password"
+                  passwordToggle
                   autoComplete="new-password"
                   placeholder="••••••••"
                   hasError={Boolean(errors.password)}
@@ -256,7 +256,7 @@ export function RegisterPage() {
               >
                 <TextInput
                   id="password_confirmation"
-                  type="password"
+                  passwordToggle
                   autoComplete="new-password"
                   placeholder="••••••••"
                   hasError={Boolean(errors.password_confirmation)}

@@ -45,7 +45,7 @@ function UpsellIsland() {
       </div>
       <Link
         to="/billing"
-        className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className="btn-saldup inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold"
       >
         Ver planos
       </Link>

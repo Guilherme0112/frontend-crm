@@ -307,7 +307,7 @@ export function GroupPage() {
             startIcon={<Zap className="h-4 w-4" strokeWidth={2} />}
             disabled={!canDispatch}
             onClick={openSendModal}
-            sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' }, boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}
+            sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
           >
             Disparar grupo
           </Button>
@@ -357,7 +357,7 @@ export function GroupPage() {
               title={memberTotal === 0 && !debouncedMemberSearch ? 'Nenhum lead no grupo' : 'Nenhum lead encontrado'}
               description={memberTotal === 0 && !debouncedMemberSearch ? 'Adicione leads para começar a disparar campanhas para este grupo.' : 'Tente outro termo de busca.'}
               action={memberTotal === 0 && !debouncedMemberSearch ? (
-                <Button variant="contained" color="primary" startIcon={<UserPlus className="h-4 w-4" />} onClick={openAddModal} sx={{ width: { xs: '100%', sm: 'auto' }, boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}>
+                <Button variant="contained" color="primary" startIcon={<UserPlus className="h-4 w-4" />} onClick={openAddModal} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                   Adicionar leads
                 </Button>
               ) : undefined}
@@ -532,7 +532,7 @@ export function GroupPage() {
                 disabled={addSelectedIds.size === 0 || syncMutation.isPending}
                 onClick={() => void handleAddLeads()}
                 startIcon={syncMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-                sx={{ boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
               >
                 Adicionar selecionados
               </Button>
@@ -728,7 +728,7 @@ export function GroupPage() {
               onClick={() => void handleSend()}
               disabled={isSending || (dispatchChannel === 'email' ? emailSendDisabled : whatsappSendDisabled)}
               startIcon={isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-              sx={{ width: { xs: '100%', sm: 'auto' }, boxShadow: 'none', '&:hover': { boxShadow: 'none' } }}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
             >
               Confirmar disparo
             </Button>
