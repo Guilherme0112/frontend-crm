@@ -1,4 +1,4 @@
-import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -156,9 +156,13 @@ export function WhatsappTemplatesPage() {
             <span>Remetentes</span>
           </Link>
           {!isTrial && (
-            <Button variant="contained" color="primary" disabled startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <ActionButton
+              disabled
+              startIcon={<Plus className="h-4 w-4" />}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
               Novo template
-            </Button>
+            </ActionButton>
           )}
         </div>
       </header>
@@ -181,8 +185,9 @@ export function WhatsappTemplatesPage() {
           title="Nenhum template WhatsApp"
           description="Cadastre um template aprovado na Meta para usá-lo nos disparos de grupos."
           action={
-            <Button variant="contained" color="primary" disabled startIcon={<Plus className="h-4 w-4" />}>Criar primeiro template
-            </Button>
+            <ActionButton disabled startIcon={<Plus className="h-4 w-4" />}>
+              Criar primeiro template
+            </ActionButton>
           }
         />
       ) : (

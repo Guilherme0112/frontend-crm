@@ -1,4 +1,4 @@
-import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -174,9 +174,14 @@ export function EmailConfigsPage() {
             <span>Configurar templates</span>
           </Link>
           {!isTrial && (
-            <Button variant="contained" color="primary" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal} className="shrink-0 whitespace-nowrap" sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <ActionButton
+              startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
+              onClick={openCreateModal}
+              className="shrink-0 whitespace-nowrap"
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
               Nova configuração
-            </Button>
+            </ActionButton>
           )}
         </div>
       </div>
@@ -199,9 +204,12 @@ export function EmailConfigsPage() {
           title="Nenhum SMTP configurado"
           description="Cadastre um servidor SMTP para que os grupos possam enviar os templates de email."
           action={
-            <Button variant="contained" color="primary" startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />} onClick={openCreateModal}>
+            <ActionButton
+              startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
+              onClick={openCreateModal}
+            >
               Criar primeira configuração
-            </Button>
+            </ActionButton>
           }
         />
       ) : (

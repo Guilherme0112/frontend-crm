@@ -1,4 +1,4 @@
-import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -159,9 +159,13 @@ export function WhatsappSendersPage() {
             <span>Templates</span>
           </Link>
           {!isTrial && (
-            <Button variant="contained" color="primary" disabled startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <ActionButton
+              disabled
+              startIcon={<Plus className="h-4 w-4" />}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
               Novo remetente
-            </Button>
+            </ActionButton>
           )}
         </div>
       </header>
@@ -184,8 +188,9 @@ export function WhatsappSendersPage() {
           title="Nenhum remetente WhatsApp"
           description="Cadastre um remetente (Phone Number ID + token da Meta) para habilitar disparos por WhatsApp."
           action={
-            <Button variant="contained" color="primary" disabled startIcon={<Plus className="h-4 w-4" />}>Criar primeiro remetente
-            </Button>
+            <ActionButton disabled startIcon={<Plus className="h-4 w-4" />}>
+              Criar primeiro remetente
+            </ActionButton>
           }
         />
       ) : (

@@ -337,9 +337,9 @@ export interface LeadHistoryEmail {
 
 export interface LeadHistoryEntry {
   id: string;
-  type: 'movement' | 'email';
+  type: 'movement' | 'email' | 'agenda';
   created_at: string;
-  data: LeadHistoryMovement | LeadHistoryEmail;
+  data: LeadHistoryMovement | LeadHistoryEmail | AgendaEventActivity;
 }
 
 export interface LeadHistory {
@@ -353,6 +353,7 @@ export interface LeadHistory {
   counts: {
     movements: number;
     emails: number;
+    agenda: number;
   };
 }
 
@@ -503,6 +504,7 @@ export interface PlanLimits {
   max_crms: number | null;
   max_users: number | null;
   sending_enabled: boolean;
+  agenda_enabled: boolean;
 }
 
 export interface Plan {
@@ -784,6 +786,113 @@ export interface CreateWhatsappUnofficialTemplateInput {
 }
 
 export type UpdateWhatsappUnofficialTemplateInput = Partial<CreateWhatsappUnofficialTemplateInput>;
+
+// --- Agenda de leads ---
+
+export type AgendaEventType = 'meeting' | 'call' | 'follow_up';
+export type AgendaEventStatus = 'scheduled' | 'completed' | 'canceled' | 'no_show';
+export type AgendaReminderChannel = 'email' | 'whatsapp';
+
+export interface AgendaEvent {
+  id: number;
+  lead_id: number;
+  assigned_to: number;
+  title: string;
+  type: AgendaEventType;
+  /** ISO-8601 com offset, ex.: `2026-12-10T10:00:00+00:00` (UTC no banco). */
+  starts_at: string;
+  ends_at: string;
+  meeting_url: string | null;
+  /** Campo interno: nunca entra em notificação nem no histórico do lead. */
+  notes: string | null;
+  status: AgendaEventStatus;
+  send_reminder: boolean;
+  reminder_channel: AgendaReminderChannel | null;
+  reminder_sent_at: string | null;
+  reminder_version: number;
+  lead: { name: string; email: string } | null;
+  assignee: { name: string } | null;
+  created_at: string | null;
+}
+
+export type AgendaActivityAction =
+  | 'scheduled'
+  | 'rescheduled'
+  | 'completed'
+  | 'canceled'
+  | 'no_show'
+  | 'reminder_failed';
+
+/** Item `type === 'agenda'` do histórico — sem `notes`, por decisão de RN04. */
+export interface AgendaEventActivity {
+  id: number;
+  event_id: number;
+  action: AgendaActivityAction | string;
+  title: string | null;
+  type: string | null;
+  from_starts_at: string | null;
+  to_starts_at: string | null;
+  status: string | null;
+  changed_by_name: string | null;
+}
+
+export interface AgendaReminderConfigIds {
+  reminder_email_config_id?: number | null;
+  reminder_sending_template_id?: number | null;
+  reminder_whatsapp_sender_id?: number | null;
+  reminder_whatsapp_template_id?: number | null;
+}
+
+export interface CreateAgendaEventPayload extends AgendaReminderConfigIds {
+  lead_id: number;
+  assigned_to: number;
+  title: string;
+  type: AgendaEventType;
+  starts_at: string;
+  ends_at: string;
+  meeting_url?: string | null;
+  notes?: string | null;
+  send_reminder: boolean;
+  reminder_channel?: AgendaReminderChannel | null;
+}
+
+export interface UpdateAgendaEventPayload extends AgendaReminderConfigIds {
+  lead_id?: number;
+  assigned_to?: number;
+  title?: string;
+  type?: AgendaEventType;
+  starts_at?: string;
+  ends_at?: string;
+  meeting_url?: string | null;
+  notes?: string | null;
+  status?: AgendaEventStatus;
+  send_reminder?: boolean;
+  reminder_channel?: AgendaReminderChannel | null;
+}
+
+export type ListAgendaEventsParams = {
+  lead_id?: number | null;
+  assigned_to?: number | null;
+  status?: AgendaEventStatus | null;
+  page?: number;
+  per_page?: number;
+} & (
+  | { date: string; from?: never; to?: never }
+  | { from: string; to: string; date?: never }
+);
+
+/** `AgendaEventListResource`: `{ data: [...], meta: {...} }`. */
+export interface AgendaEventPage {
+  data: AgendaEvent[];
+  meta: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+    from: number | null;
+    to: number | null;
+  };
+}
 
 export interface WhatsappUnofficialDispatchLog {
   id: number;

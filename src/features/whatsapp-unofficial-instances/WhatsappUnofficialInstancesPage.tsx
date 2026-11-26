@@ -1,4 +1,5 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -127,13 +128,13 @@ export function WhatsappUnofficialInstancesPage() {
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button variant="outlined" color="inherit" component={Link} to="/whatsapp-unofficial-templates" startIcon={<FileText className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Templates</Button>
-          <Button variant="contained" onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Nova instância</Button>
+          <ActionButton onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Nova instância</ActionButton>
         </div>
       </header>
 
       {q.isPending ? <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#17171a]"><TableRowsSkeleton rows={4} cols={5} /></div>
       : q.isError ? <ErrorState title="Erro ao carregar instâncias" error={q.error} onRetry={() => void q.refetch()} />
-      : items.length === 0 ? <EmptyState icon={<PlugZap className="h-5 w-5" />} title="Nenhuma instância cadastrada" description="Cadastre uma instância do seu microserviço para habilitar disparos não oficiais." action={<Button variant="contained" onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Criar instância</Button>} />
+      : items.length === 0 ? <EmptyState icon={<PlugZap className="h-5 w-5" />} title="Nenhuma instância cadastrada" description="Cadastre uma instância do seu microserviço para habilitar disparos não oficiais." action={<ActionButton onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Criar instância</ActionButton>} />
       : (
         <section className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="overflow-x-auto">

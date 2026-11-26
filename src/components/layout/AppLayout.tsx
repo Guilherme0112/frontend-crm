@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
 import {
   Building2,
+  CalendarDays,
   CreditCard,
   FileText,
   FolderKanban,
@@ -40,6 +41,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     items: [
       { to: '/', label: 'Visão Geral', icon: LayoutDashboard, end: true },
       { to: '/crms', label: 'CRMs', icon: FolderKanban },
+      { to: '/agenda', label: 'Agenda', icon: CalendarDays },
       { to: '/disparos', label: 'Disparos', icon: UsersRound },
     ],
   },
@@ -77,6 +79,7 @@ function getPageTitle(pathname: string): string {
   if (/^\/crms\/\d+\/audit/.test(pathname)) return 'Auditoria de mudanças';
   if (/^\/crms\/\d+\/dashboard/.test(pathname)) return 'Visão geral';
   if (/^\/leads\/\d+/.test(pathname)) return 'Detalhes do Lead';
+  if (pathname === '/agenda') return 'Agenda';
   if (pathname === '/sending-templates') return 'Templates de E-mail';
   if (pathname === '/groups' || pathname === '/disparos') return 'Disparos';
   if (pathname === '/email-configs') return 'Configuração de e-mail';

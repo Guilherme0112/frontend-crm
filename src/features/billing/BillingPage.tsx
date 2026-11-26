@@ -99,6 +99,10 @@ function planFeatures(limits: PlanLimits): PlanFeature[] {
         : 'Disparos de WhatsApp e e-mail bloqueados',
       included: limits.sending_enabled,
     },
+    {
+      label: limits.agenda_enabled ? 'Agendamentos' : 'Agendamentos bloqueados',
+      included: limits.agenda_enabled,
+    },
   ];
 }
 

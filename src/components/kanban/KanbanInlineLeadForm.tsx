@@ -1,4 +1,5 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import IconButton from '@mui/material/IconButton';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,7 +47,7 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-2.5 rounded-lg border border-blue-500/40 bg-white p-3 shadow-sm ring-2 ring-blue-500/20 dark:border-blue-500/40 dark:bg-white/[0.03]"
+      className="mb-2.5 space-y-2.5 rounded-lg border border-blue-500/40 bg-white p-3 shadow-sm ring-2 ring-blue-500/20 dark:border-blue-500/40 dark:bg-white/[0.03]"
       noValidate
     >
       <div className="flex items-center justify-between">
@@ -136,9 +137,9 @@ export function KanbanInlineLeadForm({ isPending, onSubmit, onCancel }: KanbanIn
         <Button type="button" size="small" color="inherit" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button size="small" variant="contained" disabled={isPending} type="submit">
+        <ActionButton size="small" disabled={isPending} type="submit">
           {isPending ? 'Salvando...' : 'Adicionar'}
-        </Button>
+        </ActionButton>
       </div>
     </form>
   );

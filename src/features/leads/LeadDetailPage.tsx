@@ -1,12 +1,13 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, History, MapPin, Megaphone, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarDays, History, MapPin, Megaphone, Plus, Trash2 } from 'lucide-react';
 import { FormField } from '@/src/components/common/FormField';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { Skeleton } from '@/src/components/common/Skeleton';
@@ -36,6 +37,11 @@ import {
 } from './hooks';
 import { useStepsQuery } from '@/src/features/crm/hooks';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
+import { StatusIndicator } from '@/src/components/common/StatusBadge';
+import { AgendaEventDrawer } from '@/src/features/agenda/AgendaEventDrawer';
+import { AGENDA_STATUS_META, AGENDA_TYPE_LABEL } from '@/src/features/agenda/constants';
+import { addDays, toIsoUtc } from '@/src/features/agenda/dates';
+import { useAgendaEventsQuery } from '@/src/features/agenda/hooks';
 
 const leadDetailSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do lead'),
@@ -82,10 +88,22 @@ export function LeadDetailPage() {
   const updateMutation = useUpdateLeadMutation();
   const deleteMutation = useDeleteLeadMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [agendaDrawerOpen, setAgendaDrawerOpen] = useState(false);
   const stepsQuery = useStepsQuery(
     leadQuery.data?.crm_id ?? 0,
     Boolean(leadQuery.data?.crm_id),
   );
+  const agendaParams = useMemo(() => {
+    const now = new Date();
+    return {
+      from: toIsoUtc(now),
+      to: toIsoUtc(addDays(now, 30)),
+      lead_id: leadId,
+      page: 1,
+      per_page: 10,
+    };
+  }, [leadId]);
+  const agendaQuery = useAgendaEventsQuery(agendaParams);
 
   const {
     register,
@@ -492,12 +510,88 @@ export function LeadDetailPage() {
           </fieldset>
 
           <div className="flex justify-end border-t border-zinc-950/[0.07] pt-5 sm:col-span-2 dark:border-white/[0.07]">
-            <Button type="submit" variant="contained" disabled={updateMutation.isPending || !isDirty}>
+            <ActionButton type="submit" disabled={updateMutation.isPending || !isDirty}>
               {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-            </Button>
+            </ActionButton>
           </div>
         </form>
       </section>
+
+      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <CalendarDays className="h-4 w-4" />
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Agenda do lead
+              </h2>
+            </div>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Próximos 30 dias · {agendaQuery.data?.meta.total ?? 0} evento(s)
+            </p>
+          </div>
+          <ActionButton
+            type="button"
+            size="small"
+            startIcon={<Plus className="h-4 w-4" />}
+            onClick={() => setAgendaDrawerOpen(true)}
+          >
+            Novo evento
+          </ActionButton>
+        </div>
+
+        {agendaQuery.isPending && (
+          <div className="mt-4 space-y-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        )}
+
+        {agendaQuery.isError && (
+          <p className="mt-4 text-sm text-red-600 dark:text-red-400">
+            Não foi possível carregar a agenda deste lead.
+          </p>
+        )}
+
+        {agendaQuery.isSuccess && (agendaQuery.data?.data.length ?? 0) === 0 && (
+          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+            Nenhum evento agendado para este lead.
+          </p>
+        )}
+
+        {(agendaQuery.data?.data.length ?? 0) > 0 && (
+          <ul className="mt-4 divide-y divide-zinc-950/[0.06] dark:divide-white/[0.06]">
+            {agendaQuery.data?.data.map((event) => {
+              const status = AGENDA_STATUS_META[event.status] ?? {
+                tone: 'neutral' as const,
+                label: event.status,
+              };
+
+              return (
+                <li key={event.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {event.title}
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {formatDateTime(event.starts_at)} ·{' '}
+                      {AGENDA_TYPE_LABEL[event.type] ?? event.type}
+                    </p>
+                  </div>
+                  <StatusIndicator tone={status.tone} label={status.label} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <AgendaEventDrawer
+        open={agendaDrawerOpen}
+        eventId={null}
+        presetLeadId={leadId}
+        onClose={() => setAgendaDrawerOpen(false)}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

@@ -2,16 +2,21 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Mail, MoveRight, Send } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Mail, MoveRight, Send } from 'lucide-react';
 import { useLeadHistoryQuery } from './hooks';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { formatDateTime } from '@/src/lib/format';
-import type { LeadHistoryEmail, LeadHistoryMovement } from '@/src/lib/types';
+import type {
+  AgendaEventActivity,
+  LeadHistoryEmail,
+  LeadHistoryMovement,
+} from '@/src/lib/types';
+import { AGENDA_ACTION_LABEL, AGENDA_TYPE_LABEL } from '@/src/features/agenda/constants';
 
-type Filter = 'all' | 'movement' | 'email';
+type Filter = 'all' | 'movement' | 'email' | 'agenda';
 
 const SOURCE_LABEL: Record<string, string> = {
   manual: 'Manual',
@@ -90,6 +95,42 @@ function EmailCard({ data }: { data: LeadHistoryEmail }) {
   );
 }
 
+function AgendaCard({ data }: { data: AgendaEventActivity }) {
+  const action = AGENDA_ACTION_LABEL[data.action] ?? data.action;
+  const from = data.from_starts_at ? formatDateTime(data.from_starts_at) : null;
+  const to = data.to_starts_at ? formatDateTime(data.to_starts_at) : null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <CalendarDays className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <span className="font-medium text-zinc-900 dark:text-zinc-100">
+          {action}
+          {data.title ? ` · ${data.title}` : ''}
+        </span>
+        {data.status && (
+          <Chip size="small" variant="outlined" label={data.status} />
+        )}
+      </div>
+
+      {from && to && (
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          {from} <span className="text-zinc-400">→</span> {to}
+        </p>
+      )}
+
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        {[
+          data.type ? AGENDA_TYPE_LABEL[data.type] ?? data.type : null,
+          data.changed_by_name ? `Por ${data.changed_by_name}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
+    </div>
+  );
+}
+
 export function LeadHistoryPage() {
   const { id } = useParams();
   const leadId = Number(id);
@@ -126,6 +167,7 @@ export function LeadHistoryPage() {
           <div className="flex flex-wrap gap-2">
             <Chip size="small" variant="outlined" label={`${history.counts.movements} movimentações`} />
             <Chip size="small" variant="outlined" label={`${history.counts.emails} e-mails`} />
+            <Chip size="small" variant="outlined" label={`${history.counts.agenda ?? 0} agenda`} />
           </div>
         )}
       </div>
@@ -159,6 +201,7 @@ export function LeadHistoryPage() {
             ['all', 'Tudo'],
             ['movement', 'Movimentações'],
             ['email', 'E-mails'],
+            ['agenda', 'Agenda'],
           ] as Array<[Filter, string]>
         ).map(([value, label]) => (
           <Button
@@ -194,7 +237,7 @@ export function LeadHistoryPage() {
         <EmptyState
           icon={<Send className="h-6 w-6" />}
           title="Nenhum registro encontrado"
-          description="As movimentações e os e-mails deste lead aparecerão aqui."
+          description="Movimentações, e-mails e eventos da agenda deste lead aparecerão aqui."
         />
       )}
 
@@ -207,6 +250,8 @@ export function LeadHistoryPage() {
                 <p className="mb-3 text-xs text-zinc-400">{formatDateTime(entry.created_at)}</p>
                 {entry.type === 'movement' ? (
                   <MovementCard data={entry.data as LeadHistoryMovement} />
+                ) : entry.type === 'agenda' ? (
+                  <AgendaCard data={entry.data as AgendaEventActivity} />
                 ) : (
                   <EmailCard data={entry.data as LeadHistoryEmail} />
                 )}

@@ -33,6 +33,11 @@ export const queryKeys = {
     detail: (id: number) => ['leads', id] as const,
     history: (id: number) => ['leads', id, 'history'] as const,
   },
+  agenda: {
+    all: ['agenda'] as const,
+    list: (filters: object) => ['agenda', 'list', filters] as const,
+    detail: (id: number) => ['agenda', id] as const,
+  },
   templates: {
     all: ['sending-templates'] as const,
     list: (page: number, perPage: number, search: string) =>

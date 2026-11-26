@@ -2,8 +2,11 @@
 import type {
   ApiResponse,
   AuthSessionData,
+  AgendaEvent,
+  AgendaEventPage,
   Company,
   CreateEmailConfigInput,
+  CreateAgendaEventPayload,
   CreateCrmPayload,
   CreateGroupPayload,
   CreateLeadPayload,
@@ -17,6 +20,7 @@ import type {
   CreateWhatsappTemplateInput,
   LeadStepChangePage,
   LeadHistory,
+  ListAgendaEventsParams,
   LeadSource,
   LeadSourcesReport,
   DashboardSummary,
@@ -38,6 +42,7 @@ import type {
   Step,
   Subscription,
   UpdateCompanyPayload,
+  UpdateAgendaEventPayload,
   UpdateCrmPayload,
   UpdateEmailConfigInput,
   UpdateGroupPayload,
@@ -104,6 +109,8 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers['X-Timezone'] =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   return config;
 });
 
@@ -332,6 +339,30 @@ export async function updateLeadStep(
     previous_id: options.previousId ?? null,
     next_id: options.nextId ?? null,
   });
+  return res.data.data;
+}
+
+// --- Agenda de leads ---
+export async function listAgendaEvents(params: ListAgendaEventsParams): Promise<AgendaEventPage> {
+  const res = await apiClient.get<AgendaEventPage>('/agenda-events', { params });
+  return res.data;
+}
+
+export async function getAgendaEvent(id: number): Promise<AgendaEvent> {
+  const res = await apiClient.get<ApiResponse<AgendaEvent>>(`/agenda-events/${id}`);
+  return res.data.data;
+}
+
+export async function createAgendaEvent(payload: CreateAgendaEventPayload): Promise<AgendaEvent> {
+  const res = await apiClient.post<ApiResponse<AgendaEvent>>('/agenda-events', payload);
+  return res.data.data;
+}
+
+export async function updateAgendaEvent(
+  id: number,
+  payload: UpdateAgendaEventPayload,
+): Promise<AgendaEvent> {
+  const res = await apiClient.put<ApiResponse<AgendaEvent>>(`/agenda-events/${id}`, payload);
   return res.data.data;
 }
 

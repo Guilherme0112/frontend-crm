@@ -1,4 +1,5 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import Checkbox from '@mui/material/Checkbox';
 import { ArrowLeft, History, Loader2, Mail, Trash2, UserPlus, UsersRound, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -301,16 +302,14 @@ export function GroupPage() {
           >
             Histórico
           </Button>
-          <Button
-            variant="contained"
-            color="primary"
+          <ActionButton
             startIcon={<Zap className="h-4 w-4" strokeWidth={2} />}
             disabled={!canDispatch}
             onClick={openSendModal}
             sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
           >
             Disparar grupo
-          </Button>
+          </ActionButton>
         </div>
       </div>
 
@@ -329,15 +328,13 @@ export function GroupPage() {
               Gerencie os leads que receberão os disparos deste grupo.
             </p>
           </div>
-          <Button
-            variant="outlined"
-            color="inherit"
+          <ActionButton
             startIcon={<UserPlus className="h-4 w-4" strokeWidth={2} />}
             onClick={openAddModal}
             sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
           >
             Adicionar leads
-          </Button>
+          </ActionButton>
         </div>
 
         <div className="border-b border-zinc-950/[0.06] px-5 py-3 dark:border-white/[0.06]">
@@ -357,9 +354,9 @@ export function GroupPage() {
               title={memberTotal === 0 && !debouncedMemberSearch ? 'Nenhum lead no grupo' : 'Nenhum lead encontrado'}
               description={memberTotal === 0 && !debouncedMemberSearch ? 'Adicione leads para começar a disparar campanhas para este grupo.' : 'Tente outro termo de busca.'}
               action={memberTotal === 0 && !debouncedMemberSearch ? (
-                <Button variant="contained" color="primary" startIcon={<UserPlus className="h-4 w-4" />} onClick={openAddModal} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+                <ActionButton startIcon={<UserPlus className="h-4 w-4" />} onClick={openAddModal} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                   Adicionar leads
-                </Button>
+                </ActionButton>
               ) : undefined}
             />
           </div>
@@ -526,16 +523,14 @@ export function GroupPage() {
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{addSelectedIds.size} selecionado(s)</p>
             <div className="flex gap-3">
               <Button variant="outlined" color="inherit" onClick={() => setAddModalOpen(false)}>Cancelar</Button>
-              <Button
-                variant="contained"
-                color="primary"
+              <ActionButton
                 disabled={addSelectedIds.size === 0 || syncMutation.isPending}
                 onClick={() => void handleAddLeads()}
                 startIcon={syncMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
                 sx={{ width: { xs: '100%', sm: 'auto' } }}
               >
                 Adicionar selecionados
-              </Button>
+              </ActionButton>
             </div>
           </div>
         </div>
@@ -722,16 +717,14 @@ export function GroupPage() {
 
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:justify-end">
             <Button variant="outlined" color="inherit" onClick={() => setSendModalOpen(false)} sx={{ width: { xs: '100%', sm: 'auto' } }}>Cancelar</Button>
-            <Button
-              variant="contained"
-              color="primary"
+            <ActionButton
               onClick={() => void handleSend()}
               disabled={isSending || (dispatchChannel === 'email' ? emailSendDisabled : whatsappSendDisabled)}
               startIcon={isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
               sx={{ width: { xs: '100%', sm: 'auto' } }}
             >
               Confirmar disparo
-            </Button>
+            </ActionButton>
           </div>
         </div>
       </Modal>

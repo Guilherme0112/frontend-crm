@@ -354,9 +354,9 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
                 <Button variant="outlined" color="inherit" size="small" onClick={onClose}>
                   Fechar
                 </Button>
-                <Button type="submit" variant="contained" size="small" disabled={updateMutation.isPending}>
+                <ActionButton type="submit" size="small" disabled={updateMutation.isPending}>
                   {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-                </Button>
+                </ActionButton>
               </div>
             </div>
           </form>

@@ -1,4 +1,5 @@
 import Button from '@mui/material/Button';
+import ActionButton from '@/src/components/common/Button';
 import IconButton from '@mui/material/IconButton';
 import { useState } from 'react';
 import { Check, Copy, Lock, RefreshCw, TriangleAlert, X } from 'lucide-react';
@@ -106,25 +107,25 @@ export function TokenSection({ crm }: TokenSectionProps) {
           {maskTokenMiddle(crm.token)}
         </code>
         <div className="flex shrink-0 items-center gap-2">
-          <button
+          <ActionButton
             type="button"
             onClick={() => void copyToken()}
-            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-zinc-950/[0.1] bg-white px-3.5 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-          >
-            {copied ? (
-              <>
+            startIcon={
+              copied ? (
                 <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2.2} />
-                Copiado
-              </>
-            ) : (
-              <>
+              ) : (
                 <Copy className="h-4 w-4" strokeWidth={1.8} />
-                Copiar
-              </>
-            )}
-          </button>
-          <Button variant="outlined" color="error" onClick={() => setConfirmOpen(true)}>
-            <RefreshCw className="h-4 w-4" strokeWidth={1.8} />
+              )
+            }
+          >
+            {copied ? 'Copiado' : 'Copiar'}
+          </ActionButton>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => setConfirmOpen(true)}
+            startIcon={<RefreshCw className="h-4 w-4" strokeWidth={1.8} />}
+          >
             Regenerar
           </Button>
         </div>
