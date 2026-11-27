@@ -3,7 +3,7 @@ import ActionButton from '@/src/components/common/Button';
 import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Link2, PlugZap, RefreshCw, Trash2, Unplug, Plus, Pencil, QrCode } from 'lucide-react';
+import { FileText, PlugZap, RefreshCw, Trash2, Unplug, Plus, Pencil, QrCode } from 'lucide-react';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -23,6 +23,7 @@ import {
   useUpdateWhatsappUnofficialInstanceMutation,
   useWhatsappUnofficialInstancesQuery,
 } from './hooks';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 type FormValues = {
   name: string;
@@ -119,18 +120,18 @@ export function WhatsappUnofficialInstancesPage() {
 
   return (
     <div className="w-full space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link to="/disparos" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"><ArrowLeft className="h-3.5 w-3.5" />Disparos</Link>
-          <p className="eyebrow mt-2 text-zinc-400 dark:text-zinc-500">Operação</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">WhatsApp Não Oficial</h1>
-          <p className="mt-1 max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">Gerencie as instâncias do seu microserviço WhatsApp, conecte por QR Code e use nos disparos.</p>
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <Button variant="outlined" color="inherit" component={Link} to="/whatsapp-unofficial-templates" startIcon={<FileText className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Templates</Button>
-          <ActionButton onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Nova instância</ActionButton>
-        </div>
-      </header>
+      <PageHeader
+        trail={[{ to: '/disparos', label: 'Disparos' }]}
+        eyebrow="Operação"
+        title="WhatsApp Não Oficial"
+        description="Gerencie as instâncias do seu microserviço WhatsApp, conecte por QR Code e use nos disparos."
+        actions={
+          <>
+            <Button variant="outlined" color="inherit" component={Link} to="/whatsapp-unofficial-templates" startIcon={<FileText className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Templates</Button>
+            <ActionButton onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Nova instância</ActionButton>
+          </>
+        }
+      />
 
       {q.isPending ? <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#17171a]"><TableRowsSkeleton rows={4} cols={5} /></div>
       : q.isError ? <ErrorState title="Erro ao carregar instâncias" error={q.error} onRetry={() => void q.refetch()} />

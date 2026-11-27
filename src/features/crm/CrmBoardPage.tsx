@@ -3,7 +3,7 @@ import ActionButton from '@/src/components/common/Button';
 import { ModalActions } from '@/src/components/common/ModalActions';
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, BarChart3, Columns3, History, Plug, Plus } from 'lucide-react';
@@ -27,13 +27,23 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import type { Step } from '@/src/lib/types';
+import { Autocomplete, type AutocompleteOption } from '@/src/components/common/Autocomplete';
+import { PageHeader } from '@/src/components/layout/PageHeader';
+import { LostReasonPrompt } from '@/src/features/lost-reasons/LostReasonPrompt';
 
 const stepSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome da etapa'),
   description: z.string().optional(),
+  kind: z.enum(['open', 'won', 'lost']),
 });
 
 type StepFormValues = z.infer<typeof stepSchema>;
+
+const STEP_KIND_OPTIONS: AutocompleteOption[] = [
+  { value: 'open', label: 'Em aberto', description: 'O lead continua negociando' },
+  { value: 'won', label: 'Ganho', description: 'Fecha o negócio como vendido' },
+  { value: 'lost', label: 'Perda', description: 'Fecha o negócio e pergunta o motivo' },
+];
 
 export function CrmBoardPage() {
   const { id } = useParams();
@@ -56,13 +66,14 @@ export function CrmBoardPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
     formState: { errors },
   } = useForm<StepFormValues>({
     resolver: zodResolver(stepSchema),
-    defaultValues: { name: '', description: '' },
+    defaultValues: { name: '', description: '', kind: 'open' },
   });
 
   const steps = useMemo(
@@ -73,7 +84,7 @@ export function CrmBoardPage() {
 
   const openCreateStep = () => {
     setEditingStep(null);
-    reset({ name: '', description: '' });
+    reset({ name: '', description: '', kind: 'open' });
     setStepModalOpen(true);
   };
 
@@ -82,6 +93,7 @@ export function CrmBoardPage() {
     reset({
       name: step.name,
       description: step.description ?? '',
+      kind: step.kind,
     });
     setStepModalOpen(true);
   };
@@ -90,6 +102,7 @@ export function CrmBoardPage() {
     const payload = {
       name: values.name.trim(),
       description: values.description?.trim() || null,
+      kind: values.kind,
     };
     try {
       if (editingStep) {
@@ -117,17 +130,63 @@ export function CrmBoardPage() {
     }
   };
 
+  /*
+    Mover para uma etapa de perda abre o seletor de motivo antes de concluir; o
+    movimento fica pendente até a escolha. Perguntar depois é perguntar para
+    quem já virou a página — e é o que deixava o gráfico de motivos vazio.
+  */
+  const [pendingLoss, setPendingLoss] = useState<{
+    leadId: number;
+    leadName: string;
+    stepId: number;
+    stepName: string;
+    previousId: number | null;
+    nextId: number | null;
+  } | null>(null);
+
   const handleMoveLead = (
     leadId: number,
     targetStepId: number,
-    options: { previousId: number | null; nextId: number | null },
+    options: { previousId: number | null; nextId: number | null; leadName?: string },
   ) => {
+    const target = steps.find((step) => step.id === targetStepId);
+
+    if (target?.kind === 'lost') {
+      setPendingLoss({
+        leadId,
+        leadName: options.leadName ?? 'Este lead',
+        stepId: targetStepId,
+        stepName: target.name,
+        previousId: options.previousId,
+        nextId: options.nextId,
+      });
+
+      return;
+    }
+
     moveLeadMutation.mutate({
       leadId,
       stepId: targetStepId,
       previousId: options.previousId,
       nextId: options.nextId,
     });
+  };
+
+  const confirmLoss = (lostReasonId: number) => {
+    if (!pendingLoss) {
+      return;
+    }
+
+    moveLeadMutation.mutate(
+      {
+        leadId: pendingLoss.leadId,
+        stepId: pendingLoss.stepId,
+        previousId: pendingLoss.previousId,
+        nextId: pendingLoss.nextId,
+        lostReasonId,
+      },
+      { onSettled: () => setPendingLoss(null) },
+    );
   };
 
   if (crmQuery.isPending || stepsQuery.isPending) {
@@ -177,68 +236,54 @@ export function CrmBoardPage() {
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <Link
-            to="/crms"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Todos os CRMs</span>
-          </Link>
-          <div className="mt-1.5 flex items-center gap-2.5">
-            <span
-              className="h-3.5 w-3.5 shrink-0 rounded-sm border border-black/10"
-              style={{ backgroundColor: crm.color || '#2563eb' }}
-              aria-hidden="true"
-            />
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              {crm.name}
-            </h1>
-          </div>
-          {crm.description && (
-            <p className="mt-1 max-w-md break-words text-sm text-zinc-600 line-clamp-2 dark:text-zinc-400">
-              {crm.description}
-            </p>
-          )}
-        </div>
+      <PageHeader
+        trail={[{ to: '/crms', label: 'Todos os CRMs' }]}
+        icon={
+          <span
+            className="h-3.5 w-3.5 rounded-sm border border-black/10"
+            style={{ backgroundColor: crm.color || '#2563eb' }}
+          />
+        }
+        title={crm.name}
+        description={crm.description || undefined}
+        actions={
+          <>
+            <Link
+              to={`/crms/${crmId}/dashboard`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
+            >
+              <BarChart3 className="h-4 w-4" strokeWidth={1.8} />
+              <span>Dashboard</span>
+            </Link>
 
-        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <Link
-            to={`/crms/${crmId}/dashboard`}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
-          >
-            <BarChart3 className="h-4 w-4" strokeWidth={1.8} />
-            <span>Dashboard</span>
-          </Link>
+            <Link
+              to={`/crms/${crmId}/audit`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
+            >
+              <History className="h-4 w-4" strokeWidth={1.8} />
+              <span>Auditoria</span>
+            </Link>
 
-          <Link
-            to={`/crms/${crmId}/audit`}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
-          >
-            <History className="h-4 w-4" strokeWidth={1.8} />
-            <span>Auditoria</span>
-          </Link>
+            <Link
+              to={`/crms/${crmId}/integration`}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
+            >
+              <Plug className="h-4 w-4" strokeWidth={1.8} />
+              <span>Integração pública</span>
+            </Link>
 
-          <Link
-            to={`/crms/${crmId}/integration`}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 whitespace-nowrap shrink-0 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07] dark:hover:text-zinc-100"
-          >
-            <Plug className="h-4 w-4" strokeWidth={1.8} />
-            <span>Integração pública</span>
-          </Link>
-
-          <ActionButton
-            type="button"
-            onClick={openCreateStep}
-            className="whitespace-nowrap shrink-0"
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-            startIcon={<Plus className="h-4 w-4" />}
-          >
-            Nova etapa
-          </ActionButton>
-        </div>
-      </div>
+            <ActionButton
+              type="button"
+              onClick={openCreateStep}
+              className="whitespace-nowrap shrink-0"
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+              startIcon={<Plus className="h-4 w-4" />}
+            >
+              Nova etapa
+            </ActionButton>
+          </>
+        }
+      />
 
       {/* Board */}
       {steps.length === 0 ? (
@@ -274,6 +319,16 @@ export function CrmBoardPage() {
       )}
 
       {/* Step Create/Edit Modal */}
+      <LostReasonPrompt
+        open={pendingLoss !== null}
+        leadName={pendingLoss?.leadName ?? ''}
+        stepName={pendingLoss?.stepName ?? ''}
+        isPending={moveLeadMutation.isPending}
+        // Cancelar não move nada: o card volta para onde estava.
+        onCancel={() => setPendingLoss(null)}
+        onConfirm={confirmLoss}
+      />
+
       <Modal
         open={stepModalOpen}
         onClose={() => setStepModalOpen(false)}
@@ -296,6 +351,28 @@ export function CrmBoardPage() {
               type="text"
               placeholder="Opcional"
               {...register('description')}
+            />
+          </FormField>
+
+          {/*
+            Sem nenhuma etapa marcada como ganho ou perda, o lead nunca é
+            fechado: taxa de conversão, receita, ciclo de venda e motivos de
+            perda ficam todos vazios no funil. É o campo mais importante desta
+            modal e o menos óbvio, por isso a explicação fica à vista.
+          */}
+          <FormField label="Tipo de etapa" htmlFor="step-kind" error={errors.kind?.message}>
+            <Controller
+              control={control}
+              name="kind"
+              render={({ field }) => (
+                <Autocomplete
+                  id="step-kind"
+                  value={field.value}
+                  onChange={(value) => field.onChange(value || 'open')}
+                  options={STEP_KIND_OPTIONS}
+                  placeholder="Em aberto"
+                />
+              )}
             />
           </FormField>
 

@@ -9,13 +9,14 @@ import { ModalActions } from '@/src/components/common/ModalActions';
 import { TextInput } from '@/src/components/common/TextInput';
 import { TextArea } from '@/src/components/common/TextArea';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowRight,
   BarChart3,
+  ThumbsDown,
   FolderKanban,
   MoreVertical,
   Pencil,
@@ -30,6 +31,7 @@ import {
   useUpdateCrmMutation,
 } from './hooks';
 import { Modal } from '@/src/components/common/Modal';
+import { LostReasonsModal } from '@/src/features/lost-reasons/LostReasonsModal';
 import { LoadMoreButton } from '@/src/components/common/LoadMoreButton';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField, inputClassName } from '@/src/components/common/FormField';
@@ -40,6 +42,7 @@ import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { HEX_COLOR_REGEX, formatDate } from '@/src/lib/format';
 import type { Crm } from '@/src/lib/types';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const PRESET_COLORS = ['#2563eb', '#0d9488', '#d97706', '#dc2626', '#4f46e5', '#0f172a'];
 
@@ -59,6 +62,31 @@ type CrmFormValues = z.infer<typeof crmSchema>;
 
 export function CrmsPage() {
   const { toast } = useToast();
+  /*
+    `?motivos=1` abre o cadastro direto: o aviso do funil e o seletor de perda
+    apontam para cá, e sem o parâmetro eles teriam de dizer "vá em CRMs e
+    procure o botão".
+  */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const lostReasonsOpen = searchParams.get('motivos') === '1';
+
+  const setLostReasonsOpen = (next: boolean) => {
+    setSearchParams(
+      (params) => {
+        if (next) {
+          params.set('motivos', '1');
+        } else {
+          params.delete('motivos');
+        }
+
+        return params;
+      },
+      // Abrir e fechar a modal não é navegação: o voltar do navegador deve
+      // sair da tela de CRMs, não desfazer o clique no botão.
+      { replace: true },
+    );
+  };
+
   const navigate = useNavigate();
   const crmsQuery = useCrmsInfiniteQuery();
   const createMutation = useCreateCrmMutation();
@@ -144,29 +172,54 @@ export function CrmsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Operação</p>
-          <div className="mt-1.5 flex items-center gap-3">
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-              CRMs
-            </h1>
-          </div>
-          <p className="mt-1 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
-            Gerencie seus funis de atendimento, tokens de integração e quadros Kanban.
-          </p>
-        </div>
-
-        <ActionButton
-          type="button"
-          onClick={openCreateModal}
-          className="whitespace-nowrap shrink-0"
-          sx={{ width: { xs: '100%', sm: 'auto' } }}
-          startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
-        >
-          Novo CRM
-        </ActionButton>
-      </div>
+      <PageHeader
+        eyebrow="Operação"
+        title="CRMs"
+        description="Gerencie seus funis de atendimento, tokens de integração e quadros Kanban."
+        actions={
+          <>
+            {/*
+              Motivos de perda são cadastro de funil, e é aqui que o funil se
+              configura. Não ganham rota nem lugar no menu: é ajuste que se faz
+              uma vez e não merece atenção permanente.
+            */}
+            <Button
+              type="button"
+              variant="outlined"
+              color="inherit"
+              onClick={() => setLostReasonsOpen(true)}
+              startIcon={<ThumbsDown className="h-4 w-4" />}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
+              Motivos de perda
+            </Button>
+            {/*
+              O comparativo entre pipelines é leitura desta tela: é daqui que se
+              decide qual funil abrir. Sem gate de papel porque
+              `/reports/crms-comparison` roda sob `auth:sanctum` puro.
+            */}
+            <Button
+              component={Link}
+              to="/crms/dashboard"
+              variant="outlined"
+              color="inherit"
+              startIcon={<BarChart3 className="h-4 w-4" />}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
+              Comparar CRMs
+            </Button>
+            <ActionButton
+              type="button"
+              onClick={openCreateModal}
+              className="whitespace-nowrap"
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+              startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
+            >
+              Novo CRM
+            </ActionButton>
+          </>
+        }
+      />
 
       {crmsQuery.isPending ? (
         <CardsGridSkeleton count={3} />
@@ -309,6 +362,8 @@ export function CrmsPage() {
       )}
 
       {/* Create / Edit Modal */}
+      <LostReasonsModal open={lostReasonsOpen} onClose={() => setLostReasonsOpen(false)} />
+
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

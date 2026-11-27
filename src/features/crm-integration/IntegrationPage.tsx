@@ -1,7 +1,7 @@
 import ActionButton from '@/src/components/common/Button';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plug, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Loader2, TriangleAlert } from 'lucide-react';
 import { useCrmQuery, useStepsQuery, useUpdateCrmMutation } from '@/src/features/crm/hooks';
 import { TokenSection } from './token/TokenSection';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { useToast } from '@/src/components/common/Toast';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 export function IntegrationPage() {
   const { id } = useParams();
@@ -141,40 +142,25 @@ export function IntegrationPage() {
   return (
     <div className="w-full space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Caminho" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
-        <Link to="/crms" className="transition-colors hover:text-zinc-700 dark:hover:text-zinc-200">
-          Todos os CRMs
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          to={`/crms/${crm.id}/board`}
-          className="max-w-40 truncate transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
-        >
-          {crm.name}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-zinc-600 dark:text-zinc-300">Integração pública</span>
-      </nav>
-
-      {/* Header */}
-      <div className="flex items-start gap-3.5">
-        <span
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-          style={{ backgroundColor: `${crm.color || '#2563eb'}1f`, color: crm.color || '#2563eb' }}
-          aria-hidden="true"
-        >
-          <Plug className="h-6 w-6" strokeWidth={1.8} />
-        </span>
-        <div className="min-w-0">
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Captação de leads</p>
-          <h1 className="mt-0.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Integração pública
-          </h1>
-          <p className="mt-1 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
-            Leads capturados via API pública entram neste CRM pela etapa configurada abaixo.
-          </p>
-        </div>
-      </div>
+      {/* Sem flex-wrap as três partes somavam ~370px e estouravam os ~288px
+          úteis de um celular, rolando a página na horizontal. O min-w-0 é o que
+          deixa o truncate do nome do CRM funcionar de verdade. */}
+      <PageHeader
+        trail={[
+          { to: '/crms', label: 'Todos os CRMs' },
+          { to: `/crms/${crm.id}/board`, label: crm.name },
+          { label: 'Integração pública' },
+        ]}
+        icon={
+          <span
+            className="h-3.5 w-3.5 rounded-sm border border-black/10"
+            style={{ backgroundColor: crm.color || '#2563eb' }}
+          />
+        }
+        eyebrow="Captação de leads"
+        title="Integração pública"
+        description="Leads capturados via API pública entram neste CRM pela etapa configurada abaixo."
+      />
 
       {/* Card 1 — Token */}
       <TokenSection crm={crm} />
@@ -182,7 +168,7 @@ export function IntegrationPage() {
       {/* Card 2 — Etapa de destino */}
       <section
         aria-labelledby="step-section-title"
-        className="rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
+        className="rounded-2xl border border-zinc-950/[0.07] bg-white p-4 shadow-sm sm:p-5 dark:border-white/[0.07] dark:bg-[#17171a]"
       >
         <h2
           id="step-section-title"
@@ -222,7 +208,7 @@ export function IntegrationPage() {
           </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
             O backend rejeita etapas de outro CRM automaticamente.
           </p>
@@ -230,6 +216,7 @@ export function IntegrationPage() {
             onClick={() => void handleSaveStep()}
             disabled={!isDirty || updateCrmMutation.isPending}
             className="shrink-0"
+            sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' } }}
           >
             {updateCrmMutation.isPending && (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

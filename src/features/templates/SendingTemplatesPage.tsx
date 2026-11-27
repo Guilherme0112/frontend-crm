@@ -11,17 +11,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-  ArrowLeft,
   Eye,
   Mail,
   MailCheck,
   Pencil,
   Plus,
-  Search,
   Trash2,
   Variable,
-  X,
-} from 'lucide-react';
+  } from 'lucide-react';
 import {
   useCreateSendingTemplateMutation,
   useDeleteSendingTemplateMutation,
@@ -41,6 +38,7 @@ import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { formatDate } from '@/src/lib/format';
 import type { SendingTemplate } from '@/src/lib/types';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const templateSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do template'),
@@ -188,43 +186,32 @@ export function SendingTemplatesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <Link
-            to="/disparos"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Disparos</span>
-          </Link>
-          <p className="eyebrow mt-2 text-zinc-400 dark:text-zinc-500">Operação</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Templates de envio
-          </h1>
-          <p className="mt-1 max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Componha mensagens reutilizáveis com variáveis dinâmicas. Pré-visualize, teste e reutilize em todos os grupos de envio.
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <Link
-            to="/email-configs"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
-          >
-            <Mail className="h-4 w-4" strokeWidth={1.8} />
-            <span>Configuração de email</span>
-          </Link>
-          <ActionButton
-            type="button"
-            onClick={openCreateModal}
-            className="whitespace-nowrap"
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-            startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
-          >
-            Novo template
-          </ActionButton>
-        </div>
-      </div>
+      <PageHeader
+        trail={[{ to: '/disparos', label: 'Disparos' }]}
+        eyebrow="Operação"
+        title="Templates de envio"
+        description="Componha mensagens reutilizáveis com variáveis dinâmicas. Pré-visualize, teste e reutilize em todos os grupos de envio."
+        actions={
+          <>
+            <Link
+              to="/email-configs"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:text-zinc-900 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-200 dark:hover:bg-white/[0.08] dark:hover:text-white"
+            >
+              <Mail className="h-4 w-4" strokeWidth={1.8} />
+              <span>Configuração de email</span>
+            </Link>
+            <ActionButton
+              type="button"
+              onClick={openCreateModal}
+              className="whitespace-nowrap"
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+              startIcon={<Plus className="h-4 w-4" strokeWidth={2.2} />}
+            >
+              Novo template
+            </ActionButton>
+          </>
+        }
+      />
 
       {/* Lista */}
       {templatesQuery.isPending ? (

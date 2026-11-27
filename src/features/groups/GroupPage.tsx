@@ -1,7 +1,7 @@
 import Button from '@mui/material/Button';
 import ActionButton from '@/src/components/common/Button';
 import Checkbox from '@mui/material/Checkbox';
-import { ArrowLeft, History, Loader2, Mail, Trash2, UserPlus, UsersRound, Zap } from 'lucide-react';
+import { History, Loader2, Mail, Trash2, UserPlus, UsersRound, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Autocomplete } from '@/src/components/common/Autocomplete';
@@ -32,6 +32,7 @@ import { useWhatsappSendersQuery } from '@/src/features/whatsapp-senders/hooks';
 import { useWhatsappTemplatesQuery } from '@/src/features/whatsapp-templates/hooks';
 import { useWhatsappUnofficialInstancesQuery } from '@/src/features/whatsapp-unofficial-instances/hooks';
 import { useWhatsappUnofficialTemplatesQuery } from '@/src/features/whatsapp-unofficial-templates/hooks';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 type DispatchChannel = 'email' | 'whatsapp';
 type WhatsappProvider = 'official' | 'unofficial';
@@ -261,57 +262,52 @@ export function GroupPage() {
 
   return (
     <div className="space-y-5 py-6">
-      <Link
-        to="/disparos"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        <span>Voltar para Disparos</span>
-      </Link>
-
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/15 dark:bg-blue-950/50 dark:text-blue-400 dark:ring-blue-400/15">
-            <UsersRound className="h-5 w-5" strokeWidth={1.8} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">Grupo de disparo</p>
-            <h1 className="truncate font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">{group.name}</h1>
-            {group.description && <p className="mt-0.5 max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">{group.description}</p>}
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-              <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-zinc-600 dark:bg-white/[0.06] dark:text-zinc-300">
-                {memberTotal} {memberTotal === 1 ? 'lead' : 'leads'}
+      <PageHeader
+        trail={[{ to: '/disparos', label: 'Disparos' }]}
+        eyebrow="Grupo de disparo"
+        title={group.name}
+        titleAfter={
+          /*
+            Contadores ao lado do nome, não abaixo da descrição: dentro do
+            <p> da descrição eles seriam markup inválido, e o cabeçalho único
+            não abre exceção por página.
+          */
+          <span className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+            <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-zinc-600 dark:bg-white/[0.06] dark:text-zinc-300">
+              {memberTotal} {memberTotal === 1 ? 'lead' : 'leads'}
+            </span>
+            {(group as any).template_name && (
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-950/[0.08] bg-zinc-50 px-2 py-0.5 text-zinc-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-300">
+                <Mail className="h-3 w-3" strokeWidth={2} />
+                {(group as any).template_name}
               </span>
-              {(group as any).template_name && (
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-950/[0.08] bg-zinc-50 px-3 py-1 text-zinc-600 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-zinc-300">
-                  <Mail className="h-3 w-3" strokeWidth={2} />
-                  {(group as any).template_name}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <Button
-            component={Link}
-            to={`/disparos/${groupId}/historico`}
-            variant="outlined"
-            color="inherit"
-            startIcon={<History className="h-4 w-4" strokeWidth={2} />}
-            sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
-          >
-            Histórico
-          </Button>
-          <ActionButton
-            startIcon={<Zap className="h-4 w-4" strokeWidth={2} />}
-            disabled={!canDispatch}
-            onClick={openSendModal}
-            sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
-          >
-            Disparar grupo
-          </ActionButton>
-        </div>
-      </div>
+            )}
+          </span>
+        }
+        description={group.description || undefined}
+        actions={
+          <>
+            <Button
+              component={Link}
+              to={`/disparos/${groupId}/historico`}
+              variant="outlined"
+              color="inherit"
+              startIcon={<History className="h-4 w-4" strokeWidth={2} />}
+              sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
+            >
+              Histórico
+            </Button>
+            <ActionButton
+              startIcon={<Zap className="h-4 w-4" strokeWidth={2} />}
+              disabled={!canDispatch}
+              onClick={openSendModal}
+              sx={{ flexShrink: 0, fontWeight: 600, width: { xs: '100%', sm: 'auto' } }}
+            >
+              Disparar grupo
+            </ActionButton>
+          </>
+        }
+      />
 
       {sendingBasicForbidden && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-400/20 dark:bg-amber-950/30 dark:text-amber-200">

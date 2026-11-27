@@ -2,6 +2,16 @@ export const queryKeys = {
   auth: {
     me: ['auth', 'me'] as const,
   },
+  dashboards: {
+    myDay: (crmId?: number, pages?: object) =>
+      ['dashboards', 'my-day', crmId ?? 0, pages ?? {}] as const,
+    dispatchHealth: (from?: string, to?: string) =>
+      ['dashboards', 'dispatch-health', from ?? '', to ?? ''] as const,
+    funnel: (crmId?: number, from?: string, to?: string) =>
+      ['dashboards', 'funnel', crmId ?? 0, from ?? '', to ?? ''] as const,
+    team: (crmId?: number, from?: string, to?: string) =>
+      ['dashboards', 'team', crmId ?? 0, from ?? '', to ?? ''] as const,
+  },
   dashboard: {
     summary: ['dashboard', 'summary'] as const,
   },
@@ -26,6 +36,10 @@ export const queryKeys = {
     detail: (id: number) => ['crms', id] as const,
     steps: (crmId: number) => ['crms', crmId, 'steps'] as const,
     stepsAll: (crmId?: number, search?: string) => ['crms', 'steps-all', crmId ?? 0, search ?? ''] as const,
+  },
+  lostReasons: {
+    all: ['lost-reasons'] as const,
+    list: (onlyActive: boolean) => ['lost-reasons', { onlyActive }] as const,
   },
   leads: {
     all: ['leads'] as const,

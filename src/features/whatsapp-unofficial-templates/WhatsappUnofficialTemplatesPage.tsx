@@ -3,7 +3,7 @@ import ActionButton from '@/src/components/common/Button';
 import { TableActionsMenu } from '@/src/components/common/TableActionsMenu';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Pencil, PlugZap, Plus, Trash2 } from 'lucide-react';
+import { FileText, Pencil, PlugZap, Plus, Trash2 } from 'lucide-react';
 import { Modal } from '@/src/components/common/Modal';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -15,6 +15,7 @@ import { ModalActions } from '@/src/components/common/ModalActions';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import type { WhatsappUnofficialTemplate } from '@/src/lib/types';
 import { useCreateWhatsappUnofficialTemplateMutation, useDeleteWhatsappUnofficialTemplateMutation, useUpdateWhatsappUnofficialTemplateMutation, useWhatsappUnofficialTemplatesQuery } from './hooks';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 type FormValues = { name: string; body: string; is_active: boolean };
 const empty: FormValues = { name: '', body: '', is_active: true };
@@ -55,18 +56,18 @@ export function WhatsappUnofficialTemplatesPage() {
 
   return (
     <div className="w-full space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link to="/disparos" className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"><ArrowLeft className="h-3.5 w-3.5" />Disparos</Link>
-          <p className="eyebrow mt-2 text-zinc-400 dark:text-zinc-500">Operação</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">Templates WhatsApp Não Oficial</h1>
-          <p className="mt-1 max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">Crie mensagens de texto simples para usar nos disparos pelas instâncias não oficiais.</p>
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <Button variant="outlined" color="inherit" component={Link} to="/whatsapp-unofficial-instances" startIcon={<PlugZap className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Instâncias</Button>
-          <ActionButton onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Novo template</ActionButton>
-        </div>
-      </header>
+      <PageHeader
+        trail={[{ to: '/disparos', label: 'Disparos' }]}
+        eyebrow="Operação"
+        title="Templates WhatsApp Não Oficial"
+        description="Crie mensagens de texto simples para usar nos disparos pelas instâncias não oficiais."
+        actions={
+          <>
+            <Button variant="outlined" color="inherit" component={Link} to="/whatsapp-unofficial-instances" startIcon={<PlugZap className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Instâncias</Button>
+            <ActionButton onClick={() => setCreateOpen(true)} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>Novo template</ActionButton>
+          </>
+        }
+      />
 
       {q.isPending ? <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-4 dark:border-white/[0.07] dark:bg-[#17171a]"><TableRowsSkeleton rows={4} cols={4} /></div>
       : q.isError ? <ErrorState title="Erro ao carregar templates" error={q.error} onRetry={() => void q.refetch()} />

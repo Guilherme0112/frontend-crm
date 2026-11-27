@@ -11,7 +11,7 @@ interface KanbanBoardProps {
   onMoveLead: (
     leadId: number,
     targetStepId: number,
-    options: { previousId: number | null; nextId: number | null },
+    options: { previousId: number | null; nextId: number | null; leadName?: string },
   ) => void;
   onSelectLead: (leadId: number) => void;
   onEditStep: (step: Step) => void;
@@ -56,9 +56,15 @@ export function KanbanBoard({
     return () => observer.disconnect();
   }, [hasMore, steps.length, isFetchingNextPage]);
 
-  const handleDragStart = (e: DragEvent<HTMLDivElement>, leadId: number) => {
+  /** Nome do card em arrasto, usado só para nomear o lead na pergunta do motivo. */
+  const draggingNameRef = useRef('');
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, leadId: number, leadName: string) => {
     setDraggingLeadId(leadId);
     e.dataTransfer.setData('text/plain', String(leadId));
+    // O nome só é lido na queda em etapa de perda, para nomear o lead na
+    // pergunta do motivo. `text/plain` continua sendo o id, como antes.
+    draggingNameRef.current = leadName;
     e.dataTransfer.effectAllowed = 'move';
   };
 
@@ -72,7 +78,7 @@ export function KanbanBoard({
     options: { previousId: number | null; nextId: number | null },
   ) => {
     setDraggingLeadId(null);
-    onMoveLead(leadId, targetStepId, options);
+    onMoveLead(leadId, targetStepId, { ...options, leadName: draggingNameRef.current });
   };
 
   const handleStepDrop = (draggedId: number, targetStepId: number) => {

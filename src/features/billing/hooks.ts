@@ -133,12 +133,3 @@ export function useInvoicesQuery(_page = 1, _perPage = 10) {
   };
 }
 
-export function usePayInvoiceMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: number) => api.payInvoice(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
-    },
-  });
-}

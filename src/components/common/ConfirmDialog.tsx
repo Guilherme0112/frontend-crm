@@ -43,8 +43,21 @@ export function ConfirmDialog({
           </Alert>
         )}
 
-        <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end', pt: 0.5 }}>
-          <Button variant="outlined" color="inherit" onClick={onClose} disabled={isPending}>
+        {/* O Modal vira fullScreen abaixo de sm. Lado a lado, rótulos longos
+            ("Confirmar cancelamento") espremem os dois botões; no celular eles
+            empilham em largura cheia, como o rodapé dos modais de disparo. */}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          sx={{ justifyContent: 'flex-end', pt: 0.5 }}
+        >
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={onClose}
+            disabled={isPending}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
             {cancelLabel}
           </Button>
 
@@ -52,6 +65,7 @@ export function ConfirmDialog({
             color={variant === 'danger' ? 'error' : undefined}
             onClick={onConfirm}
             disabled={isPending}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             {isPending ? 'Processando...' : confirmLabel}
           </ActionButton>

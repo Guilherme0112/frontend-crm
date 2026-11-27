@@ -23,6 +23,7 @@ import {
   Sun,
 } from 'lucide-react';
 import { useAuth } from '@/src/auth/AuthContext';
+import type { UserRole } from '@/src/lib/types';
 import { LogoMark } from '@/src/components/common/LogoMark';
 import { getInitials } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
@@ -33,7 +34,16 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   end?: boolean;
+  /**
+   * Quando presente, o item só aparece para estes papéis.
+   *
+   * É espelho da autorização da API (`permission:reports`), não substituto dela:
+   * esconder o link evita que o usuário bata num 403, mas quem protege o dado é
+   * o backend. Mudar um aqui exige mudar o outro.
+   */
+  roles?: UserRole[];
 }
+
 
 const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
@@ -78,16 +88,21 @@ function getPageTitle(pathname: string): string {
   if (/^\/crms\/\d+\/integration/.test(pathname)) return 'Integração pública';
   if (/^\/crms\/\d+\/audit/.test(pathname)) return 'Auditoria de mudanças';
   if (/^\/crms\/\d+\/dashboard/.test(pathname)) return 'Visão geral';
+  if (/^\/leads\/\d+\/history/.test(pathname)) return 'Histórico do Lead';
   if (/^\/leads\/\d+/.test(pathname)) return 'Detalhes do Lead';
   if (pathname === '/agenda') return 'Agenda';
   if (pathname === '/sending-templates') return 'Templates de E-mail';
+  if (pathname === '/disparos/dashboard') return 'Saúde dos disparos';
   if (pathname === '/groups' || pathname === '/disparos') return 'Disparos';
   if (pathname === '/email-configs') return 'Configuração de e-mail';
   if (pathname === '/whatsapp-senders') return 'Configurar WhatsApp';
   if (pathname === '/whatsapp-templates') return 'Templates WhatsApp';
+  if (pathname === '/whatsapp-unofficial-instances') return 'WhatsApp Não Oficial';
+  if (pathname === '/whatsapp-unofficial-templates') return 'Templates WhatsApp Não Oficial';
   if (pathname === '/billing') return 'Planos e Assinatura';
   if (pathname === '/invoices') return 'Faturas';
   if (pathname === '/company') return 'Empresa';
+  if (pathname === '/team/dashboard') return 'Dashboard do time';
   if (pathname === '/team') return 'Equipe';
   if (pathname === '/profile') return 'Meu Perfil';
   return 'SaldUp CRM';
@@ -100,6 +115,14 @@ export function AppLayout() {
   const sidebarRef = useRef<HTMLElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const { user, company, logout } = useAuth();
+
+  // Sem papel conhecido, mostra só o que todo mundo pode ver: errar para o
+  // lado de esconder é melhor que oferecer um link que devolve 403.
+  const role = user?.role;
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.roles || (role ? item.roles.includes(role) : false)),
+  })).filter((group) => group.items.length > 0);
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const pageTitle = getPageTitle(location.pathname);
@@ -220,7 +243,7 @@ export function AppLayout() {
         )}
         aria-label="Navegação principal"
       >
-        {NAV_GROUPS.map((group) => (
+        {visibleGroups.map((group) => (
           <div key={group.title} className={collapsed ? 'flex flex-col items-center' : ''}>
             {!collapsed && (
               <p className="eyebrow px-3 text-zinc-400 dark:text-zinc-500">

@@ -4,6 +4,8 @@ import { AppLayout } from '@/src/components/layout/AppLayout';
 import { LoginPage } from '@/src/features/auth/LoginPage';
 import { RegisterPage } from '@/src/features/auth/RegisterPage';
 import { DashboardPage } from '@/src/features/dashboard/DashboardPage';
+import { DispatchHealthPage } from '@/src/features/dashboards/DispatchHealthPage';
+import { TeamDashboardPage } from '@/src/features/dashboards/TeamDashboardPage';
 import { CrmsPage } from '@/src/features/crm/CrmsPage';
 import { CrmBoardPage } from '@/src/features/crm/CrmBoardPage';
 import { IntegrationPage } from '@/src/features/crm-integration/IntegrationPage';
@@ -37,6 +39,12 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          {/* Fundido com a Visão Geral; o redirect mantém link antigo vivo. */}
+          <Route path="/meu-dia" element={<Navigate to="/" replace />} />
+          <Route path="/disparos/dashboard" element={<DispatchHealthPage />} />
+          <Route path="/team/dashboard" element={<TeamDashboardPage />} />
+          <Route path="/dashboards/disparos" element={<Navigate to="/disparos/dashboard" replace />} />
+          <Route path="/dashboards/time" element={<Navigate to="/team/dashboard" replace />} />
           <Route path="/crms" element={<CrmsPage />} />
           <Route path="/crms/dashboard" element={<CrmsOverviewPage />} />
           <Route path="/crms/:id/board" element={<CrmBoardPage />} />

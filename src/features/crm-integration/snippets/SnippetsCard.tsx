@@ -264,7 +264,7 @@ export function SnippetsCard({ crm, enabled }: SnippetsCardProps) {
   return (
     <section
       aria-labelledby="snippets-section-title"
-      className="relative overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
+      className="relative overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white p-4 shadow-sm sm:p-5 dark:border-white/[0.07] dark:bg-[#17171a]"
     >
       <h2
         id="snippets-section-title"
@@ -431,7 +431,7 @@ export function SnippetsCard({ crm, enabled }: SnippetsCardProps) {
       </div>
 
       {!enabled && (
-        <div className="absolute inset-x-5 top-24 bottom-5 flex items-center justify-center">
+        <div className="absolute inset-x-4 top-24 bottom-4 flex items-center justify-center sm:inset-x-5 sm:bottom-5">
           <div className="flex max-w-sm flex-col items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/95 px-5 py-4 text-center shadow-lg backdrop-blur-sm dark:border-amber-900/60 dark:bg-amber-950/80">
             <TriangleAlert className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             <p className="text-[13px] font-medium leading-snug text-amber-900 dark:text-amber-200">

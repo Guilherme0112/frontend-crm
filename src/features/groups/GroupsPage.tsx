@@ -10,7 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, History, Mail, Pencil, Plus, Settings, Trash2, Users, UsersRound } from 'lucide-react';
+import { Activity, ArrowLeft, History, Mail, Pencil, Plus, Settings, Trash2, Users, UsersRound } from 'lucide-react';
 import {
   useCreateGroupMutation,
   useDeleteGroupMutation,
@@ -18,6 +18,8 @@ import {
   useUpdateGroupMutation,
 } from './hooks';
 import { Modal } from '@/src/components/common/Modal';
+import { useAuth } from '@/src/auth/AuthContext';
+import { canViewReports } from '@/src/lib/permissions';
 import { ConfirmDialog } from '@/src/components/common/ConfirmDialog';
 import { FormField } from '@/src/components/common/FormField';
 import { Pagination } from '@/src/components/common/Pagination';
@@ -28,6 +30,7 @@ import { useToast } from '@/src/components/common/Toast';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { formatDate } from '@/src/lib/format';
 import type { Group } from '@/src/lib/types';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const groupSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do grupo'),
@@ -38,6 +41,7 @@ type GroupFormValues = z.infer<typeof groupSchema>;
 
 export function GroupsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const groupsQuery = useGroupsQuery(page);
@@ -131,32 +135,39 @@ export function GroupsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Comunicação</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Disparos
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Gerencie grupos de leads para envio em massa e dispare campanhas por e-mail ou WhatsApp.
-          </p>
-        </div>
-
-        <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <Button variant="outlined" color="inherit" onClick={() => { setConfigView('channels'); setConfigModalOpen(true); }} startIcon={<Settings className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            Configurar
-          </Button>
-          <ActionButton
-            type="button"
-            onClick={openCreateModal}
-            className="whitespace-nowrap"
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-            startIcon={<Plus className="h-4 w-4" />}
-          >
-            Novo grupo
-          </ActionButton>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Comunicação"
+        title="Disparos"
+        description="Gerencie grupos de leads para envio em massa e dispare campanhas por e-mail ou WhatsApp."
+        actions={
+          <>
+            {canViewReports(user?.role) && (
+              <Button
+                component={Link}
+                to="/disparos/dashboard"
+                variant="outlined"
+                color="inherit"
+                startIcon={<Activity className="h-4 w-4" />}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              >
+                Dashboard
+              </Button>
+            )}
+            <Button variant="outlined" color="inherit" onClick={() => { setConfigView('channels'); setConfigModalOpen(true); }} startIcon={<Settings className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+              Configurar
+            </Button>
+            <ActionButton
+              type="button"
+              onClick={openCreateModal}
+              className="whitespace-nowrap"
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+              startIcon={<Plus className="h-4 w-4" />}
+            >
+              Novo grupo
+            </ActionButton>
+          </>
+        }
+      />
 
       {!groupsQuery.isPending && !groupsQuery.isError && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-950/[0.06] pb-3 dark:border-white/[0.06]">

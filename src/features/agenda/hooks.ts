@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
+import { invalidateDashboards } from '@/src/lib/invalidateDashboards';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useToast } from '@/src/components/common/Toast';
 import { useLeadsPaginatedQuery } from '@/src/features/leads/hooks';
@@ -15,6 +16,8 @@ import type {
 
 function invalidateAgenda(queryClient: QueryClient, leadId?: number | null): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.agenda.all });
+  // A agenda de hoje e os compromissos sem desfecho vivem na página inicial.
+  invalidateDashboards(queryClient);
   if (leadId) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.leads.history(leadId) });
   }

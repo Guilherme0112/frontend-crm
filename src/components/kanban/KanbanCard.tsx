@@ -6,7 +6,7 @@ import { cn } from '@/src/lib/cn';
 interface KanbanCardProps {
   lead: Lead;
   isDragging?: boolean;
-  onDragStart: (e: DragEvent<HTMLDivElement>, leadId: number) => void;
+  onDragStart: (e: DragEvent<HTMLDivElement>, leadId: number, leadName: string) => void;
   onDragEnd: () => void;
   onSelect: (leadId: number) => void;
 }
@@ -21,7 +21,7 @@ export function KanbanCard({
   return (
     <div
       draggable
-      onDragStart={(e) => onDragStart(e, lead.id)}
+      onDragStart={(e) => onDragStart(e, lead.id, lead.name)}
       onDragEnd={onDragEnd}
       onClick={() => onSelect(lead.id)}
       role="button"

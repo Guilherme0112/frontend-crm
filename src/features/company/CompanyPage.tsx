@@ -19,6 +19,7 @@ import {
   addressToPayload,
   emptyAddressValues,
 } from '@/src/lib/address';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const companySchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome da empresa'),
@@ -106,13 +107,19 @@ export function CompanyPage() {
 
   if (companyQuery.isPending) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="space-y-6">
         <Skeleton className="h-9 w-56" />
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-10 w-full" />
+          <div className="grid items-start gap-6 xl:grid-cols-2">
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
           </div>
         </div>
       </div>
@@ -130,230 +137,235 @@ export function CompanyPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Empresa
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Mantenha os dados cadastrais e o endereço da sua organização atualizados.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Configurações"
+        title="Empresa"
+        description="Mantenha os dados cadastrais e o endereço da sua organização atualizados."
+      />
 
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="space-y-6 rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]"
         noValidate
       >
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-950/[0.07] pb-2 dark:border-white/[0.07]">
-            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              Informações gerais
+        {/*
+          Duas colunas a partir de `xl`. A tela deixou de ter largura máxima, e
+          sem isso um campo como "Nome da empresa" se esticaria por 1500px num
+          monitor grande — largura usada por espaço vazio, não por conteúdo.
+          `items-start` impede que a coluna curta acompanhe a altura da longa.
+        */}
+        <div className="grid items-start gap-6 xl:grid-cols-2">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-950/[0.07] pb-2 dark:border-white/[0.07]">
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                Informações gerais
+              </h2>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label="Nome da empresa"
+                htmlFor="comp-name"
+                required
+                error={errors.name?.message}
+                className="sm:col-span-2"
+              >
+                <TextInput
+                  id="comp-name"
+                  limit={255}
+                  type="text"
+                  {...register('name')}
+                />
+              </FormField>
+
+              <FormField
+                label="CNPJ / CPF"
+                htmlFor="comp-document"
+                error={errors.document_number?.message}
+                hint={errors.document_number ? undefined : ''}
+              >
+                <Controller
+                  name="document_number"
+                  control={control}
+                  render={({ field }) => (
+                    <TextInput
+                      id="comp-document"
+                      limit={18}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00.000.000/0000-00"
+                      className={`${inputClassName(Boolean(errors.document_number))} font-mono tabular-nums`}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+              </FormField>
+
+              <FormField label="Site" htmlFor="comp-website" error={errors.website?.message}>
+                <TextInput
+                  id="comp-website"
+                  limit={512}
+                  type="url"
+                  placeholder="https://empresa.com.br"
+                  {...register('website')}
+                />
+              </FormField>
+
+              <FormField
+                label="Descrição"
+                htmlFor="comp-desc"
+                error={errors.description?.message}
+                className="sm:col-span-2"
+              >
+                <TextArea
+                  id="comp-desc"
+                  limit={5000}
+                  rows={3}
+                  {...register('description')}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="border-b border-zinc-950/[0.07] pb-2 text-sm font-semibold text-zinc-900 dark:border-white/[0.07] dark:text-zinc-100">
+              Endereço
             </h2>
-          </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              label="Nome da empresa"
-              htmlFor="comp-name"
-              required
-              error={errors.name?.message}
-              className="sm:col-span-2"
-            >
-              <TextInput
-                id="comp-name"
-                limit={255}
-                type="text"
-                {...register('name')}
-              />
-            </FormField>
+            <div className="grid gap-4 sm:grid-cols-6">
+              <FormField
+                label="CEP"
+                htmlFor="addr-zip"
+                error={errors.address?.zip_code?.message}
+                className="sm:col-span-2"
+              >
+                <Controller
+                  control={control}
+                  name="address.zip_code"
+                  render={({ field }) => (
+                    <TextInput
+                      id="addr-zip"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="00000-000"
+                      className={`${inputClassName(Boolean(errors.address?.zip_code))} font-mono tabular-nums`}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(maskZipCode(e.target.value))}
+                      onBlur={field.onBlur}
+                    />
+                  )}
+                />
+              </FormField>
 
-            <FormField
-              label="CNPJ / CPF"
-              htmlFor="comp-document"
-              error={errors.document_number?.message}
-              hint={errors.document_number ? undefined : ''}
-            >
-              <Controller
-                name="document_number"
-                control={control}
-                render={({ field }) => (
-                  <TextInput
-                    id="comp-document"
-                    limit={18}
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="00.000.000/0000-00"
-                    className={`${inputClassName(Boolean(errors.document_number))} font-mono tabular-nums`}
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(maskCpfCnpj(e.target.value))}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </FormField>
+              <FormField
+                label="Logradouro"
+                htmlFor="addr-street"
+                error={errors.address?.street?.message}
+                className="sm:col-span-4"
+              >
+                <TextInput
+                  id="addr-street"
+                  type="text"
+                  limit={255}
+                  placeholder="Av. Paulista"
+                  {...register('address.street')}
+                />
+              </FormField>
 
-            <FormField label="Site" htmlFor="comp-website" error={errors.website?.message}>
-              <TextInput
-                id="comp-website"
-                limit={512}
-                type="url"
-                placeholder="https://empresa.com.br"
-                {...register('website')}
-              />
-            </FormField>
+              <FormField
+                label="Número"
+                htmlFor="addr-number"
+                error={errors.address?.number?.message}
+                className="sm:col-span-2"
+              >
+                <TextInput
+                  id="addr-number"
+                  type="text"
+                  limit={20}
+                  placeholder="1000"
+                  {...register('address.number')}
+                />
+              </FormField>
 
-            <FormField
-              label="Descrição"
-              htmlFor="comp-desc"
-              error={errors.description?.message}
-              className="sm:col-span-2"
-            >
-              <TextArea
-                id="comp-desc"
-                limit={5000}
-                rows={3}
-                {...register('description')}
-              />
-            </FormField>
-          </div>
-        </div>
+              <FormField
+                label="Complemento"
+                htmlFor="addr-complement"
+                error={errors.address?.complement?.message}
+                className="sm:col-span-2"
+              >
+                <TextInput
+                  id="addr-complement"
+                  type="text"
+                  limit={255}
+                  placeholder="Sala 12"
+                  {...register('address.complement')}
+                />
+              </FormField>
 
-        <div className="space-y-4">
-          <h2 className="border-b border-zinc-950/[0.07] pb-2 text-sm font-semibold text-zinc-900 dark:border-white/[0.07] dark:text-zinc-100">
-            Endereço
-          </h2>
+              <FormField
+                label="Bairro"
+                htmlFor="addr-neighborhood"
+                error={errors.address?.neighborhood?.message}
+                className="sm:col-span-4"
+              >
+                <TextInput
+                  id="addr-neighborhood"
+                  type="text"
+                  limit={255}
+                  placeholder="Bela Vista"
+                  {...register('address.neighborhood')}
+                />
+              </FormField>
 
-          <div className="grid gap-4 sm:grid-cols-6">
-            <FormField
-              label="CEP"
-              htmlFor="addr-zip"
-              error={errors.address?.zip_code?.message}
-              className="sm:col-span-2"
-            >
-              <Controller
-                control={control}
-                name="address.zip_code"
-                render={({ field }) => (
-                  <TextInput
-                    id="addr-zip"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="00000-000"
-                    className={`${inputClassName(Boolean(errors.address?.zip_code))} font-mono tabular-nums`}
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(maskZipCode(e.target.value))}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              />
-            </FormField>
+              <FormField
+                label="Cidade"
+                htmlFor="addr-city"
+                error={errors.address?.city?.message}
+                className="sm:col-span-3"
+              >
+                <TextInput
+                  id="addr-city"
+                  type="text"
+                  limit={255}
+                  placeholder="São Paulo"
+                  {...register('address.city')}
+                />
+              </FormField>
 
-            <FormField
-              label="Logradouro"
-              htmlFor="addr-street"
-              error={errors.address?.street?.message}
-              className="sm:col-span-4"
-            >
-              <TextInput
-                id="addr-street"
-                type="text"
-                limit={255}
-                placeholder="Av. Paulista"
-                {...register('address.street')}
-              />
-            </FormField>
+              <FormField
+                label="UF"
+                htmlFor="addr-state"
+                error={errors.address?.state?.message}
+                className="sm:col-span-1"
+              >
+                <TextInput
+                  id="addr-state"
+                  type="text"
+                  limit={2}
+                  placeholder="SP"
+                  className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
+                  {...register('address.state')}
+                />
+              </FormField>
 
-            <FormField
-              label="Número"
-              htmlFor="addr-number"
-              error={errors.address?.number?.message}
-              className="sm:col-span-2"
-            >
-              <TextInput
-                id="addr-number"
-                type="text"
-                limit={20}
-                placeholder="1000"
-                {...register('address.number')}
-              />
-            </FormField>
-
-            <FormField
-              label="Complemento"
-              htmlFor="addr-complement"
-              error={errors.address?.complement?.message}
-              className="sm:col-span-2"
-            >
-              <TextInput
-                id="addr-complement"
-                type="text"
-                limit={255}
-                placeholder="Sala 12"
-                {...register('address.complement')}
-              />
-            </FormField>
-
-            <FormField
-              label="Bairro"
-              htmlFor="addr-neighborhood"
-              error={errors.address?.neighborhood?.message}
-              className="sm:col-span-4"
-            >
-              <TextInput
-                id="addr-neighborhood"
-                type="text"
-                limit={255}
-                placeholder="Bela Vista"
-                {...register('address.neighborhood')}
-              />
-            </FormField>
-
-            <FormField
-              label="Cidade"
-              htmlFor="addr-city"
-              error={errors.address?.city?.message}
-              className="sm:col-span-3"
-            >
-              <TextInput
-                id="addr-city"
-                type="text"
-                limit={255}
-                placeholder="São Paulo"
-                {...register('address.city')}
-              />
-            </FormField>
-
-            <FormField
-              label="UF"
-              htmlFor="addr-state"
-              error={errors.address?.state?.message}
-              className="sm:col-span-1"
-            >
-              <TextInput
-                id="addr-state"
-                type="text"
-                limit={2}
-                placeholder="SP"
-                className={`${inputClassName(Boolean(errors.address?.state))} uppercase`}
-                {...register('address.state')}
-              />
-            </FormField>
-
-            <FormField
-              label="País"
-              htmlFor="addr-country"
-              error={errors.address?.country?.message}
-              className="sm:col-span-2"
-            >
-              <TextInput
-                id="addr-country"
-                type="text"
-                limit={100}
-                placeholder="Brasil"
-                {...register('address.country')}
-              />
-            </FormField>
+              <FormField
+                label="País"
+                htmlFor="addr-country"
+                error={errors.address?.country?.message}
+                className="sm:col-span-2"
+              >
+                <TextInput
+                  id="addr-country"
+                  type="text"
+                  limit={100}
+                  placeholder="Brasil"
+                  {...register('address.country')}
+                />
+              </FormField>
+            </div>
           </div>
         </div>
 

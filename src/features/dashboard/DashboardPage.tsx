@@ -6,6 +6,7 @@ import { queryKeys } from '@/src/lib/queryKeys';
 import { formatCurrency, formatDate, formatDateTime } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
 import { useAuth } from '@/src/auth/AuthContext';
+import { MyDaySections } from '@/src/features/dashboards/MyDaySections';
 import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { EmptyState } from '@/src/components/common/EmptyState';
@@ -14,6 +15,8 @@ import {
   getInvoiceStatusMeta,
   getSubscriptionStatusMeta,
 } from '@/src/components/common/StatusBadge';
+import { PageHeader } from '@/src/components/layout/PageHeader';
+import { MetricHelp } from '@/src/components/dashboards/MetricHelp';
 
 const SOURCE_META: Record<string, { label: string; className: string }> = {
   manual: {
@@ -72,30 +75,33 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Olá, {user?.name?.split(' ')[0] || 'bem-vindo'}
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Resumo operacional e financeiro de {company?.name || 'sua empresa'}.
-          </p>
-        </div>
-        <Link
-          to="/crms"
-          className="btn-saldup inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium sm:w-auto sm:shrink-0"
-        >
-          <span>Abrir CRMs</span>
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Início"
+        title={`Olá, ${user?.name?.split(' ')[0] || 'bem-vindo'}`}
+        description={`Resumo operacional e financeiro de ${company?.name || 'sua empresa'}.`}
+        actions={
+          <Link
+            to="/crms"
+            className="btn-saldup inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium sm:w-auto"
+          >
+            <span>Abrir CRMs</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        }
+      />
 
       {/* Metric strip */}
       <section aria-label="Indicadores principais">
         <div className="grid divide-y divide-zinc-950/[0.07] overflow-hidden rounded-xl border border-zinc-950/[0.07] bg-white sm:grid-cols-2 sm:divide-x sm:divide-y-0 dark:divide-white/[0.07] dark:border-white/[0.07] dark:bg-[#17171a]">
           <div className="p-5">
             <div className="flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              <span>Leads criados</span>
+              <span className="flex items-center gap-1.5">
+                Leads criados
+                <MetricHelp label="Leads criados">
+                  Leads cadastrados na janela, somando <strong>todos</strong> os seus pipelines.
+                  Conta pela data de criação: lead antigo que você moveu hoje não aparece aqui.
+                </MetricHelp>
+              </span>
               <Users className="h-4 w-4 text-zinc-400" />
             </div>
             {isLoading ? (
@@ -112,7 +118,14 @@ export function DashboardPage() {
 
           <div className="p-5">
             <div className="flex items-center justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              <span>Assinatura</span>
+              <span className="flex items-center gap-1.5">
+                Assinatura
+                <MetricHelp label="Assinatura">
+                  O plano vigente da empresa e o estado da cobrança. Em carência (past_due) o
+                  acesso continua enquanto o Mercado Pago retenta o cartão — vencida a carência,
+                  as telas travam.
+                </MetricHelp>
+              </span>
               <CreditCard className="h-4 w-4 text-zinc-400" />
             </div>
             {isLoading ? (
@@ -151,6 +164,13 @@ export function DashboardPage() {
         </div>
       </section>
 
+      {/*
+        "Meu dia" era uma página separada. Virou seção daqui porque as duas
+        respondiam à mesma pergunta — "o que eu faço agora?" — e exigiam dois
+        cliques para a resposta inteira.
+      */}
+      <MyDaySections />
+
       {/* Two-column operational overview */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Últimos 5 leads */}
@@ -162,9 +182,17 @@ export function DashboardPage() {
                 Últimos leads
               </h2>
             </div>
-            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              Últimos 5
-            </span>
+            {/*
+              Não existe página de "todos os leads": eles vivem dentro dos
+              quadros. O link leva ao quadro do CRM do lead mais recente, que é
+              de onde esta lista está vindo.
+            */}
+            <Link
+              to={recentLeads[0] ? `/crms/${recentLeads[0].crm_id}/board` : '/crms'}
+              className="shrink-0 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Ver mais
+            </Link>
           </div>
           {isLoading ? (
             <div className="space-y-3 p-4 sm:p-5">
@@ -235,9 +263,16 @@ export function DashboardPage() {
                 Auditoria
               </h2>
             </div>
-            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              Últimas 5
-            </span>
+            {/*
+              A auditoria é por CRM, não global: o link vai para a do CRM da
+              movimentação mais recente. Sem nenhuma, cai na lista de CRMs.
+            */}
+            <Link
+              to={recentAudit[0]?.crm_id ? `/crms/${recentAudit[0].crm_id}/audit` : '/crms'}
+              className="shrink-0 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Ver mais
+            </Link>
           </div>
           {isLoading ? (
             <div className="space-y-3 p-4 sm:p-5">
@@ -315,7 +350,7 @@ export function DashboardPage() {
               to="/crms"
               className="shrink-0 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
             >
-              Ver todos
+              Ver mais
             </Link>
           </div>
           {isLoading ? (
@@ -383,7 +418,7 @@ export function DashboardPage() {
               Faturas recentes
             </h2>
             <Link to="/invoices" className="shrink-0 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">
-              Ver todas
+              Ver mais
             </Link>
           </div>
           {isLoading ? (
@@ -409,16 +444,22 @@ export function DashboardPage() {
               {invoices.map((invoice) => {
                 const statusMeta = getInvoiceStatusMeta(invoice.status);
                 return (
-                  <li key={invoice.id} className="flex flex-col items-start gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
-                    <div className="min-w-0">
-                      <p className="font-mono text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                        {formatCurrency(invoice.amount, invoice.currency)}
-                      </p>
-                      <p className="mt-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
-                        Vencimento {formatDate(invoice.due_date)}
-                      </p>
-                    </div>
-                    <StatusIndicator {...statusMeta} />
+                  <li key={invoice.id}>
+                    {/* Era a única lista da página que não levava a lugar nenhum. */}
+                    <Link
+                      to="/invoices"
+                      className="flex flex-col items-start gap-2 px-4 py-3.5 transition-colors hover:bg-zinc-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 dark:hover:bg-white/[0.04]"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-mono text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                          {formatCurrency(invoice.amount, invoice.currency)}
+                        </p>
+                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                          Vencimento {formatDate(invoice.due_date)}
+                        </p>
+                      </div>
+                      <StatusIndicator {...statusMeta} />
+                    </Link>
                   </li>
                 );
               })}

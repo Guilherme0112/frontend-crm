@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   BarChart3,
   ChevronRight,
   Inbox,
@@ -19,7 +18,9 @@ import { ErrorState } from '@/src/components/common/ErrorState';
 import { EmptyState } from '@/src/components/common/EmptyState';
 import { formatDate } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
+import { MetricHelp } from '@/src/components/dashboards/MetricHelp';
 import { DeviceBreakdown } from './DeviceBreakdown';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const STEP_TINTS = [
   'bg-sky-500',
@@ -36,11 +37,13 @@ function StatTile({
   value,
   icon: Icon,
   tint,
+  help,
 }: {
   label: string;
   value: string;
   icon: typeof BarChart3;
   tint: string;
+  help: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-zinc-950/[0.07] bg-white p-4 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
@@ -48,8 +51,9 @@ function StatTile({
         <Icon className="h-5 w-5" strokeWidth={1.8} />
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-          {label}
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+          <span className="min-w-0 truncate">{label}</span>
+          <MetricHelp label={label}>{help}</MetricHelp>
         </p>
         <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-zinc-950 dark:text-zinc-50">
           {value}
@@ -195,34 +199,12 @@ export function CrmsOverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav aria-label="Caminho" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
-        <Link to="/crms" className="transition-colors hover:text-zinc-700 dark:hover:text-zinc-200">
-          Todos os CRMs
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-zinc-600 dark:text-zinc-300">Dashboard geral</span>
-      </nav>
-
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Visão geral · 30 dias</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Todos os CRMs — número de verdade, lado a lado
-          </h1>
-          <p className="mt-1 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
-            Consolidando {rows.length} {rows.length === 1 ? 'CRM' : 'CRMs'}: volume de leads, movimentação, funil distribuído e de onde cada um vem.
-          </p>
-        </div>
-        <Link
-          to="/crms"
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para CRMs
-        </Link>
-      </div>
+      <PageHeader
+        trail={[{ to: '/crms', label: 'Todos os CRMs' }, { label: 'Dashboard geral' }]}
+        eyebrow="Visão geral · 30 dias"
+        title="Todos os CRMs — número de verdade, lado a lado"
+        description={`Consolidando ${rows.length} ${rows.length === 1 ? 'CRM' : 'CRMs'}: volume de leads, movimentação, funil distribuído e de onde cada um vem.`}
+      />
 
       {/* Stat tiles */}
       <section aria-label="Resumo consolidado" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -232,24 +214,28 @@ export function CrmsOverviewPage() {
             value: comparison ? String(comparison.totals.leads_last_30_days) : '—',
             icon: UsersRound,
             tint: 'bg-blue-50 text-blue-600 ring-blue-600/15 dark:bg-blue-950/50 dark:text-blue-400 dark:ring-blue-400/15',
+            help: 'Leads criados nos últimos 30 dias somando todos os pipelines. É volume de entrada, não resultado — nada aqui diz o que foi ganho.',
           },
           {
             label: 'Movimentos (30 dias)',
             value: comparison ? String(comparison.totals.step_changes_last_30_days) : '—',
             icon: MoveHorizontal,
             tint: 'bg-violet-50 text-violet-600 ring-violet-600/15 dark:bg-violet-950/50 dark:text-violet-400 dark:ring-violet-400/15',
+            help: 'Quantas vezes um lead trocou de etapa nos últimos 30 dias, em todos os pipelines. Mede movimento, não progresso: voltar um lead para trás também conta.',
           },
           {
             label: 'CRMs com movimento',
             value: comparisonQuery.isPending ? '—' : String(activeCrms),
             icon: BarChart3,
             tint: 'bg-emerald-50 text-emerald-600 ring-emerald-600/15 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-400/15',
+            help: 'Quantos pipelines tiveram pelo menos uma movimentação no período. Pipeline parado aqui costuma ser pipeline abandonado — ou que alguém usa fora do sistema.',
           },
           {
             label: 'Leads com atribuição',
             value: sourcesQuery.isPending ? '—' : String(sources?.total_attributed_leads ?? 0),
             icon: MapPin,
             tint: 'bg-amber-50 text-amber-600 ring-amber-600/15 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-400/15',
+            help: 'Leads que chegaram com origem registrada (utm_source), de toda a empresa. Compare com o total de leads: a diferença é quanto da captação você não consegue atribuir a canal nenhum.',
           },
         ].map((stat) => (
           <StatTile key={stat.label} {...stat} />
@@ -270,9 +256,16 @@ export function CrmsOverviewPage() {
           aria-labelledby="consolidated-sources-title"
           className="rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
         >
-          <h2 id="consolidated-sources-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-            Fontes consolidadas (todos os CRMs · 30 dias)
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 id="consolidated-sources-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
+              Fontes consolidadas (todos os CRMs · 30 dias)
+            </h2>
+            <MetricHelp label="Fontes consolidadas (todos os CRMs · 30 dias)">
+              De onde vieram os leads criados nos últimos 30 dias, somando todos os
+              pipelines. Usa a mesma regra do gráfico por CRM: lead sem utm_source cai em
+              "(não informado)" em vez de sumir da conta.
+            </MetricHelp>
+          </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {comparison.sources_last_30_days.map((row) => {
               const pct = Math.round((row.leads / maxConsolidated) * 100);
@@ -312,9 +305,17 @@ export function CrmsOverviewPage() {
         className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
       >
         <div className="border-b border-zinc-950/[0.06] px-5 py-3.5 dark:border-white/[0.06]">
-          <h2 id="crms-comparison-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-            Comparativo por CRM
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 id="crms-comparison-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
+              Comparativo por CRM
+            </h2>
+            <MetricHelp label="Comparativo por CRM">
+              Os mesmos números lado a lado, por pipeline. Serve para achar o que está fora
+              da curva — um pipeline com muita entrada e pouco movimento, por exemplo. Não
+              compare valores absolutos entre pipelines de tamanhos diferentes sem olhar o
+              volume de entrada de cada um.
+            </MetricHelp>
+          </div>
         </div>
 
         {comparisonQuery.isPending ? (
@@ -443,6 +444,12 @@ export function CrmsOverviewPage() {
             <h2 id="sources-section-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
               Fontes de leads (histórico)
             </h2>
+            <MetricHelp label="Fontes de leads (histórico)">
+              Acumulado desde sempre, sem recorte de 30 dias — por isso não bate com o bloco
+              de fontes consolidadas acima. Este relatório conta só lead <strong>com</strong>
+              origem preenchida; a diferença para o total de leads é a captação que você não
+              consegue atribuir.
+            </MetricHelp>
           </div>
           <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
             {sourcesQuery.isPending ? '…' : `${sources?.total_attributed_leads ?? 0} com atribuição`}

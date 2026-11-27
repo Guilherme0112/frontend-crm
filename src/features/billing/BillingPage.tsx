@@ -16,6 +16,7 @@ import {
   useSyncSubscriptionMutation,
 } from './hooks';
 import { useUsersQuery } from '@/src/features/team/hooks';
+import { useCrmsInfiniteQuery } from '@/src/features/crm/hooks';
 import { Pagination } from '@/src/components/common/Pagination';
 import { useClientPagination } from '@/src/lib/useClientPagination';
 import { Modal } from '@/src/components/common/Modal';
@@ -35,6 +36,7 @@ import type {
   PlanLimits,
   Subscription,
 } from '@/src/lib/types';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 
 
@@ -88,8 +90,8 @@ function planFeatures(limits: PlanLimits): PlanFeature[] {
       included: true,
     },
     {
-      // O teto de usuários é o único que o plano pago também tem — por isso é
-      // sempre um número, nunca "ilimitado".
+      // Usuários e pipelines têm teto também no plano pago (só os leads são
+      // ilimitados nele), então aqui costuma sair um número, não "ilimitado".
       label: describeQuota(limits.max_users, 'Usuários ilimitados', 'usuário', 'usuários'),
       included: true,
     },
@@ -254,6 +256,10 @@ export function BillingPage() {
   // `GET /users` não exige permissão, então vale para qualquer usuário logado.
   const usersQuery = useUsersQuery();
   const userCount = usersQuery.data?.data.length ?? null;
+  // Mesma ideia para pipelines: `GET /crms` devolve a lista inteira, sem
+  // paginação, então `total` já é a contagem da empresa.
+  const crmsQuery = useCrmsInfiniteQuery();
+  const crmCount = crmsQuery.isSuccess ? crmsQuery.total : null;
   // `undefined` (plano sem o campo) e `null` (ilimitado) significam "sem teto a
   // mostrar"; só um número vira contador.
   const userQuota = currentPlan?.limits?.max_users ?? null;
@@ -416,23 +422,19 @@ export function BillingPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Planos e Assinatura
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Gerencie seu plano contratado, o histórico de assinaturas e suas faturas.
-          </p>
-        </div>
-
-        <Link
-          to="/invoices"
-          className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-        >
-          Ver faturas
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Financeiro"
+        title="Planos e Assinatura"
+        description="Gerencie seu plano contratado, o histórico de assinaturas e suas faturas."
+        actions={
+          <Link
+            to="/invoices"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+          >
+            Ver faturas
+          </Link>
+        }
+      />
 
       {/* Active Subscription */}
       <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
@@ -799,6 +801,24 @@ export function BillingPage() {
                 </div>
               )}
 
+            {/* Mesmo aviso para pipelines: o Basic tem teto, e quem já passou
+                dele continua com todas, mas não cria a próxima. */}
+            {selectedPlanToSubscribe.limits?.max_crms != null &&
+              crmCount !== null &&
+              crmCount > selectedPlanToSubscribe.limits.max_crms && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Sua empresa tem {crmCount} pipelines e este plano permite{' '}
+                    {selectedPlanToSubscribe.limits.max_crms}. Nenhuma é removida, mas você não
+                    poderá criar novas pipelines até ficar dentro do limite.
+                  </span>
+                </div>
+              )}
+
             {isFreePlan(selectedPlanToSubscribe) ? (
               <>
                 <div className="flex items-start gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
@@ -819,11 +839,20 @@ export function BillingPage() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                  <Button variant="outlined" color="inherit" onClick={closeSubscribeModal}>
+                <div className="flex flex-col gap-3 border-t border-zinc-950/[0.07] pt-4 sm:flex-row sm:justify-end dark:border-white/[0.07]">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={closeSubscribeModal}
+                    sx={{ width: { xs: '100%', sm: 'auto' } }}
+                  >
                     Cancelar
                   </Button>
-                  <ActionButton onClick={() => void handleConfirmSubscribe()} disabled={createCheckoutMutation.isPending}>
+                  <ActionButton
+                    onClick={() => void handleConfirmSubscribe()}
+                    disabled={createCheckoutMutation.isPending}
+                    sx={{ width: { xs: '100%', sm: 'auto' } }}
+                  >
                     {createCheckoutMutation.isPending ? 'Ativando...' : 'Ativar plano'}
                   </ActionButton>
                 </div>
@@ -861,15 +890,24 @@ export function BillingPage() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-                  <Button variant="outlined" color="inherit" onClick={closeSubscribeModal}>
+                <div className="flex flex-col gap-3 border-t border-zinc-950/[0.07] pt-4 sm:flex-row sm:justify-end dark:border-white/[0.07]">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={closeSubscribeModal}
+                    sx={{ width: { xs: '100%', sm: 'auto' } }}
+                  >
                     Cancelar
                   </Button>
 
                   {/* O Brick tem o próprio botão de envio. Este só aparece quando
                       não há cartão a digitar: troca de plano, ou redirect. */}
                   {(isOnPaidPlan || !canUseCardForm) && (
-                    <ActionButton onClick={() => void handleConfirmSubscribe()} disabled={isSubscribePending}>
+                    <ActionButton
+                      onClick={() => void handleConfirmSubscribe()}
+                      disabled={isSubscribePending}
+                      sx={{ width: { xs: '100%', sm: 'auto' } }}
+                    >
                       {isSubscribePending
                         ? 'Processando...'
                         : isOnPaidPlan

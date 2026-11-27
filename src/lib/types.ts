@@ -31,10 +31,14 @@ export interface Company {
   updated_at?: string;
 }
 
+export type UserRole = 'owner' | 'admin' | 'member';
+
 export interface User {
   id: number;
   name: string;
   email: string;
+  /** Já vinha do `/auth/me` (UserResource); faltava só no tipo. */
+  role?: UserRole;
   phone?: string | null;
   is_active: boolean;
   address_id?: number | null;
@@ -130,6 +134,11 @@ export interface Step {
   name: string;
   description?: string | null;
   position: number;
+  /**
+   * `open` por padrão. Só `won`/`lost` carimbam `closed_at` no lead e fazem o
+   * funil existir — sem nenhuma etapa marcada, metade do dashboard fica vazia.
+   */
+  kind: StepKind;
   /** Soma dos valores dos leads da etapa, em centavos. */
   leads_value_total_cents: number;
   currency?: string;
@@ -138,16 +147,35 @@ export interface Step {
   updated_at?: string;
 }
 
+export type StepKind = 'open' | 'won' | 'lost';
+
 export interface CreateStepPayload {
   name: string;
   description?: string | null;
   position?: number;
+  kind?: StepKind;
 }
 
 export interface UpdateStepPayload {
   name?: string;
   description?: string | null;
   position?: number;
+  kind?: StepKind;
+}
+
+/**
+ * Motivo de perda, cadastrado por empresa (não por pipeline).
+ *
+ * O motivo padrão "Outro" existe para o campo poder ser obrigatório sem travar
+ * quem ainda não cadastrou os seus — e por isso o backend recusa excluí-lo ou
+ * desativá-lo.
+ */
+export interface LostReason {
+  id: number;
+  name: string;
+  position: number;
+  is_active: boolean;
+  is_default: boolean;
 }
 
 export interface Lead {
@@ -250,7 +278,7 @@ export interface UpdateGroupPayload {
   email_config_id?: number | null;
 }
 
-export type GroupSendStatus = 'processing' | 'completed' | 'completed_with_errors';
+export type GroupSendStatus = 'processing' | 'completed' | 'completed_with_errors' | 'failed';
 export type GroupRecipientStatus = 'queued' | 'sent' | 'failed';
 
 export interface GroupSend {
@@ -408,6 +436,16 @@ export interface CrmDashboardReport {
   window_days: number;
   leads_total: number;
   leads_last_30_days: number;
+  /**
+   * Servido pela API, **não renderizado**: o detalhamento por etapa virou o
+   * bloco de mediana do funil, que usa só passagens concluídas. Este aqui é
+   * média e inclui quem está parado na etapa agora — dois números para a
+   * mesma pergunta na mesma tela confundiam mais do que informavam.
+   *
+   * O campo fica no contrato (`LegacyReportContractTest`) e o cálculo é o
+   * mesmo de `general_avg_dwell_seconds`, que ainda alimenta o cartão de
+   * resumo — remover daqui não economizaria consulta nenhuma.
+   */
   avg_dwell_per_step: CrmDashboardDwellRow[];
   general_avg_dwell_seconds: number | null;
   dwell_observations: number;
@@ -912,4 +950,197 @@ export interface WhatsappUnofficialDispatchLog {
   created_by?: number | null;
   created_at?: string;
   updated_at?: string;
+}
+
+// --- Dashboards analíticos (docs/specs/dashboards) ---
+
+/**
+ * Toda razão da API vem assim. `value` nulo com `suppressed: true` significa
+ * "amostra pequena demais para o número significar algo" — e não zero.
+ * Renderizar sempre por `<RatioValue>`, nunca formatar à mão.
+ */
+export interface RatioMetric {
+  value: number | null;
+  n: number;
+  suppressed: boolean;
+}
+
+export type SetupRequirement = 'steps_kind' | 'owner' | 'lost_reasons';
+
+export interface DashboardMeta {
+  company_timezone: string;
+  currency: string;
+  generated_at: string;
+  window: {
+    from: string;
+    to: string;
+    from_utc: string;
+    to_utc: string;
+    days: number;
+  };
+  denominator: { label: string; n: number } | null;
+  coverage: Record<string, RatioMetric>;
+  /** Faixas, amostra mínima e limites vêm daqui — nunca de constantes no front. */
+  thresholds: Record<string, number | number[]>;
+  setup_required: SetupRequirement[];
+}
+
+export interface StalledBand {
+  label: string;
+  min_days: number;
+  max_days: number | null;
+  count: number;
+}
+
+export interface MyDayLead {
+  id: number;
+  name: string;
+  email: string;
+  value_cents: number | null;
+  step_id: number | null;
+  step_name: string | null;
+  crm_id: number | null;
+  crm_name: string | null;
+  in_step_since: string;
+}
+
+export interface MyDayEvent {
+  id: number;
+  title: string;
+  type: string;
+  status?: string;
+  starts_at: string;
+  ends_at?: string;
+  meeting_url?: string | null;
+  lead_id: number;
+  lead_name: string | null;
+}
+
+/** Bloco de lista paginado. `total` é a fila inteira, não a página. */
+export interface PaginatedBlock<T> {
+  total: number;
+  page: number;
+  per_page: number;
+  items: T[];
+}
+
+export interface MyDayDashboard {
+  leads_without_next_step: PaginatedBlock<MyDayLead>;
+  stalled_bands: StalledBand[];
+  day_agenda: PaginatedBlock<MyDayEvent>;
+  overdue_events: PaginatedBlock<MyDayEvent>;
+  /** `true` quando o usuário é `member`: a tela mostra a carteira própria. */
+  scoped_to_own_leads: boolean;
+}
+
+
+export interface EmailSendHealth {
+  id: number;
+  subject: string;
+  template_name: string;
+  status: GroupSendStatus;
+  created_at: string;
+  sent: number;
+  failed: number;
+  queued: number;
+  total: number;
+  failure_rate: RatioMetric;
+}
+
+export interface WhatsappChannelHealth {
+  sent: number;
+  failed: number;
+  pending: number;
+  skipped: number;
+  failure_rate: RatioMetric;
+}
+
+export interface DispatchHealthDashboard {
+  email: {
+    sent: number;
+    failed: number;
+    queued: number;
+    failure_rate: RatioMetric;
+    sends: EmailSendHealth[];
+    top_errors: { message: string; count: number }[];
+  };
+  whatsapp: {
+    channels: Record<'official' | 'unofficial', WhatsappChannelHealth>;
+    top_errors: { channel: string; message: string; count: number }[];
+  };
+}
+
+export interface FunnelStepDwell {
+  step_id: number;
+  name: string;
+  position: number;
+  kind: 'open' | 'won' | 'lost';
+  median_seconds: number | null;
+  p90_seconds: number | null;
+  n: number;
+}
+
+export interface FunnelDashboard {
+  crm_id: number;
+  new_leads: { total: number; manual: number; public: number; system: number };
+  closing: {
+    won: number;
+    lost: number;
+    win_rate: RatioMetric;
+    revenue_cents: number;
+    /** Divisor do ticket médio: ganho sem valor não é ganho de valor zero. */
+    won_with_value: number;
+    avg_ticket_cents: number | null;
+    cycle_seconds_median: number | null;
+    cycle_sample_size: number;
+    /** Ganhos fora do ciclo por terem data aproximada vinda do backfill. */
+    cycle_approximated: number;
+  };
+  /** Recorte por entrada — diferente de `closing`, que é por fechamento. */
+  cohort: { entered: number; won: number; lost: number; open: number; is_mature: boolean };
+  progression: { step_id: number; name: string; position: number; kind: string; reached: number }[];
+  dwell_closed: FunnelStepDwell[];
+  lost_reasons: { id: number | null; name: string; count: number }[];
+  /** Janela de FECHAMENTO, não de criação. Vazio até marcar ganho e perda. */
+  conversion_by_source: SourceConversion[];
+  /** O que sobrou da antiga "Saúde dos dados": quanto do que está acima é confiável. */
+  coverage: { live_leads: number; value: RatioMetric; source: RatioMetric };
+}
+
+export interface TeamPortfolioRow {
+  /** `null` é o bucket "(sem responsável)", que sempre existe. */
+  user_id: number | null;
+  name: string | null;
+  open_leads: number;
+  open_value_cents: number;
+  won: number;
+  lost: number;
+  revenue_cents: number;
+  won_with_value: number;
+  win_rate: RatioMetric;
+  avg_ticket_cents: number | null;
+}
+
+export interface TeamActivityRow {
+  user_id: number;
+  name: string | null;
+  manual_moves: number;
+  leads_touched: number;
+  meetings_completed: number;
+  meetings_no_show: number;
+  show_rate: RatioMetric;
+}
+
+export interface TeamDashboard {
+  portfolio: TeamPortfolioRow[];
+  activity: TeamActivityRow[];
+  has_any_owner: boolean;
+}
+
+export interface SourceConversion {
+  source: string | null;
+  label: string;
+  won: number;
+  lost: number;
+  win_rate: RatioMetric;
 }

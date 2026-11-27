@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CircleCheck, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Button from '@mui/material/Button';
+import { CircleCheck, Pencil, Plus, Trash2, UserCog, Users } from 'lucide-react';
 import {
   useCreateUserMutation,
   useDeleteUserMutation,
@@ -29,6 +31,7 @@ import { cn } from '@/src/lib/cn';
 import { applyServerErrors, getApiErrorMessage } from '@/src/lib/formErrors';
 import { PHONE_MAX_LENGTH, PHONE_REGEX, maskPhone } from '@/src/lib/format';
 import type { User } from '@/src/lib/types';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const userFormSchema = z
   .object({
@@ -218,19 +221,28 @@ export function TeamPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Equipe
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Gerencie os usuários vinculados à sua empresa.
-          </p>
-        </div>
-        <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-          Novo membro
-        </ActionButton>
-      </div>
+      <PageHeader
+        eyebrow="Configurações"
+        title="Equipe"
+        description="Gerencie os usuários vinculados à sua empresa."
+        actions={
+          <>
+            <Button
+              component={Link}
+              to="/team/dashboard"
+              variant="outlined"
+              color="inherit"
+              startIcon={<UserCog className="h-4 w-4" />}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
+              Dashboard
+            </Button>
+            <ActionButton type="button" onClick={openCreate} startIcon={<Plus className="h-4 w-4" />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+              Novo membro
+            </ActionButton>
+          </>
+        }
+      />
 
       <section className="overflow-hidden rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
         {usersQuery.isLoading && (

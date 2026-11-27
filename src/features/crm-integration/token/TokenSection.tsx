@@ -53,7 +53,7 @@ export function TokenSection({ crm }: TokenSectionProps) {
   return (
     <section
       aria-labelledby="token-section-title"
-      className="rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
+      className="rounded-2xl border border-zinc-950/[0.07] bg-white p-4 shadow-sm sm:p-5 dark:border-white/[0.07] dark:bg-[#17171a]"
     >
       <div className="flex items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-950/[0.04] text-zinc-500 dark:bg-white/[0.05] dark:text-zinc-400">
@@ -106,10 +106,14 @@ export function TokenSection({ crm }: TokenSectionProps) {
         >
           {maskTokenMiddle(crm.token)}
         </code>
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Empilhados no celular: "Copiar" primeiro, que é o que se faz aqui no
+            dia a dia, e "Regenerar" por último e afastado — ele invalida todas as
+            integrações do cliente e não pode estar no caminho do polegar. */}
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
           <ActionButton
             type="button"
             onClick={() => void copyToken()}
+            sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
             startIcon={
               copied ? (
                 <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" strokeWidth={2.2} />
@@ -125,6 +129,8 @@ export function TokenSection({ crm }: TokenSectionProps) {
             color="error"
             onClick={() => setConfirmOpen(true)}
             startIcon={<RefreshCw className="h-4 w-4" strokeWidth={1.8} />}
+            className="mt-2 sm:mt-0"
+            sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
           >
             Regenerar
           </Button>

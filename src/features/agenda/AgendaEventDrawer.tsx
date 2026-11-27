@@ -761,13 +761,32 @@ export function AgendaEventDrawer({ open, eventId, presetLeadId, onClose }: Agen
             )}
           </fieldset>
 
-          <div className="flex justify-end gap-2 border-t border-zinc-950/[0.07] pt-4 dark:border-white/[0.07]">
-            <Button type="button" variant="outlined" color="inherit" onClick={onClose} disabled={isPending}>
-              Cancelar
-            </Button>
-            <ActionButton type="submit" disabled={isPending}>
+          {/* Empilhado no celular, uma linha só de sm para cima. A ordem do DOM é
+              a ordem do celular — ação principal no topo, como manda a spec de
+              diálogos do Material para botões empilhados. As classes order-*
+              devolvem o layout de desktop: Cancelar à esquerda, principal à
+              direita. O submit vir primeiro no DOM também faz o Enter num campo
+              de texto cair nele, e não no Cancelar. */}
+          <div className="flex flex-col gap-2 border-t border-zinc-950/[0.07] pt-4 sm:flex-row sm:items-center sm:justify-end dark:border-white/[0.07]">
+            <ActionButton
+              type="submit"
+              disabled={isPending}
+              className="sm:order-2"
+              sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
+            >
               {isPending ? 'Salvando...' : eventQuery.data ? 'Salvar alterações' : 'Agendar'}
             </ActionButton>
+            <Button
+              type="button"
+              variant="outlined"
+              color="inherit"
+              onClick={onClose}
+              disabled={isPending}
+              className="sm:order-1"
+              sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
+            >
+              Cancelar
+            </Button>
           </div>
         </form>
       )}

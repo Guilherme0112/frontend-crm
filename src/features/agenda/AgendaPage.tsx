@@ -40,8 +40,7 @@ import {
   isSameDay,
   localDateKey,
   startOfWeek,
-  weekRange,
-} from './dates';
+  } from './dates';
 import {
   useAgendaEventsQuery,
   useAgendaLeadsQuery,
@@ -50,6 +49,7 @@ import {
   useCompleteAgendaEventMutation,
   useNoShowAgendaEventMutation,
 } from './hooks';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 interface DrawerState {
   eventId: number | null;
@@ -272,27 +272,22 @@ export function AgendaPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Agenda</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Agenda de leads
-          </h1>
-          <p className="mt-1 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
-            Compromissos, remarcações e lembretes da equipe.
-          </p>
-        </div>
-
-        <ActionButton
-          type="button"
-          onClick={() => setDrawer({ eventId: null })}
-          className="shrink-0 whitespace-nowrap"
-          sx={{ width: { xs: '100%', sm: 'auto' } }}
-          startIcon={<Plus className="h-4 w-4" />}
-        >
-          Novo evento
-        </ActionButton>
-      </div>
+      <PageHeader
+        eyebrow="Agenda"
+        title="Agenda de leads"
+        description="Compromissos, remarcações e lembretes da equipe."
+        actions={
+          <ActionButton
+            type="button"
+            onClick={() => setDrawer({ eventId: null })}
+            className="whitespace-nowrap"
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+            startIcon={<Plus className="h-4 w-4" />}
+          >
+            Novo evento
+          </ActionButton>
+        }
+      />
 
       <div className="flex flex-col gap-4 border-b border-zinc-950/[0.06] pb-4 dark:border-white/[0.06]">
         <div className="flex flex-wrap items-center justify-between gap-3">

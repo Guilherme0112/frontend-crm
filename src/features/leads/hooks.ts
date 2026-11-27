@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import * as api from '@/src/lib/api';
 import { queryKeys } from '@/src/lib/queryKeys';
+import { invalidateDashboards } from '@/src/lib/invalidateDashboards';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { useToast } from '@/src/components/common/Toast';
 import type { CreateLeadPayload, Lead, UpdateLeadPayload } from '@/src/lib/types';
@@ -15,6 +16,15 @@ function invalidateStepTotals(queryClient: QueryClient) {
   void queryClient.invalidateQueries({
     predicate: (query) => query.queryKey[0] === 'crms' && query.queryKey[2] === 'steps',
   });
+}
+
+/**
+ * Tudo que muda lead muda a página inicial: a fila "sem próximo passo", as
+ * faixas de tempo na etapa e o funil saem dos mesmos registros.
+ */
+function invalidateAfterLeadChange(queryClient: QueryClient) {
+  invalidateStepTotals(queryClient);
+  invalidateDashboards(queryClient);
 }
 
 export function useLeadSourceQuery(id: number | null) {
@@ -114,7 +124,7 @@ export function useCreateLeadMutation() {
     mutationFn: (payload: CreateLeadPayload) => api.createLead(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
-      invalidateStepTotals(queryClient);
+      invalidateAfterLeadChange(queryClient);
     },
   });
 }
@@ -126,7 +136,7 @@ export function useDeleteLeadMutation() {
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: queryKeys.leads.detail(id) });
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
-      invalidateStepTotals(queryClient);
+      invalidateAfterLeadChange(queryClient);
     },
   });
 }
@@ -141,19 +151,22 @@ export function useMoveLeadStepMutation() {
       stepId,
       previousId,
       nextId,
+      lostReasonId,
     }: {
       leadId: number;
       stepId: number;
       previousId?: number | null;
       nextId?: number | null;
-    }) => api.updateLeadStep(leadId, stepId, { previousId, nextId }),
+      /** Só na ida para uma etapa de perda; nas demais fica ausente. */
+      lostReasonId?: number | null;
+    }) => api.updateLeadStep(leadId, stepId, { previousId, nextId, lostReasonId }),
     onError: (error) => {
       toast.error('Não foi possível mover o lead', getApiErrorMessage(error));
     },
     onSettled: (_data, _error, { leadId }) => {
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.leads.detail(leadId) });
-      invalidateStepTotals(queryClient);
+      invalidateAfterLeadChange(queryClient);
     },
   });
 }
@@ -167,7 +180,7 @@ export function useUpdateLeadMutation() {
       queryClient.setQueryData(queryKeys.leads.detail(id), updated);
       void queryClient.invalidateQueries({ queryKey: ['leads'] });
       void queryClient.invalidateQueries({ queryKey: ['leads', id, 'source'] });
-      invalidateStepTotals(queryClient);
+      invalidateAfterLeadChange(queryClient);
     },
   });
 }

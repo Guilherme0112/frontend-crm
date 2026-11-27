@@ -14,7 +14,13 @@ import { Skeleton } from '@/src/components/common/Skeleton';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { formatDate, formatDuration } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
+import { MetricHelp } from '@/src/components/dashboards/MetricHelp';
+import { BarRow } from '@/src/components/charts/BarRow';
 import { DeviceBreakdown } from './DeviceBreakdown';
+import { FunnelSections } from '@/src/features/dashboards/FunnelSections';
+import { useAuth } from '@/src/auth/AuthContext';
+import { canViewReports } from '@/src/lib/permissions';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 function StatCard({
   label,
@@ -22,12 +28,14 @@ function StatCard({
   icon: Icon,
   tint,
   hint,
+  help,
 }: {
   label: string;
   value: string;
   icon: typeof BarChart3;
   tint: string;
   hint?: string;
+  help: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-zinc-950/[0.07] bg-white p-4 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
@@ -35,8 +43,9 @@ function StatCard({
         <Icon className="h-5 w-5" strokeWidth={1.8} />
       </span>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-          {label}
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+          <span className="min-w-0 truncate">{label}</span>
+          <MetricHelp label={label}>{help}</MetricHelp>
         </p>
         <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-zinc-950 dark:text-zinc-50">
           {value}
@@ -50,6 +59,7 @@ function StatCard({
 export function CrmDashboardPage() {
   const { id } = useParams();
   const crmId = Number(id);
+  const { user } = useAuth();
 
   const crmQuery = useCrmQuery(crmId);
   const dashboardQuery = useQuery({
@@ -126,54 +136,34 @@ export function CrmDashboardPage() {
   const data = dashboardQuery.data;
   const maxStepLeads = Math.max(1, ...data.leads_by_step.map((s) => s.leads));
   const maxSourceLeads = Math.max(1, ...data.leads_by_source_last_30_days.map((s) => s.leads));
-  const maxDwellStep = Math.max(0, ...data.avg_dwell_per_step.map((s) => s.avg_seconds ?? 0));
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav aria-label="Caminho" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
-        <Link to="/crms" className="transition-colors hover:text-zinc-700 dark:hover:text-zinc-200">
-          Todos os CRMs
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          to={`/crms/${crm.id}/board`}
-          className="max-w-40 truncate transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
-        >
-          {crm.name}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-zinc-600 dark:text-zinc-300">Visão geral</span>
-      </nav>
-
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
+      <PageHeader
+        trail={[
+          { to: '/crms', label: 'Todos os CRMs' },
+          { to: `/crms/${crm.id}/board`, label: crm.name },
+          { label: 'Visão geral' },
+        ]}
+        icon={
           <span
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-            style={{ backgroundColor: `${crm.color}1f`, color: crm.color }}
-            aria-hidden="true"
+            className="h-3.5 w-3.5 rounded-sm border border-black/10"
+            style={{ backgroundColor: crm.color || '#2563eb' }}
+          />
+        }
+        eyebrow="Relatório de 30 dias"
+        title={`${crm.name} — Visão geral`}
+        description={`Métricas dos últimos ${data.window_days} dias e distribuição atual dos leads por etapa.`}
+        actions={
+          <Link
+            to={`/crms/${crm.id}/board`}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07]"
           >
-            <BarChart3 className="h-6 w-6" strokeWidth={1.8} />
-          </span>
-          <div className="min-w-0">
-            <p className="eyebrow text-zinc-400 dark:text-zinc-500">Relatório de 30 dias</p>
-            <h1 className="mt-0.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-              {crm.name} — Visão geral
-            </h1>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Métricas dos últimos {data.window_days} dias e distribuição atual dos leads por etapa.
-            </p>
-          </div>
-        </div>
-        <Link
-          to={`/crms/${crm.id}/board`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar ao quadro
-        </Link>
-      </div>
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao quadro
+          </Link>
+        }
+      />
 
       {/* Stat tiles */}
       <section aria-label="Indicadores dos últimos 30 dias" className="grid gap-4 sm:grid-cols-3">
@@ -181,12 +171,14 @@ export function CrmDashboardPage() {
           label="Leads no total"
           value={String(data.leads_total)}
           icon={UsersRound}
+          help="Todos os leads vivos deste pipeline, sem recorte de período e sem separar por etapa. Lead excluído não conta; lead ganho ou perdido continua contando, porque ele existe."
           tint="bg-blue-50 text-blue-600 ring-blue-600/15 dark:bg-blue-950/50 dark:text-blue-400 dark:ring-blue-400/15"
         />
         <StatCard
           label="Leads (30 dias)"
           value={String(data.leads_last_30_days)}
           icon={BarChart3}
+          help="Leads criados na janela, pela data de cadastro. É volume de entrada: não diz nada sobre o que foi ganho ou perdido no mesmo período."
           tint="bg-violet-50 text-violet-600 ring-violet-600/15 dark:bg-violet-950/50 dark:text-violet-400 dark:ring-violet-400/15"
           hint={`nos últimos ${data.window_days} dias`}
         />
@@ -194,77 +186,30 @@ export function CrmDashboardPage() {
           label="Permanência média"
           value={formatDuration(data.general_avg_dwell_seconds)}
           icon={Timer}
+          help="Média do tempo que um lead fica numa etapa, somando todas elas e todo o histórico do pipeline. Conta também quem está parado numa etapa agora — por isso o número sobe sozinho num pipeline que não anda, e é essa a informação. Para o tempo de travessia já concluída, use 'Tempo por etapa' mais abaixo, que usa mediana e p90."
           tint="bg-emerald-50 text-emerald-600 ring-emerald-600/15 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-400/15"
           hint={`${data.dwell_observations} observações`}
         />
       </section>
 
       {/* Tempo médio por etapa */}
-      <section
-        aria-labelledby="dwell-title"
-        className="rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="dwell-title" className="flex items-center gap-2 font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-            <Timer className="h-4 w-4 text-zinc-400" strokeWidth={1.8} />
-            Tempo médio em cada etapa
-          </h2>
-          <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-            {data.dwell_observations} {data.dwell_observations === 1 ? 'observação' : 'observações'}
-          </span>
-        </div>
-
-        <ol className="mt-4 space-y-2.5">
-          {data.avg_dwell_per_step.map((step) => {
-            const pct =
-              step.avg_seconds !== null && step.avg_seconds !== undefined
-                ? Math.max(4, Math.round((step.avg_seconds / Math.max(maxDwellStep, 1)) * 100))
-                : 0;
-            return (
-              <li key={step.step_id} className="flex items-center gap-3">
-                <span className="w-40 shrink-0 truncate text-[12px] font-medium text-zinc-700 dark:text-zinc-300" title={step.name}>
-                  {step.position}. {step.name}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-white/[0.06]">
-                    {step.avg_seconds !== null && (
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    )}
-                  </div>
-                </div>
-                <span className="w-20 shrink-0 text-right font-mono text-[11px] font-semibold tabular-nums text-zinc-800 dark:text-zinc-100">
-                  {formatDuration(step.avg_seconds)}
-                </span>
-                <span className="hidden w-14 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-400 sm:inline dark:text-zinc-500">
-                  {step.observations}x
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-        {data.avg_dwell_per_step.every((s) => s.avg_seconds === null) && (
-          <p className="mt-3 text-sm text-zinc-400 dark:text-zinc-500">
-            Ainda não há observações suficientes para calcular o tempo médio.
-          </p>
-        )}
-        <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">
-          Médias calculadas a partir das transições registradas em <code className="font-mono">lead_step_changes</code>, incluindo o tempo que os leads atuais estão parados em cada etapa.
-        </p>
-      </section>
-
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Leads por etapa */}
         <section
           aria-labelledby="step-distribution-title"
           className="rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
         >
-          <div className="flex items-center justify-between gap-3">
-            <h2 id="step-distribution-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-              Leads por etapa (atual)
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 id="step-distribution-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
+                Leads por etapa (atual)
+              </h2>
+              <MetricHelp label="Leads por etapa (atual)">
+                Onde os leads estão <strong>agora</strong>, sem recorte de período. É uma foto
+                do quadro, não um histórico: mover um card muda este gráfico na hora. O valor
+                ao lado de cada etapa é a soma dos leads que têm valor preenchido.
+              </MetricHelp>
+            </div>
             <Link
               to={`/crms/${crm.id}/board`}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
@@ -275,24 +220,15 @@ export function CrmDashboardPage() {
           </div>
           <div className="mt-4 space-y-2.5">
             {data.leads_by_step.map((row) => {
-              const pct = Math.max(3, Math.round((row.leads / maxStepLeads) * 100));
               return (
-                <div key={row.step_id} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 truncate text-[12px] font-medium text-zinc-700 dark:text-zinc-300" title={row.name}>
-                    {row.position}. {row.name}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-white/[0.06]">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="w-8 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
-                    {row.leads}
-                  </span>
-                </div>
+                <BarRow
+                  key={row.step_id}
+                  label={`${row.position}. ${row.name}`}
+                  title={row.name}
+                  max={maxStepLeads}
+                  segments={[{ value: row.leads, className: 'bg-gradient-to-r from-blue-600 to-indigo-500' }]}
+                  value={row.leads}
+                />
               );
             })}
           </div>
@@ -303,9 +239,17 @@ export function CrmDashboardPage() {
           aria-labelledby="source-distribution-title"
           className="rounded-2xl border border-zinc-950/[0.07] bg-white p-5 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
         >
-          <h2 id="source-distribution-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-            Leads por origem — últimos 30 dias
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 id="source-distribution-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
+              Leads por origem — últimos 30 dias
+            </h2>
+            <MetricHelp label="Leads por origem — últimos 30 dias">
+              De onde vieram os leads <strong>criados</strong> nos últimos 30 dias, pelo
+              utm_source da captação. Lead cadastrado à mão não tem origem e cai em
+              "(não informado)" — ele não some da conta, só não ajuda a decidir onde
+              investir.
+            </MetricHelp>
+          </div>
           {data.leads_by_source_last_30_days.length === 0 ? (
             <p className="mt-4 text-sm text-zinc-400 dark:text-zinc-500">
               Nenhum lead com atribuição (UTM) cadastrado no período.
@@ -313,24 +257,17 @@ export function CrmDashboardPage() {
           ) : (
             <div className="mt-4 space-y-2.5">
               {data.leads_by_source_last_30_days.map((row) => {
-                const pct = Math.max(4, Math.round((row.leads / maxSourceLeads) * 100));
                 return (
-                  <div key={row.source} className="flex items-center gap-3">
-                    <span className="w-40 shrink-0 truncate font-mono text-[12px] font-semibold text-zinc-700 dark:text-zinc-300" title={row.source}>
-                      {row.source}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-white/[0.06]">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-violet-600 to-indigo-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="w-8 shrink-0 text-right font-mono text-[12px] font-semibold tabular-nums text-zinc-700 dark:text-zinc-200">
-                      {row.leads}
-                    </span>
-                  </div>
+                  <BarRow
+                    key={row.source}
+                    label={row.source}
+                    title={row.source}
+                    labelClassName="font-mono font-semibold"
+                    max={maxSourceLeads}
+                    minPercent={4}
+                    segments={[{ value: row.leads, className: 'bg-gradient-to-r from-violet-600 to-indigo-500' }]}
+                    value={row.leads}
+                  />
                 );
               })}
             </div>
@@ -353,15 +290,28 @@ export function CrmDashboardPage() {
         title="Leads por dispositivo — últimos 30 dias"
       />
 
-      {/* Recent changes */}
+      {canViewReports(user?.role) && <FunnelSections crmId={crmId} />}
+
+      {/*
+        Por último de propósito: é registro, não medida. Quem abre esta tela
+        vem atrás dos números — a lista de movimentações é o que se consulta
+        depois de achar algo estranho neles.
+      */}
       <section
         aria-labelledby="recent-changes-title"
         className="overflow-hidden rounded-2xl border border-zinc-950/[0.07] bg-white shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-950/[0.06] px-5 py-3.5 dark:border-white/[0.06]">
-          <h2 id="recent-changes-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
-            Últimas movimentações
-          </h2>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-zinc-950/[0.06] px-5 py-3.5 dark:border-white/[0.06]">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 id="recent-changes-title" className="font-display text-[13px] font-semibold tracking-tight text-zinc-700 dark:text-zinc-200">
+              Últimas movimentações
+            </h2>
+            <MetricHelp label="Últimas movimentações">
+              As trocas de etapa mais recentes deste pipeline, com quem moveu e quando.
+              Movimentação feita pela API pública aparece sem autor. Para o histórico
+              completo, use a auditoria.
+            </MetricHelp>
+          </div>
           <Link
             to={`/crms/${crm.id}/audit`}
             className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
@@ -378,7 +328,7 @@ export function CrmDashboardPage() {
           <ul className="divide-y divide-zinc-950/[0.05] dark:divide-white/[0.05]">
             {data.recent_step_changes.map((change) => (
               <li key={change.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-5 py-3 text-[13px]">
-                <span className="min-w-0 flex-1 truncate font-semibold text-zinc-800 dark:text-zinc-100">
+                <span className="w-full min-w-0 truncate font-semibold text-zinc-800 sm:w-auto sm:flex-1 dark:text-zinc-100">
                   {change.lead.name}
                   <span className="ml-2 font-normal text-zinc-400 dark:text-zinc-500">{change.lead.email}</span>
                 </span>

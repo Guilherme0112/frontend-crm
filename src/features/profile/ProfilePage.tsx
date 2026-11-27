@@ -5,6 +5,7 @@ import { useTheme } from '@/src/theme/ThemeContext';
 import { getInitials } from '@/src/lib/format';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
 import { cn } from '@/src/lib/cn';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const THEMES = [
   { id: 'light', label: 'Claro', icon: Sun },
@@ -18,14 +19,11 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Meu Perfil
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Seus dados e preferências de exibição.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Configurações"
+        title="Meu Perfil"
+        description="Seus dados e preferências de exibição."
+      />
 
       <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 shadow-sm dark:border-white/[0.07] dark:bg-[#17171a]">
         <div className="flex items-center gap-4">

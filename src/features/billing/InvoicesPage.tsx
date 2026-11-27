@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Eye, FileText } from 'lucide-react';
-import { useInvoicesQuery, usePayInvoiceMutation } from './hooks';
+import { Eye, FileText } from 'lucide-react';
+import { useInvoicesQuery } from './hooks';
 import * as api from '@/src/lib/api';
 import { Pagination } from '@/src/components/common/Pagination';
 import { TableRowsSkeleton } from '@/src/components/common/Skeleton';
@@ -15,13 +15,12 @@ import {
 import { useToast } from '@/src/components/common/Toast';
 import { getApiErrorMessage } from '@/src/lib/formErrors';
 import { formatCurrency, formatDate, formatDateTime } from '@/src/lib/format';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 export function InvoicesPage() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const invoicesQuery = useInvoicesQuery(page);
-  const payMutation = usePayInvoiceMutation();
-  const [payingId, setPayingId] = useState<number | null>(null);
 
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
@@ -63,25 +62,13 @@ export function InvoicesPage() {
     }
   };
 
-  const handlePay = async (invoiceId: number) => {
-    setPayingId(invoiceId);
-    try {
-      await payMutation.mutateAsync(invoiceId);
-      toast.success('Fatura marcada como paga');
-    } catch (error) {
-      toast.error('Erro ao pagar fatura', getApiErrorMessage(error));
-    } finally {
-      setPayingId(null);
-    }
-  };
-
   const invoices = invoicesQuery.data?.data ?? [];
   const meta = invoicesQuery.data?.meta ?? null;
   const total = meta?.total ?? 0;
   const lastPage = meta?.last_page ?? 1;
 
-  // A última fatura em aberto de uma página pode ser paga e sair do filtro;
-  // se a página deixar de existir, volta para a última válida.
+  // A baixa chega pelo webhook e pode esvaziar a última página enquanto ela
+  // está aberta; se a página deixar de existir, volta para a última válida.
   useEffect(() => {
     if (meta && page > meta.last_page) {
       setPage(Math.max(1, meta.last_page));
@@ -90,23 +77,19 @@ export function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Faturas
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Acompanhe as cobranças geradas pelas assinaturas e registre pagamentos.
-          </p>
-        </div>
-
-        <Link
-          to="/billing"
-          className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
-        >
-          Gerenciar assinatura
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Financeiro"
+        title="Faturas"
+        description="Acompanhe as cobranças geradas pelas assinaturas. A baixa é automática: o Mercado Pago avisa quando o pagamento entra."
+        actions={
+          <Link
+            to="/billing"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-zinc-950/[0.12] bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.12] dark:bg-[#17171a] dark:text-zinc-200 dark:hover:bg-white/[0.07]"
+          >
+            Gerenciar assinatura
+          </Link>
+        }
+      />
 
       {invoicesQuery.isPending ? (
         <div className="rounded-xl border border-zinc-950/[0.07] bg-white dark:border-white/[0.07] dark:bg-[#17171a]">
@@ -176,14 +159,6 @@ export function InvoicesPage() {
                       <TableActionsMenu
                         label={`Ações da fatura #${inv.id}`}
                         actions={[
-                          ...(inv.status === 'open'
-                            ? [{
-                                label: payingId === inv.id ? 'Pagando...' : 'Marcar como paga',
-                                icon: <CheckCircle2 className="h-4 w-4" />,
-                                disabled: payingId === inv.id,
-                                onClick: () => void handlePay(inv.id),
-                              }]
-                            : []),
                           {
                             label: downloadingId === inv.id ? 'Gerando...' : 'Ver recibo',
                             icon: <Eye className="h-4 w-4" />,

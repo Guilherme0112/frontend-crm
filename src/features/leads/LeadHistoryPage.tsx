@@ -1,8 +1,8 @@
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, Mail, MoveRight, Send } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { CalendarDays, Mail, MoveRight, Send } from 'lucide-react';
 import { useLeadHistoryQuery } from './hooks';
 import { StatusIndicator } from '@/src/components/common/StatusBadge';
 import { Skeleton } from '@/src/components/common/Skeleton';
@@ -15,6 +15,7 @@ import type {
   LeadHistoryMovement,
 } from '@/src/lib/types';
 import { AGENDA_ACTION_LABEL, AGENDA_TYPE_LABEL } from '@/src/features/agenda/constants';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 type Filter = 'all' | 'movement' | 'email' | 'agenda';
 
@@ -144,33 +145,25 @@ export function LeadHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link
-            to={`/leads/${leadId}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao lead
-          </Link>
-          <h1 className="mt-3 font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Histórico do lead
-          </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {history
-              ? `${history.lead.name} · ${history.lead.email}`
-              : 'Movimentações, origem e e-mails recebidos.'}
-          </p>
-        </div>
-
-        {history && (
-          <div className="flex flex-wrap gap-2">
-            <Chip size="small" variant="outlined" label={`${history.counts.movements} movimentações`} />
-            <Chip size="small" variant="outlined" label={`${history.counts.emails} e-mails`} />
-            <Chip size="small" variant="outlined" label={`${history.counts.agenda ?? 0} agenda`} />
-          </div>
-        )}
-      </div>
+      <PageHeader
+        trail={[{ to: `/leads/${leadId}`, label: 'Voltar ao lead' }]}
+        eyebrow="Lead"
+        title="Histórico do lead"
+        description={
+          history
+            ? `${history.lead.name} · ${history.lead.email}`
+            : 'Movimentações, origem e e-mails recebidos.'
+        }
+        actions={
+          history && (
+            <div className="flex flex-wrap gap-2">
+              <Chip size="small" variant="outlined" label={`${history.counts.movements} movimentações`} />
+              <Chip size="small" variant="outlined" label={`${history.counts.emails} e-mails`} />
+              <Chip size="small" variant="outlined" label={`${history.counts.agenda ?? 0} agenda`} />
+            </div>
+          )
+        }
+      />
 
       {history?.source && (
         <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-5 dark:border-white/[0.07] dark:bg-[#17171a]">

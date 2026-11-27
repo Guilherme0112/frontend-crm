@@ -37,7 +37,7 @@ interface KanbanColumnProps {
   step: Step;
   draggingLeadId: number | null;
   draggingStepId: number | null;
-  onDragStart: (e: DragEvent<HTMLDivElement>, leadId: number) => void;
+  onDragStart: (e: DragEvent<HTMLDivElement>, leadId: number, leadName: string) => void;
   onDragEnd: () => void;
   onDropLead: (
     leadId: number,

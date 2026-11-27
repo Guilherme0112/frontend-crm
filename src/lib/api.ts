@@ -1,5 +1,6 @@
 ﻿import axios from 'axios';
 import type {
+  LostReason,
   ApiResponse,
   AuthSessionData,
   AgendaEvent,
@@ -332,12 +333,16 @@ export async function deleteLead(id: number): Promise<void> {
 export async function updateLeadStep(
   id: number,
   stepId: number,
-  options: { previousId?: number | null; nextId?: number | null } = {},
+  options: { previousId?: number | null; nextId?: number | null; lostReasonId?: number | null } = {},
 ): Promise<Lead> {
   const res = await apiClient.patch<ApiResponse<Lead>>(`/leads/${id}/step`, {
     step_id: stepId,
     previous_id: options.previousId ?? null,
     next_id: options.nextId ?? null,
+    // Só vai quando o destino é etapa de perda. Mandar `null` numa
+    // transição comum é inofensivo, mas numa reabertura o backend lê isso
+    // como "limpar o motivo" — que é exatamente o que ele deve fazer.
+    ...(options.lostReasonId !== undefined ? { lost_reason_id: options.lostReasonId } : {}),
   });
   return res.data.data;
 }
@@ -662,11 +667,6 @@ export async function downloadInvoicePdf(id: number): Promise<{ blob: Blob; file
   return { blob, fileName: match?.[1] ?? `recibo-${id}.pdf` };
 }
 
-export async function payInvoice(id: number): Promise<Invoice> {
-  const res = await apiClient.patch<ApiResponse<Invoice>>(`/invoices/${id}/pay`);
-  return res.data.data;
-}
-
 // --- WhatsApp Senders ---
 export async function listWhatsappSenders(): Promise<WhatsappSender[]> {
   const res = await apiClient.get<ApiResponse<WhatsappSender[]>>('/whatsapp-senders');
@@ -837,3 +837,32 @@ export async function listWhatsappUnofficialDispatchLogs(
   return res.data;
 }
 
+// --- Motivos de perda ---
+
+/**
+ * `onlyActive` serve o seletor de perda; a tela de gerenciamento lista tudo,
+ * para o usuário conseguir reativar o que desativou.
+ */
+export async function listLostReasons(onlyActive = false): Promise<LostReason[]> {
+  const res = await apiClient.get<ApiResponse<LostReason[]>>('/lost-reasons', {
+    params: onlyActive ? { only_active: 1 } : undefined,
+  });
+  return res.data.data;
+}
+
+export async function createLostReason(payload: { name: string; position?: number }): Promise<LostReason> {
+  const res = await apiClient.post<ApiResponse<LostReason>>('/lost-reasons', payload);
+  return res.data.data;
+}
+
+export async function updateLostReason(
+  id: number,
+  payload: { name?: string; position?: number; is_active?: boolean },
+): Promise<LostReason> {
+  const res = await apiClient.put<ApiResponse<LostReason>>(`/lost-reasons/${id}`, payload);
+  return res.data.data;
+}
+
+export async function deleteLostReason(id: number): Promise<void> {
+  await apiClient.delete(`/lost-reasons/${id}`);
+}

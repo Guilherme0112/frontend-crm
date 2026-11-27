@@ -11,6 +11,7 @@ import { EmptyState } from '@/src/components/common/EmptyState';
 import { ErrorState } from '@/src/components/common/ErrorState';
 import { formatDate } from '@/src/lib/format';
 import { cn } from '@/src/lib/cn';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const SOURCE_META: Record<string, { label: string; className: string }> = {
   manual: {
@@ -100,41 +101,25 @@ export function CrmAuditPage() {
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <nav aria-label="Caminho" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-500">
-        <Link to="/crms" className="transition-colors hover:text-zinc-700 dark:hover:text-zinc-200">
-          Todos os CRMs
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          to={`/crms/${crm.id}/board`}
-          className="max-w-40 truncate transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
-        >
-          {crm.name}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-zinc-600 dark:text-zinc-300">Auditoria</span>
-      </nav>
-
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow text-zinc-400 dark:text-zinc-500">Histórico de mudanças</p>
-          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Auditoria de mudanças
-          </h1>
-          <p className="mt-1 max-w-lg text-sm text-zinc-500 dark:text-zinc-400">
-            Toda vez que um lead troca de etapa — quem moveu, de onde para onde e quando. Dados por empresa e por CRM.
-          </p>
-        </div>
-        <Link
-          to={`/crms/${crm.id}/board`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar ao quadro
-        </Link>
-      </div>
+      <PageHeader
+        trail={[
+          { to: '/crms', label: 'Todos os CRMs' },
+          { to: `/crms/${crm.id}/board`, label: crm.name },
+          { label: 'Auditoria' },
+        ]}
+        eyebrow="Histórico de mudanças"
+        title="Auditoria de mudanças"
+        description="Toda vez que um lead troca de etapa — quem moveu, de onde para onde e quando. Dados por empresa e por CRM."
+        actions={
+          <Link
+            to={`/crms/${crm.id}/board`}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-zinc-950/[0.1] bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 sm:w-auto dark:border-white/[0.1] dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:bg-white/[0.07]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao quadro
+          </Link>
+        }
+      />
 
       {/* Table */}
       <section

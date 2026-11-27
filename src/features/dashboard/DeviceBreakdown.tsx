@@ -179,7 +179,7 @@ export function DeviceBreakdown({
 
           {/* Legenda com rótulo direto: identidade nunca depende só da cor,
               e cobre a regra de alívio do aqua em tema claro. */}
-          <ul className="mt-4 grid gap-x-5 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-4">
+          <ul className="mt-4 flex flex-wrap items-center gap-x-7 gap-y-2.5">
             {items.map((item) => {
               const Icon = item.icon;
               return (
@@ -207,13 +207,13 @@ export function DeviceBreakdown({
                     strokeWidth={1.8}
                     aria-hidden="true"
                   />
-                  <span className="min-w-0 flex-1 truncate text-[12px] text-zinc-600 dark:text-zinc-300">
+                  <span className="min-w-0 truncate text-[12px] text-zinc-600 dark:text-zinc-300">
                     {item.label}
                   </span>
                   <span className="shrink-0 font-mono text-[12px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                     {item.leads}
                   </span>
-                  <span className="w-10 shrink-0 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
                     {item.pct.toFixed(0)}%
                   </span>
                 </li>

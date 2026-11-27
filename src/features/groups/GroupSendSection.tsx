@@ -31,6 +31,13 @@ function statusMeta(status: GroupSendStatus): { label: string; className: string
         label: 'Concluído',
         className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300',
       };
+    case 'failed':
+      // Sem este case o lote totalmente falho cairia no default e ficaria
+      // "Enviando…" pulsando para sempre.
+      return {
+        label: 'Falhou',
+        className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300',
+      };
     case 'completed_with_errors':
       return {
         label: 'Concluído com falhas',
@@ -146,6 +153,9 @@ export function GroupSendSection({ groupId, defaultExpanded = false }: { groupId
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-600/15 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-400/15">
                       {send.status === 'processing' ? (
                         <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                      ) : send.status === 'failed' ? (
+                        /* MailCheck aqui diria "enviado" num lote em que nada saiu. */
+                        <XCircle className="h-4 w-4" strokeWidth={1.8} />
                       ) : (
                         <MailCheck className="h-4 w-4" strokeWidth={1.8} />
                       )}

@@ -79,24 +79,29 @@ function LeadSummary({ lead, onClose }: { lead: Lead; onClose: () => void }) {
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-zinc-950/[0.06] bg-gradient-to-br from-blue-50 via-white to-white p-5 dark:from-blue-950/30 dark:via-[#17171a] dark:to-[#17171a] dark:border-white/[0.07]">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white shadow-sm">
-          {initials || '?'}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {lead.name}
-            </h2>
-            {lead.step_name && (
-              <Chip size="small" variant="outlined" color="primary" label={lead.step_name} />
-            )}
+      {/* No celular o botão "Ver página" não cabe na mesma linha do avatar + nome:
+          ele espremia o bloco de texto e quebrava o próprio rótulo em duas linhas.
+          Abaixo de sm ele desce para baixo, em largura cheia. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex min-w-0 flex-1 items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white shadow-sm">
+            {initials || '?'}
           </div>
-          <p className="mt-0.5 truncate text-sm text-zinc-600 dark:text-zinc-400">{lead.email}</p>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
-            Lead #{lead.id} · Criado em {formatDateTime(lead.created_at)}
-          </p>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                {lead.name}
+              </h2>
+              {lead.step_name && (
+                <Chip size="small" variant="outlined" color="primary" label={lead.step_name} />
+              )}
+            </div>
+            <p className="mt-0.5 truncate text-sm text-zinc-600 dark:text-zinc-400">{lead.email}</p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+              Lead #{lead.id} · Criado em {formatDateTime(lead.created_at)}
+            </p>
+          </div>
         </div>
 
         <ActionButton
@@ -105,6 +110,7 @@ function LeadSummary({ lead, onClose }: { lead: Lead; onClose: () => void }) {
           onClick={onClose}
           size="small"
           startIcon={<ExternalLink className="h-4 w-4" />}
+          sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' } }}
         >
           Ver página
         </ActionButton>
@@ -340,24 +346,46 @@ export function LeadDrawer({ leadId, steps, onClose }: LeadDrawerProps) {
               </FormField>
             </section>
 
-            <div className="sticky bottom-0 z-10 mt-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-950/[0.07] bg-white/95 p-3 shadow-sm backdrop-blur dark:border-white/[0.07] dark:bg-[#17171a]/95">
+            {/* Empilhado no celular, uma linha só de sm para cima.
+                A ordem no DOM é a ordem do celular — "Salvar" no topo, como manda
+                a spec de diálogos do Material para botões empilhados: numa pilha
+                quem decide é a ordem de leitura, não a distância do polegar.
+                "Excluir" fica por último e afastado, longe do alvo de toque fácil.
+                No desktop as classes order-* devolvem o layout de sempre:
+                Excluir à esquerda, Fechar e Salvar à direita. */}
+            <div className="sticky bottom-0 z-10 mt-1 flex flex-col gap-2 rounded-xl border border-zinc-950/[0.07] bg-white/95 p-3 shadow-sm backdrop-blur dark:border-white/[0.07] dark:bg-[#17171a]/95 sm:flex-row sm:items-center sm:gap-3">
+              <ActionButton
+                type="submit"
+                size="small"
+                disabled={updateMutation.isPending}
+                className="sm:order-3"
+                sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
+              >
+                {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+              </ActionButton>
+
+              <Button
+                variant="outlined"
+                color="inherit"
+                size="small"
+                onClick={onClose}
+                className="sm:order-2 sm:ml-auto"
+                sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
+              >
+                Fechar
+              </Button>
+
               <Button
                 variant="outlined"
                 color="error"
                 size="small"
                 startIcon={<Trash2 className="h-4 w-4" />}
                 onClick={() => setConfirmOpen(true)}
+                className="mt-2 sm:order-1 sm:mt-0"
+                sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
               >
                 Excluir
               </Button>
-              <div className="flex items-center gap-2">
-                <Button variant="outlined" color="inherit" size="small" onClick={onClose}>
-                  Fechar
-                </Button>
-                <ActionButton type="submit" size="small" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-                </ActionButton>
-              </div>
             </div>
           </form>
         )}

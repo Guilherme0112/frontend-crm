@@ -42,6 +42,7 @@ import { AgendaEventDrawer } from '@/src/features/agenda/AgendaEventDrawer';
 import { AGENDA_STATUS_META, AGENDA_TYPE_LABEL } from '@/src/features/agenda/constants';
 import { addDays, toIsoUtc } from '@/src/features/agenda/dates';
 import { useAgendaEventsQuery } from '@/src/features/agenda/hooks';
+import { PageHeader } from '@/src/components/layout/PageHeader';
 
 const leadDetailSchema = z.object({
   name: z.string().trim().min(2, 'Informe o nome do lead'),
@@ -187,7 +188,7 @@ export function LeadDetailPage() {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <Skeleton className="h-8 w-48" />
-        <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+        <div className="rounded-xl border border-zinc-950/[0.07] bg-white p-4 dark:border-white/[0.07] sm:p-6 dark:bg-[#17171a]">
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
@@ -221,53 +222,52 @@ export function LeadDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <Link
-            to="/crms"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Voltar para CRMs</span>
-          </Link>
-          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            {lead.name}
-          </h1>
-          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {[
-              lead.step_name ? `Etapa: ${lead.step_name}` : null,
-              `Criado em ${formatDateTime(lead.created_at)}`,
-            ]
-              .filter(Boolean)
-              .join(' · ')}
-          </p>
-        </div>
+      <PageHeader
+        trail={[{ to: '/crms', label: 'Voltar para CRMs' }]}
+        eyebrow="Lead"
+        title={lead.name}
+        description={[
+          lead.step_name ? `Etapa: ${lead.step_name}` : null,
+          `Criado em ${formatDateTime(lead.created_at)}`,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        /*
+          Empilhados em largura cheia no celular, lado a lado de sm para cima.
+          Mesmo critério do rodapé do drawer: a ação comum vem primeiro na
+          ordem de leitura e "Excluir lead" fica por último e afastado, longe
+          do alvo de toque fácil no fim da pilha.
+        */
+        actions={
+          <>
+            <Button
+              component={Link}
+              to={`/leads/${lead.id}/history`}
+              variant="outlined"
+              size="small"
+              startIcon={<History className="h-4 w-4" />}
+              sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
+            >
+              Ver histórico
+            </Button>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            component={Link}
-            to={`/leads/${lead.id}/history`}
-            variant="outlined"
-            size="small"
-            startIcon={<History className="h-4 w-4" />}
-          >
-            Ver histórico
-          </Button>
+            <Button
+              type="button"
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<Trash2 className="h-4 w-4" />}
+              onClick={() => setConfirmOpen(true)}
+              className="mt-2 sm:mt-0"
+              sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
+            >
+              Excluir lead
+            </Button>
+          </>
+        }
+      />
 
-          <Button
-            type="button"
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={<Trash2 className="h-4 w-4" />}
-            onClick={() => setConfirmOpen(true)}
-          >
-            Excluir lead
-          </Button>
-        </div>
-      </div>
-
-      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
+      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-4 dark:border-white/[0.07] sm:p-6 dark:bg-[#17171a]">
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-5 sm:grid-cols-2" noValidate>
           <FormField label="Nome" htmlFor="lead-name" required error={errors.name?.message} dense className="sm:col-span-2">
             <TextInput
@@ -364,7 +364,7 @@ export function LeadDetailPage() {
             />
           </FormField>
 
-          <fieldset className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.07] p-5 sm:col-span-2 sm:grid-cols-2 dark:border-white/[0.07]">
+          <fieldset className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.07] p-4 sm:col-span-2 sm:grid-cols-2 sm:p-5 dark:border-white/[0.07]">
             <legend className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:col-span-2 dark:text-zinc-400">
               <MapPin className="h-3.5 w-3.5" strokeWidth={1.8} />
               Endereço
@@ -430,7 +430,7 @@ export function LeadDetailPage() {
             </FormField>
           </fieldset>
 
-          <fieldset className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.07] p-5 sm:col-span-2 sm:grid-cols-2 dark:border-white/[0.07]">
+          <fieldset className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-950/[0.07] p-4 sm:col-span-2 sm:grid-cols-2 sm:p-5 dark:border-white/[0.07]">
             <legend className="flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:col-span-2 dark:text-zinc-400">
               <Megaphone className="h-3.5 w-3.5" strokeWidth={1.8} />
               Origem (UTM)
@@ -510,16 +510,20 @@ export function LeadDetailPage() {
           </fieldset>
 
           <div className="flex justify-end border-t border-zinc-950/[0.07] pt-5 sm:col-span-2 dark:border-white/[0.07]">
-            <ActionButton type="submit" disabled={updateMutation.isPending || !isDirty}>
+            <ActionButton
+              type="submit"
+              disabled={updateMutation.isPending || !isDirty}
+              sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' } }}
+            >
               {updateMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
             </ActionButton>
           </div>
         </form>
       </section>
 
-      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-6 dark:border-white/[0.07] dark:bg-[#17171a]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+      <section className="rounded-xl border border-zinc-950/[0.07] bg-white p-4 dark:border-white/[0.07] sm:p-6 dark:bg-[#17171a]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
               <CalendarDays className="h-4 w-4" />
               <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -535,6 +539,7 @@ export function LeadDetailPage() {
             size="small"
             startIcon={<Plus className="h-4 w-4" />}
             onClick={() => setAgendaDrawerOpen(true)}
+            sx={{ width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 40, sm: 'auto' }, flexShrink: 0 }}
           >
             Novo evento
           </ActionButton>
@@ -567,9 +572,11 @@ export function LeadDetailPage() {
                 label: event.status,
               };
 
+              // Sem shrink-0 no selo, o flex-wrap antigo o jogava para uma linha
+              // própria e alinhado à esquerda, longe do evento a que pertence.
               return (
-                <li key={event.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                  <div className="min-w-0">
+                <li key={event.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
                       {event.title}
                     </p>
@@ -578,7 +585,7 @@ export function LeadDetailPage() {
                       {AGENDA_TYPE_LABEL[event.type] ?? event.type}
                     </p>
                   </div>
-                  <StatusIndicator tone={status.tone} label={status.label} />
+                  <StatusIndicator tone={status.tone} label={status.label} className="shrink-0" />
                 </li>
               );
             })}
